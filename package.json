@@ -6,26 +6,35 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "babel-plugin-inline-import": "^3.0.0",
     "drizzle-orm": "^0.44.3",
     "expo": "~53.0.20",
     "expo-router": "~5.1.4",
+    "expo-secure-store": "~14.2.3",
     "expo-sqlite": "^15.2.14",
     "expo-status-bar": "~2.2.3",
+    "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-gesture-handler": "~2.24.0",
-    "react-native-reanimated": "~3.17.4",
+    "react-native-reanimated": "~3.17.5",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+    "autoprefixer": "^10.4.21",
+    "babel-plugin-inline-import": "^3.0.0",
+    "babel-plugin-module-resolver": "^5.0.2",
     "drizzle-kit": "^0.31.4",
+    "postcss": "^8.5.6",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3"
   },
   "private": true

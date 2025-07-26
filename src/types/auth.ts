@@ -1,0 +1,33 @@
+import { User, UserRole } from "./user";
+
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role?: UserRole;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    user: User;
+    tokens: AuthTokens;
+  };
+}
