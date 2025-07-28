@@ -10,8 +10,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { drizzle } from "drizzle-orm/expo-sqlite";
+import { useIsConnected } from 'react-native-offline';
 import * as schema from "@/db/schema";
 import { createDbHelpers } from "@/db";
+import AttendanceService from "@/services/attendance";
+import NetworkStatus from "@/components/NetworkStatus";
 
 type Teacher = {
   id: number;
@@ -32,6 +35,7 @@ type AttendanceRecord = {
 };
 
 export default function Attendance() {
+  const isConnected = useIsConnected();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [attendance, setAttendance] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -52,6 +56,13 @@ export default function Attendance() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-sync when coming online
+  useEffect(() => {
+    if (isConnected) {
+      AttendanceService.syncPendingOperations();
+    }
+  }, [isConnected]);
 
   const loadTeachersAndAttendance = async () => {
     try {
@@ -89,17 +100,59 @@ export default function Attendance() {
     try {
       setSaving(true);
 
-      const attendancePromises = teachers.map((teacher) => {
-        const isPresent = attendance[teacher.id] ? 1 : 0;
-        return dbHelpers.saveAttendance({
-          teacherId: teacher.id,
-          date: today,
-          isPresent,
+      if (isConnected) {
+        // Online: Save directly to database and server
+        const attendancePromises = teachers.map((teacher) => {
+          const isPresent = attendance[teacher.id] ? 1 : 0;
+          return dbHelpers.saveAttendance({
+            teacherId: teacher.id,
+            date: today,
+            isPresent,
+          });
         });
-      });
 
-      await Promise.all(attendancePromises);
-      Alert.alert("Success", "Attendance saved successfully!");
+        await Promise.all(attendancePromises);
+        
+        // Try to sync with server if you have an API
+        try {
+          await AttendanceService.syncPendingOperations();
+        } catch (syncError) {
+          console.log("Sync failed, but local save successful:", syncError);
+        }
+        
+        Alert.alert("Success", "Attendance saved successfully!");
+      } else {
+        // Offline: Save to local database and queue for sync
+        const attendancePromises = teachers.map(async (teacher) => {
+          const isPresent = attendance[teacher.id] ? 1 : 0;
+          
+          // Save to local database
+          await dbHelpers.saveAttendance({
+            teacherId: teacher.id,
+            date: today,
+            isPresent,
+          });
+
+          // Queue for sync when online (now using public method)
+          await AttendanceService.addToPendingSync({
+            type: 'CREATE',
+            data: {
+              type: 'teacher',
+              payload: {
+                teacherId: teacher.id,
+                date: today,
+                status: isPresent ? 'PRESENT' : 'ABSENT',
+              },
+            },
+          });
+        });
+
+        await Promise.all(attendancePromises);
+        Alert.alert(
+          "Saved Offline", 
+          "Attendance saved locally. Will sync when internet is available."
+        );
+      }
     } catch (error) {
       console.error("Error saving attendance:", error);
       Alert.alert("Error", "Failed to save attendance");
@@ -140,9 +193,17 @@ export default function Attendance() {
 
   return (
     <View style={styles.container}>
+      {/* Network Status */}
+      <NetworkStatus />
+      
       <View style={styles.header}>
         <Text style={styles.title}>Take Attendance</Text>
         <Text style={styles.date}>{new Date(today).toLocaleDateString()}</Text>
+        {!isConnected && (
+          <Text style={styles.offlineNote}>
+            📱 Working offline - changes will sync when online
+          </Text>
+        )}
       </View>
 
       {teachers.length === 0 ? (
@@ -168,7 +229,7 @@ export default function Attendance() {
             disabled={saving}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? "Saving..." : "Save Attendance"}
+              {saving ? "Saving..." : isConnected ? "Save Attendance" : "Save Offline"}
             </Text>
           </TouchableOpacity>
         </>
@@ -197,6 +258,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     marginTop: 4,
+  },
+  offlineNote: {
+    fontSize: 14,
+    color: "#f59e0b",
+    marginTop: 8,
+    fontWeight: "500",
   },
   loadingContainer: {
     flex: 1,
