@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   AuthTokens,
@@ -91,7 +91,7 @@ class ApiClient {
   // Get authentication token
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync("access_token");
+      return await AsyncStorage.getItem("access_token");
     } catch (error) {
       console.error("Error getting auth token:", error);
       return null;

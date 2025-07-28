@@ -8,15 +8,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from "react-native";
-import { router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import { AuthService } from "@/services";
-import { Ionicons } from "@expo/vector-icons";
+import { Eye, EyeOff, Mail, Lock, School } from "lucide-react-native";
 import { useUserStore } from "@/stores/userStore";
 import { LabelInput } from "@/components/label-input";
 
 const LoginScreen = () => {
   const { setUser } = useUserStore();
+  const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,14 +37,14 @@ const LoginScreen = () => {
       setUser(response.user);
 
       // Navigate to home screen
-      router.replace("/");
+      navigation.navigate("Dashboard" as never);
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert(
         "Login Failed",
         error instanceof Error
           ? error.message
-          : "Invalid credentials. Please try again."
+          : "Invalid credentials. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -51,17 +52,22 @@ const LoginScreen = () => {
   };
 
   const handleForgotPassword = () => {
-    router.push("/forgot-password");
+    // TODO: Implement forgot password
+    Alert.alert(
+      "Not Implemented",
+      "Forgot password feature is not implemented yet.",
+    );
   };
 
   const handleRegister = () => {
-    router.push("/register");
+    // TODO: Implement register
+    Alert.alert("Not Implemented", "Register feature is not implemented yet.");
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+      className="flex-1 bg-black"
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -72,7 +78,7 @@ const LoginScreen = () => {
             {/* Header */}
             <View className="items-center mb-12">
               <View className="w-20 h-20 bg-primary rounded-full items-center justify-center mb-4">
-                <Ionicons name="school" size={40} color="white" />
+                <School size={40} color="white" />
               </View>
               <Text className="text-3xl font-bold text-foreground mb-2">
                 Welcome Back
@@ -88,7 +94,7 @@ const LoginScreen = () => {
                 label="Email"
                 value={email}
                 onChangeText={setEmail}
-                icon="mail"
+                icon={Mail}
                 placeholder="Enter your email"
               />
               <LabelInput
@@ -97,7 +103,7 @@ const LoginScreen = () => {
                 type={showPassword ? "text" : "password"}
                 onChangeText={setPassword}
                 onIconPress={() => setShowPassword(!showPassword)}
-                icon={showPassword ? "eye-off" : "eye"}
+                icon={showPassword ? EyeOff : Eye}
                 placeholder="Enter your password"
               />
 

@@ -1,23 +1,12 @@
-import { attendanceApi, handleApiError } from "@/lib/api";
 import {
-  TeacherAttendance,
-  StudentAttendance,
-  CreateTeacherAttendanceRequest,
-  UpdateTeacherAttendanceRequest,
-  CreateStudentAttendanceRequest,
-  UpdateStudentAttendanceRequest,
   AttendanceStatus,
-} from "@/types/attendance";
-
-// Re-export the types for backward compatibility
-export {
   TeacherAttendance,
   StudentAttendance,
   CreateTeacherAttendanceRequest,
   UpdateTeacherAttendanceRequest,
   CreateStudentAttendanceRequest,
-  UpdateStudentAttendanceRequest,
-};
+} from '@/types/attendance';
+import { attendanceApi, handleApiError } from '@/lib/api';
 
 export interface AttendanceListParams {
   page?: number;
@@ -70,7 +59,7 @@ class AttendanceService {
    * Get a single teacher attendance record
    */
   static async getTeacherAttendanceRecord(
-    id: string
+    id: string,
   ): Promise<TeacherAttendance> {
     try {
       const response = await attendanceApi.teacher.get(id);
@@ -84,7 +73,7 @@ class AttendanceService {
    * Create a new teacher attendance record
    */
   static async createTeacherAttendance(
-    attendanceData: CreateTeacherAttendanceRequest
+    attendanceData: CreateTeacherAttendanceRequest,
   ): Promise<TeacherAttendance> {
     try {
       const response = await attendanceApi.teacher.create(attendanceData);
@@ -99,7 +88,7 @@ class AttendanceService {
    */
   static async updateTeacherAttendance(
     id: string,
-    attendanceData: UpdateTeacherAttendanceRequest
+    attendanceData: UpdateTeacherAttendanceRequest,
   ): Promise<TeacherAttendance> {
     try {
       const response = await attendanceApi.teacher.update(id, attendanceData);
@@ -136,7 +125,7 @@ class AttendanceService {
    * Get attendance by teacher
    */
   static async getAttendanceByTeacher(
-    teacherId: string
+    teacherId: string,
   ): Promise<TeacherAttendance[]> {
     try {
       const response = await attendanceApi.teacher.byTeacher(teacherId);
@@ -150,7 +139,7 @@ class AttendanceService {
    * Get student attendance by class
    */
   static async getStudentAttendanceByClass(
-    classId: string
+    classId: string,
   ): Promise<StudentAttendance[]> {
     try {
       const response = await attendanceApi.student.byClass(classId);
@@ -165,7 +154,7 @@ class AttendanceService {
    */
   static async getStudentAttendanceByClassAndDate(
     classId: string,
-    date: string
+    date: string,
   ): Promise<StudentAttendance[]> {
     try {
       const response = await attendanceApi.student.list({
@@ -182,7 +171,7 @@ class AttendanceService {
    * Create student attendance record
    */
   static async createStudentAttendance(
-    attendanceData: CreateStudentAttendanceRequest
+    attendanceData: CreateStudentAttendanceRequest,
   ): Promise<StudentAttendance> {
     try {
       const response = await attendanceApi.student.create(attendanceData);
@@ -196,11 +185,11 @@ class AttendanceService {
    * Bulk create student attendance records
    */
   static async bulkCreateStudentAttendance(
-    attendanceData: CreateStudentAttendanceRequest[]
+    attendanceData: CreateStudentAttendanceRequest[],
   ): Promise<StudentAttendance[]> {
     try {
-      const promises = attendanceData.map((data) =>
-        this.createStudentAttendance(data)
+      const promises = attendanceData.map(data =>
+        this.createStudentAttendance(data),
       );
       return await Promise.all(promises);
     } catch (error) {
@@ -214,7 +203,7 @@ class AttendanceService {
   static async markTeacherPresent(
     teacherId: string,
     date: string,
-    checkInTime?: string
+    checkInTime?: string,
   ): Promise<TeacherAttendance> {
     const attendanceData: CreateTeacherAttendanceRequest = {
       teacherId,
@@ -232,7 +221,7 @@ class AttendanceService {
   static async markTeacherAbsent(
     teacherId: string,
     date: string,
-    notes?: string
+    notes?: string,
   ): Promise<TeacherAttendance> {
     const attendanceData: CreateTeacherAttendanceRequest = {
       teacherId,
@@ -249,7 +238,7 @@ class AttendanceService {
    */
   static async checkOutTeacher(
     attendanceId: string,
-    checkOutTime: string
+    checkOutTime: string,
   ): Promise<TeacherAttendance> {
     return this.updateTeacherAttendance(attendanceId, {
       checkOut: checkOutTime,
@@ -261,7 +250,7 @@ class AttendanceService {
    */
   static async getAttendanceSummary(
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<AttendanceSummary> {
     try {
       // Get teacher attendance for the date range
@@ -273,7 +262,7 @@ class AttendanceService {
       const attendance = response.data;
       const total = attendance.length;
       const present = attendance.filter(
-        (a: TeacherAttendance) => a.status === AttendanceStatus.PRESENT
+        (a: TeacherAttendance) => a.status === AttendanceStatus.PRESENT,
       ).length;
       const absent = total - present;
 
@@ -293,11 +282,11 @@ class AttendanceService {
    * Bulk mark attendance for multiple teachers
    */
   static async bulkMarkTeacherAttendance(
-    attendanceData: CreateTeacherAttendanceRequest[]
+    attendanceData: CreateTeacherAttendanceRequest[],
   ): Promise<TeacherAttendance[]> {
     try {
-      const promises = attendanceData.map((data) =>
-        this.createTeacherAttendance(data)
+      const promises = attendanceData.map(data =>
+        this.createTeacherAttendance(data),
       );
       return await Promise.all(promises);
     } catch (error) {

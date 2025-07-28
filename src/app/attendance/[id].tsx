@@ -6,9 +6,19 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  MinusCircle, 
+  HelpCircle,
+  Calendar,
+  TrendingUp,
+  ArrowLeftRight,
+  Users
+} from "lucide-react-native";
 import React, { useState, useEffect } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ClassesService from "@/services/classes";
@@ -23,7 +33,9 @@ interface StudentWithAttendance extends Student {
 }
 
 export default function AttendancePage() {
-  const { id } = useLocalSearchParams();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { id } = route.params as { id: string };
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State for class data
@@ -41,7 +53,7 @@ export default function AttendancePage() {
       try {
         setClassLoading(true);
         setClassError(null);
-        const data = await ClassesService.getClassWithDetails(id as string);
+        const data = await ClassesService.getClassWithDetails(id);
         setClassData(data);
       } catch (error) {
         const errorMessage =
@@ -90,15 +102,15 @@ export default function AttendancePage() {
   const getStatusIcon = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "checkmark-circle";
+        return CheckCircle;
       case AttendanceStatus.ABSENT:
-        return "close-circle";
+        return XCircle;
       case AttendanceStatus.LATE:
-        return "time";
+        return Clock;
       case AttendanceStatus.HALF_DAY:
-        return "remove-circle";
+        return MinusCircle;
       default:
-        return "help-circle";
+        return HelpCircle;
     }
   };
 
@@ -180,7 +192,7 @@ export default function AttendancePage() {
       Alert.alert("Success!", "Attendance has been recorded successfully.", [
         {
           text: "OK",
-          onPress: () => router.back(),
+          onPress: () => navigation.goBack(),
         },
       ]);
     } catch (error) {
@@ -210,15 +222,17 @@ export default function AttendancePage() {
   if (classError || !classData) {
     return (
       <View className="flex-1 bg-background justify-center items-center px-5">
-        <Ionicons name="alert-circle" size={64} color="#ef4444" />
+        <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-4">
+          <XCircle size={32} color="#ef4444" />
+        </View>
         <Text className="text-lg text-foreground mt-4 text-center">
           {classError || "Class not found"}
         </Text>
         <TouchableOpacity
           className="mt-4 px-6 py-3 bg-primary rounded-xl"
-          onPress={() => window.location.reload()}
+          onPress={() => navigation.goBack()}
         >
-          <Text className="text-white font-medium">Try Again</Text>
+          <Text className="text-white font-medium">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -239,7 +253,7 @@ export default function AttendancePage() {
                 )
               }
             >
-              <Ionicons name="calendar" size={20} className="text-foreground" />
+              <Calendar size={20} className="text-foreground" />
             </TouchableOpacity>
           }
         />
@@ -255,7 +269,7 @@ export default function AttendancePage() {
             <View className="flex-row justify-around">
               <View className="items-center gap-2">
                 <View className="w-10 h-10 rounded-full bg-green-100 justify-center items-center">
-                  <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                  <CheckCircle size={20} color="#10b981" />
                 </View>
                 <Text className="text-xl font-bold text-foreground">
                   {stats.present}
@@ -264,7 +278,7 @@ export default function AttendancePage() {
               </View>
               <View className="items-center gap-2">
                 <View className="w-10 h-10 rounded-full bg-yellow-100 justify-center items-center">
-                  <Ionicons name="time" size={20} color="#f59e0b" />
+                  <Clock size={20} color="#f59e0b" />
                 </View>
                 <Text className="text-xl font-bold text-foreground">
                   {stats.late}
@@ -273,7 +287,7 @@ export default function AttendancePage() {
               </View>
               <View className="items-center gap-2">
                 <View className="w-10 h-10 rounded-full bg-purple-100 justify-center items-center">
-                  <Ionicons name="remove-circle" size={20} color="#8b5cf6" />
+                  <MinusCircle size={20} color="#8b5cf6" />
                 </View>
                 <Text className="text-xl font-bold text-foreground">
                   {stats.halfDay}
@@ -282,7 +296,7 @@ export default function AttendancePage() {
               </View>
               <View className="items-center gap-2">
                 <View className="w-10 h-10 rounded-full bg-red-100 justify-center items-center">
-                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                  <XCircle size={20} color="#ef4444" />
                 </View>
                 <Text className="text-xl font-bold text-foreground">
                   {stats.absent}
@@ -296,7 +310,7 @@ export default function AttendancePage() {
                   className="w-12 h-12 rounded-full justify-center items-center"
                   style={{ backgroundColor: "#8b5cf6" + "20" }}
                 >
-                  <Ionicons name="trending-up" size={24} color="#8b5cf6" />
+                  <TrendingUp size={24} color="#8b5cf6" />
                 </View>
                 <Text className="text-2xl font-bold text-foreground mt-2">
                   {stats.attendanceRate}%
@@ -329,55 +343,55 @@ export default function AttendancePage() {
             )}
 
             <View className="gap-3">
-              {students.map((student) => (
-                <TouchableOpacity
-                  key={student.id}
-                  className="flex-row p-4 rounded-xl bg-card border border-border gap-4 items-center"
-                  onPress={() => toggleStatus(student.id)}
-                >
-                  <View className="flex-1">
-                    <Text className="text-base font-semibold text-foreground mb-1">
-                      {student.firstName} {student.lastName}
-                    </Text>
-                    <Text className="text-sm text-muted-foreground">
-                      ID: {student.studentId}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons
-                        name={getStatusIcon(student.attendanceStatus) as any}
-                        size={24}
-                        color={getStatusColor(student.attendanceStatus)}
-                      />
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
-                          color: getStatusColor(student.attendanceStatus),
-                        }}
-                      >
-                        {getStatusText(student.attendanceStatus)}
+              {students.map((student) => {
+                const StatusIcon = getStatusIcon(student.attendanceStatus);
+                return (
+                  <TouchableOpacity
+                    key={student.id}
+                    className="flex-row p-4 rounded-xl bg-card border border-border gap-4 items-center"
+                    onPress={() => toggleStatus(student.id)}
+                  >
+                    <View className="flex-1">
+                      <Text className="text-base font-semibold text-foreground mb-1">
+                        {student.firstName} {student.lastName}
+                      </Text>
+                      <Text className="text-sm text-muted-foreground">
+                        ID: {student.studentId}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      className="w-8 h-8 rounded-full border border-border justify-center items-center"
-                      onPress={() => toggleStatus(student.id)}
-                    >
-                      <Ionicons
-                        name="swap-horizontal"
-                        size={16}
-                        className="text-muted-foreground"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View className="flex-row items-center gap-3">
+                      <View className="flex-row items-center gap-2">
+                        <StatusIcon
+                          size={24}
+                          color={getStatusColor(student.attendanceStatus)}
+                        />
+                        <Text
+                          className="text-sm font-medium"
+                          style={{
+                            color: getStatusColor(student.attendanceStatus),
+                          }}
+                        >
+                          {getStatusText(student.attendanceStatus)}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        className="w-8 h-8 rounded-full border border-border justify-center items-center"
+                        onPress={() => toggleStatus(student.id)}
+                      >
+                        <ArrowLeftRight
+                          size={16}
+                          className="text-muted-foreground"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {students.length === 0 && !studentsLoading && (
               <View className="py-8 items-center">
-                <Ionicons
-                  name="people-outline"
+                <Users
                   size={48}
                   className="text-muted-foreground"
                 />
@@ -406,7 +420,7 @@ export default function AttendancePage() {
                 </Text>
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={24} color="white" />
+                  <CheckCircle size={24} color="white" />
                   <Text className="text-base font-semibold text-white">
                     Submit Attendance
                   </Text>

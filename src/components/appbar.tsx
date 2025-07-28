@@ -1,6 +1,6 @@
 import React from "react";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { ArrowLeft } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface AppbarProps {
@@ -16,14 +16,16 @@ export const Appbar = ({
   trailing,
   showBack = true,
 }: AppbarProps) => {
+  const navigation = useNavigation();
+  
   return (
     <View className="flex-row items-center gap-4 border-b border-border px-4 py-2">
       {showBack && (
         <TouchableOpacity
           className="size-10 rounded-full bg-card border border-border justify-center items-center"
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} className="text-foreground" />
+          <ArrowLeft size={24} className="text-foreground" />
         </TouchableOpacity>
       )}
       <View className="flex-1">

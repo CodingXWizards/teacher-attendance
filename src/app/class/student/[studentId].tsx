@@ -5,9 +5,22 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar, 
+  User, 
+  School,
+  CheckCircle,
+  XCircle,
+  Clock,
+  MinusCircle,
+  BarChart3,
+  Calendar as CalendarIcon
+} from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { StudentsService } from "@/services";
 import { Appbar } from "@/components/appbar";
@@ -15,7 +28,9 @@ import { Student, StudentAttendance } from "@/types";
 import { ScreenLoader } from "@/components/screen-loader";
 
 const StudentScreen = () => {
-  const { studentId } = useLocalSearchParams();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { studentId } = route.params as { studentId: string };
 
   const [studentInfo, setStudentInfo] = useState<Student | null>(null);
   const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
@@ -25,8 +40,8 @@ const StudentScreen = () => {
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
-      StudentsService.getStudentById(studentId as string),
-      StudentsService.getStudentAttendance(studentId as string),
+      StudentsService.getStudentById(studentId),
+      StudentsService.getStudentAttendance(studentId),
     ])
       .then(([studentRes, attendanceRes]) => {
         setStudentInfo(studentRes);
@@ -95,15 +110,15 @@ const StudentScreen = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "present":
-        return "checkmark-circle";
+        return "✓";
       case "absent":
-        return "close-circle";
+        return "✗";
       case "late":
-        return "time";
+        return "⏰";
       case "half_day":
-        return "remove-circle";
+        return "⊖";
       default:
-        return "help-circle";
+        return "?";
     }
   };
 
@@ -175,8 +190,7 @@ const StudentScreen = () => {
                       Student ID: {studentInfo.studentId}
                     </Text>
                     <View className="flex-row items-center bg-blue-50 px-3 py-1 rounded-full self-start">
-                      <Ionicons
-                        name="school"
+                      <School
                         size={16}
                         color="#2563eb"
                         className="mr-2"
@@ -198,7 +212,7 @@ const StudentScreen = () => {
               <View className="bg-white rounded-2xl p-4 border border-border flex flex-col gap-4">
                 <View className="flex-row items-center p-3 bg-gray-50 rounded-xl">
                   <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="mail" size={20} color="#2563eb" />
+                    <Mail size={20} color="#2563eb" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-500 font-medium">
@@ -210,7 +224,7 @@ const StudentScreen = () => {
 
                 <View className="flex-row items-center p-3 bg-gray-50 rounded-xl">
                   <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="call" size={20} color="#16a34a" />
+                    <Phone size={20} color="#16a34a" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-500 font-medium">
@@ -222,7 +236,7 @@ const StudentScreen = () => {
 
                 <View className="flex-row items-center p-3 bg-gray-50 rounded-xl">
                   <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="location" size={20} color="#8b5cf6" />
+                    <MapPin size={20} color="#8b5cf6" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-500 font-medium">
@@ -234,7 +248,7 @@ const StudentScreen = () => {
 
                 <View className="flex-row items-center p-3 bg-gray-50 rounded-xl">
                   <View className="w-10 h-10 bg-orange-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="calendar" size={20} color="#f59e0b" />
+                    <Calendar size={20} color="#f59e0b" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-500 font-medium">
@@ -248,7 +262,7 @@ const StudentScreen = () => {
 
                 <View className="flex-row items-center p-3 bg-gray-50 rounded-xl">
                   <View className="w-10 h-10 bg-pink-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="person-circle" size={20} color="#ec4899" />
+                    <User size={20} color="#ec4899" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-500 font-medium">
@@ -271,8 +285,7 @@ const StudentScreen = () => {
                 <View className="flex flex-row gap-4">
                   <View className="bg-green-50 flex-1 p-3 rounded-xl border border-green-200">
                     <View className="flex-row items-center justify-between mb-3">
-                      <Ionicons
-                        name="checkmark-circle"
+                      <CheckCircle
                         size={24}
                         color="#16a34a"
                       />
@@ -285,7 +298,7 @@ const StudentScreen = () => {
 
                   <View className="bg-red-50 flex-1 p-3 rounded-xl border border-red-200">
                     <View className="flex-row items-center justify-between mb-3">
-                      <Ionicons name="close-circle" size={24} color="#ef4444" />
+                      <XCircle size={24} color="#ef4444" />
                       <Text className="text-2xl font-bold text-red-600">
                         {stats.absent}
                       </Text>
@@ -297,7 +310,7 @@ const StudentScreen = () => {
                 <View className="flex flex-row gap-4">
                   <View className="bg-yellow-50 flex-1 p-3 rounded-xl border border-yellow-200">
                     <View className="flex-row items-center justify-between mb-3">
-                      <Ionicons name="time" size={24} color="#f59e0b" />
+                      <Clock size={24} color="#f59e0b" />
                       <Text className="text-2xl font-bold text-yellow-600">
                         {stats.late}
                       </Text>
@@ -307,7 +320,7 @@ const StudentScreen = () => {
 
                   <View className="bg-blue-50 flex-1 p-3 rounded-xl border border-blue-200">
                     <View className="flex-row items-center justify-between mb-3">
-                      <Ionicons name="analytics" size={24} color="#2563eb" />
+                      <BarChart3 size={24} color="#2563eb" />
                       <Text className="text-2xl font-bold text-blue-600">
                         {stats.total}
                       </Text>
@@ -544,8 +557,7 @@ const StudentScreen = () => {
                 ) : (
                   <View className="items-center py-8">
                     <View className="w-16 h-16 bg-gray-100 rounded-full items-center justify-center mb-4">
-                      <Ionicons
-                        name="calendar-outline"
+                      <CalendarIcon
                         size={32}
                         className="text-gray-400"
                       />
@@ -567,8 +579,7 @@ const StudentScreen = () => {
       {!studentInfo && !isLoading && (
         <View className="flex-1 items-center justify-center p-6">
           <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-6">
-            <Ionicons
-              name="person-remove"
+            <User
               size={40}
               className="text-gray-400"
             />

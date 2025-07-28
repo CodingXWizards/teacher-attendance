@@ -1,6 +1,30 @@
-import { drizzle } from "drizzle-orm/expo-sqlite";
+import { open } from "react-native-quick-sqlite";
 import * as schema from "./schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+
+// Database name
+export const DATABASE_NAME = "teacher-attendance-v2";
+
+// Initialize database
+let database: any = null;
+
+export const initDatabase = async (): Promise<any> => {
+  if (database) {
+    return database;
+  }
+
+  try {
+    database = open({
+      name: DATABASE_NAME,
+      location: "default",
+    });
+    
+    console.log("Database initialized successfully");
+    return database;
+  } catch (error) {
+    console.error("Error initializing database:", error);
+    throw error;
+  }
+};
 
 // Export all schema tables
 export const { User, Teacher, Attendance, Subject } = schema;
@@ -9,7 +33,8 @@ export const { User, Teacher, Attendance, Subject } = schema;
 export const createDbHelpers = (db: any) => ({
   // Teacher operations
   async getAllTeachers() {
-    return await db.select().from(schema.Teacher).all();
+    const results = db.execute("SELECT * FROM Teacher");
+    return results.rows;
   },
 
   async addTeacher(teacher: {
@@ -18,42 +43,60 @@ export const createDbHelpers = (db: any) => ({
     email?: string;
     phone?: string;
   }) {
-    return await db.insert(schema.Teacher).values(teacher).returning();
+    const result = db.execute(
+      "INSERT INTO Teacher (name, subject, email, phone) VALUES (?, ?, ?, ?)",
+      [
+        teacher.name,
+        teacher.subject,
+        teacher.email || null,
+        teacher.phone || null,
+      ]
+    );
+    return result;
   },
 
   async updateTeacher(
     id: number,
     teacher: Partial<typeof schema.Teacher.$inferInsert>
   ) {
-    return await db
-      .update(schema.Teacher)
-      .set(teacher)
-      .where(eq(schema.Teacher.id, id))
-      .returning();
+    const fields = Object.keys(teacher).filter(
+      (key) => teacher[key as keyof typeof teacher] !== undefined
+    );
+    const values = fields.map(
+      (field) => teacher[field as keyof typeof teacher]
+    );
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
+
+    const result = db.execute(
+      `UPDATE Teacher SET ${setClause} WHERE id = ?`,
+      [...values, id]
+    );
+    return result;
   },
 
   async deleteTeacher(id: number) {
-    return await db.delete(schema.Teacher).where(eq(schema.Teacher.id, id));
+    const result = db.execute("DELETE FROM Teacher WHERE id = ?", [id]);
+    return result;
   },
 
   // Attendance operations
   async getAttendanceByDate(date: string) {
-    return await db
-      .select({
-        id: schema.Attendance.id,
-        teacherId: schema.Attendance.teacherId,
-        teacherName: schema.Teacher.name,
-        teacherSubject: schema.Teacher.subject,
-        date: schema.Attendance.date,
-        isPresent: schema.Attendance.isPresent,
-      })
-      .from(schema.Attendance)
-      .innerJoin(
-        schema.Teacher,
-        eq(schema.Attendance.teacherId, schema.Teacher.id)
-      )
-      .where(eq(schema.Attendance.date, date))
-      .all();
+    const results = db.execute(
+      `
+        SELECT 
+          a.id,
+          a.teacherId,
+          t.name as teacherName,
+          t.subject as teacherSubject,
+          a.date,
+          a.isPresent
+        FROM Attendance a
+        INNER JOIN Teacher t ON a.teacherId = t.id
+        WHERE a.date = ?
+      `,
+      [date]
+    );
+    return results.rows;
   },
 
   async saveAttendance(attendance: {
@@ -62,48 +105,43 @@ export const createDbHelpers = (db: any) => ({
     isPresent: number;
   }) {
     // Check if attendance already exists for this teacher and date
-    const existing = await db
-      .select()
-      .from(schema.Attendance)
-      .where(
-        and(
-          eq(schema.Attendance.teacherId, attendance.teacherId),
-          eq(schema.Attendance.date, attendance.date)
-        )
-      )
-      .get();
+    const existing = db.execute(
+      "SELECT id FROM Attendance WHERE teacherId = ? AND date = ?",
+      [attendance.teacherId, attendance.date]
+    );
 
-    if (existing) {
+    if (existing.rows.length > 0) {
       // Update existing attendance
-      return await db
-        .update(schema.Attendance)
-        .set({ isPresent: attendance.isPresent })
-        .where(eq(schema.Attendance.id, existing.id))
-        .returning();
+      const result = db.execute(
+        "UPDATE Attendance SET isPresent = ? WHERE id = ?",
+        [attendance.isPresent, existing.rows[0].id]
+      );
+      return result;
     } else {
       // Insert new attendance
-      return await db.insert(schema.Attendance).values(attendance).returning();
+      const result = db.execute(
+        "INSERT INTO Attendance (teacherId, date, isPresent) VALUES (?, ?, ?)",
+        [attendance.teacherId, attendance.date, attendance.isPresent]
+      );
+      return result;
     }
   },
 
   async getAttendanceHistory(limit = 30) {
-    return await db
-      .select({
-        date: schema.Attendance.date,
-        present:
-          sql`SUM(CASE WHEN ${schema.Attendance.isPresent} = 1 THEN 1 ELSE 0 END)`.as(
-            "present"
-          ),
-        absent:
-          sql`SUM(CASE WHEN ${schema.Attendance.isPresent} = 0 THEN 1 ELSE 0 END)`.as(
-            "absent"
-          ),
-        total: sql`COUNT(*)`.as("total"),
-      })
-      .from(schema.Attendance)
-      .groupBy(schema.Attendance.date)
-      .orderBy(desc(schema.Attendance.date))
-      .limit(limit)
-      .all();
+    const results = db.execute(
+      `
+        SELECT 
+          date,
+          SUM(CASE WHEN isPresent = 1 THEN 1 ELSE 0 END) as present,
+          SUM(CASE WHEN isPresent = 0 THEN 1 ELSE 0 END) as absent,
+          COUNT(*) as total
+        FROM Attendance
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT ?
+      `,
+      [limit]
+    );
+    return results.rows;
   },
 });

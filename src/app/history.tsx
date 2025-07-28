@@ -1,10 +1,7 @@
 import { View, Text, StyleSheet, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
-import { useSQLiteContext } from "expo-sqlite";
-import { drizzle } from "drizzle-orm/expo-sqlite";
-import * as schema from "@/db/schema";
-import { createDbHelpers } from "@/db";
+import { useDatabase } from "@/components/DatabaseProvider";
 
 type HistoryRecord = {
   date: string;
@@ -17,10 +14,8 @@ export default function History() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Get the SQLite database instance from context
-  const expoDb = useSQLiteContext();
-  const db = drizzle(expoDb, { schema });
-  const dbHelpers = createDbHelpers(db);
+  // Get the database helpers from context
+  const { dbHelpers } = useDatabase();
 
   useEffect(() => {
     // Add a small delay to ensure migration is complete
@@ -32,6 +27,8 @@ export default function History() {
   }, []);
 
   const loadHistory = async () => {
+    if (!dbHelpers) return;
+    
     try {
       setLoading(true);
       const historyData = await dbHelpers.getAttendanceHistory(30);

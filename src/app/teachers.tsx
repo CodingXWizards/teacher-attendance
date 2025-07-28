@@ -14,7 +14,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useApi } from "@/hooks/useApi";
 import { TeachersService } from "@/services";
-import { Ionicons } from "@expo/vector-icons";
+import { 
+  Plus, 
+  Trash2, 
+  User, 
+  Users,
+  Mail, 
+  Phone,
+  AlertCircle
+} from "lucide-react-native";
 import { TeacherWithUser, CreateTeacherRequest } from "@/types";
 
 export default function Teachers() {
@@ -146,7 +154,9 @@ export default function Teachers() {
   if (error) {
     return (
       <View className="flex-1 bg-background justify-center items-center px-5">
-        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-4">
+          <AlertCircle size={32} color="#ef4444" />
+        </View>
         <Text className="text-foreground text-lg font-semibold mt-4 mb-2">
           Something went wrong
         </Text>
@@ -175,8 +185,7 @@ export default function Teachers() {
 
         {teachers.length === 0 ? (
           <View className="flex-1 justify-center items-center px-5">
-            <Ionicons
-              name="people-outline"
+            <Users
               size={48}
               className="text-muted-foreground"
             />

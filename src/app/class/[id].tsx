@@ -7,17 +7,24 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+} from 'react-native';
+import {
+  Search,
+  AlertCircle,
+  Users,
+  Edit,
+  BarChart3,
+  MoreVertical,
+} from 'lucide-react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 
-import { Appbar } from "@/components/appbar";
-import ClassesService from "@/services/classes";
-import { ClassWithDetails, Student } from "@/types";
-import { AttendanceStatus } from "@/types/attendance";
-import AttendanceService from "@/services/attendance";
+import { Appbar } from '@/components/appbar';
+import ClassesService from '@/services/classes';
+import { ClassWithDetails, Student } from '@/types';
+import { AttendanceStatus } from '@/types/attendance';
+import AttendanceService from '@/services/attendance';
 
 // Extended student interface with attendance info
 interface StudentWithAttendance extends Student {
@@ -29,11 +36,13 @@ interface StudentWithAttendance extends Student {
 }
 
 export default function ClassDetail() {
-  const { id } = useLocalSearchParams();
-  const [searchQuery, setSearchQuery] = useState("");
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { id } = route.params as { id: string };
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "present" | "absent" | "late"
-  >("all");
+    'all' | 'present' | 'absent' | 'late'
+  >('all');
 
   // State for class data
   const [classData, setClassData] = useState<ClassWithDetails | null>(null);
@@ -51,15 +60,15 @@ export default function ClassDetail() {
       try {
         setClassLoading(true);
         setClassError(null);
-        const data = await ClassesService.getClassWithDetails(id as string);
+        const data = await ClassesService.getClassWithDetails(id);
         setClassData(data);
       } catch (error) {
         const errorMessage =
           error instanceof Error
             ? error.message
-            : "Failed to load class details";
+            : 'Failed to load class details';
         setClassError(errorMessage);
-        Alert.alert("Error", errorMessage);
+        Alert.alert('Error', errorMessage);
       } finally {
         setClassLoading(false);
       }
@@ -78,15 +87,15 @@ export default function ClassDetail() {
       try {
         setAttendanceLoading(true);
         setAttendanceError(null);
-        const today = new Date().toISOString().split("T")[0];
+        const today = new Date().toISOString().split('T')[0];
         const data = await AttendanceService.getStudentAttendanceByClassAndDate(
-          id as string,
-          today
+          id,
+          today,
         );
         setTodayAttendance(data);
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Failed to load attendance";
+          error instanceof Error ? error.message : 'Failed to load attendance';
         setAttendanceError(errorMessage);
         console.warn("Failed to load today's attendance:", errorMessage);
       } finally {
@@ -102,13 +111,13 @@ export default function ClassDetail() {
     try {
       setClassLoading(true);
       setClassError(null);
-      const data = await ClassesService.getClassWithDetails(id as string);
+      const data = await ClassesService.getClassWithDetails(id);
       setClassData(data);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to load class details";
+        error instanceof Error ? error.message : 'Failed to load class details';
       setClassError(errorMessage);
-      Alert.alert("Error", errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setClassLoading(false);
     }
@@ -120,15 +129,15 @@ export default function ClassDetail() {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toISOString().split('T')[0];
       const data = await AttendanceService.getStudentAttendanceByClassAndDate(
-        id as string,
-        today
+        id,
+        today,
       );
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to load attendance";
+        error instanceof Error ? error.message : 'Failed to load attendance';
       setAttendanceError(errorMessage);
       console.warn("Failed to load today's attendance:", errorMessage);
     } finally {
@@ -145,10 +154,10 @@ export default function ClassDetail() {
   const studentsWithAttendance = useMemo(() => {
     if (!classData?.students) return [];
 
-    return classData.students.map((student) => {
+    return classData.students.map(student => {
       // Find today's attendance for this student
       const todayRecord = todayAttendance?.find(
-        (att: any) => att.studentId === student.id
+        (att: any) => att.studentId === student.id,
       );
 
       // Calculate attendance percentage (mock calculation for now)
@@ -162,10 +171,10 @@ export default function ClassDetail() {
           status: todayRecord?.status || AttendanceStatus.ABSENT,
           lastPresent:
             todayRecord?.status === AttendanceStatus.PRESENT
-              ? new Date().toISOString().split("T")[0]
+              ? new Date().toISOString().split('T')[0]
               : new Date(Date.now() - 24 * 60 * 60 * 1000)
                   .toISOString()
-                  .split("T")[0],
+                  .split('T')[0],
           attendancePercentage,
         },
       } as StudentWithAttendance;
@@ -174,14 +183,14 @@ export default function ClassDetail() {
 
   // Filter students based on search and status
   const filteredStudents = useMemo(() => {
-    return studentsWithAttendance.filter((student) => {
+    return studentsWithAttendance.filter(student => {
       const matchesSearch =
         student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.studentId.includes(searchQuery);
 
       const matchesFilter =
-        filterStatus === "all" || student.attendance?.status === filterStatus;
+        filterStatus === 'all' || student.attendance?.status === filterStatus;
 
       return matchesSearch && matchesFilter;
     });
@@ -190,45 +199,45 @@ export default function ClassDetail() {
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "#10b981";
+        return '#10b981';
       case AttendanceStatus.ABSENT:
-        return "#ef4444";
+        return '#ef4444';
       case AttendanceStatus.LATE:
-        return "#f59e0b";
+        return '#f59e0b';
       case AttendanceStatus.HALF_DAY:
-        return "#8b5cf6";
+        return '#8b5cf6';
       default:
-        return "#94a3b8";
+        return '#94a3b8';
     }
   };
 
   const getStatusIcon = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "checkmark-circle";
+        return '✓';
       case AttendanceStatus.ABSENT:
-        return "close-circle";
+        return '✗';
       case AttendanceStatus.LATE:
-        return "time";
+        return '⏰';
       case AttendanceStatus.HALF_DAY:
-        return "remove-circle";
+        return '⊖';
       default:
-        return "help-circle";
+        return '?';
     }
   };
 
   const getStatusText = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "Present";
+        return 'Present';
       case AttendanceStatus.ABSENT:
-        return "Absent";
+        return 'Absent';
       case AttendanceStatus.LATE:
-        return "Late";
+        return 'Late';
       case AttendanceStatus.HALF_DAY:
-        return "Half Day";
+        return 'Half Day';
       default:
-        return "Unknown";
+        return 'Unknown';
     }
   };
 
@@ -248,9 +257,11 @@ export default function ClassDetail() {
   if (classError || !classData) {
     return (
       <View className="flex-1 bg-background justify-center items-center px-5">
-        <Ionicons name="alert-circle" size={64} color="#ef4444" />
+        <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-4">
+          <AlertCircle size={32} color="#ef4444" />
+        </View>
         <Text className="text-lg text-foreground mt-4 text-center">
-          {classError || "Class not found"}
+          {classError || 'Class not found'}
         </Text>
         <TouchableOpacity
           className="mt-4 px-6 py-3 bg-primary rounded-xl"
@@ -271,13 +282,11 @@ export default function ClassDetail() {
           subtitle={`Section ${classData.section}`}
           trailing={
             <TouchableOpacity
-              onPress={() => router.push(`/class/${id}/settings`)}
+              onPress={() =>
+                Alert.alert('Settings', 'Settings not implemented yet')
+              }
             >
-              <Ionicons
-                name="ellipsis-vertical"
-                size={24}
-                className="text-foreground"
-              />
+              <MoreVertical size={24} className="text-foreground" />
             </TouchableOpacity>
           }
         />
@@ -288,7 +297,7 @@ export default function ClassDetail() {
             <RefreshControl
               refreshing={classLoading || attendanceLoading}
               onRefresh={handleRefresh}
-              colors={["#8b5cf6"]}
+              colors={['#8b5cf6']}
               tintColor="#8b5cf6"
             />
           }
@@ -296,11 +305,7 @@ export default function ClassDetail() {
           {/* Search and Filter */}
           <View className="mb-6">
             <View className="flex-row items-center px-4 py-3 rounded-xl border border-border mb-3">
-              <Ionicons
-                name="search"
-                size={18}
-                className="text-muted-foreground mr-3"
-              />
+              <Search size={18} className="text-muted-foreground mr-3" />
               <TextInput
                 className="flex-1 h-full text-base text-foreground placeholder:text-muted-foreground"
                 placeholder="Search students..."
@@ -309,19 +314,19 @@ export default function ClassDetail() {
               />
             </View>
             <View className="flex-row gap-2">
-              {(["all", "present", "absent", "late"] as const).map((status) => (
+              {(['all', 'present', 'absent', 'late'] as const).map(status => (
                 <TouchableOpacity
                   key={status}
                   className={`flex-1 py-2 px-3 rounded-2xl border ${
                     filterStatus === status
-                      ? "bg-primary border-primary"
-                      : "bg-card border-border"
+                      ? 'bg-primary border-primary'
+                      : 'bg-card border-border'
                   }`}
                   onPress={() => setFilterStatus(status)}
                 >
                   <Text
                     className={`text-xs font-medium text-center ${
-                      filterStatus === status ? "text-white" : "text-foreground"
+                      filterStatus === status ? 'text-white' : 'text-foreground'
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -349,11 +354,15 @@ export default function ClassDetail() {
             )}
 
             <View className="gap-3">
-              {filteredStudents.map((student) => (
+              {filteredStudents.map(student => (
                 <TouchableOpacity
                   key={student.id}
                   className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
-                  onPress={() => router.push(`/class/student/${student.id}`)}
+                  onPress={() =>
+                    navigation.navigate('StudentDetails', {
+                      studentId: student.id,
+                    })
+                  }
                 >
                   <View className="flex-1">
                     <View className="flex-row justify-between items-center mb-1">
@@ -362,19 +371,13 @@ export default function ClassDetail() {
                       </Text>
                       {student.attendance && (
                         <View className="flex-row items-center gap-1">
-                          <Ionicons
-                            name={
-                              getStatusIcon(student.attendance.status) as any
-                            }
-                            size={16}
-                            color={getStatusColor(student.attendance.status)}
-                          />
                           <Text
                             className="text-xs font-medium"
                             style={{
                               color: getStatusColor(student.attendance.status),
                             }}
                           >
+                            {getStatusIcon(student.attendance.status)}{' '}
                             {getStatusText(student.attendance.status)}
                           </Text>
                         </View>
@@ -390,7 +393,7 @@ export default function ClassDetail() {
                       {student.attendance && (
                         <>
                           <Text className="text-xs text-muted-foreground">
-                            Attendance:{" "}
+                            Attendance:{' '}
                             {student.attendance.attendancePercentage}%
                           </Text>
                           <Text className="text-xs text-muted-foreground">
@@ -402,13 +405,11 @@ export default function ClassDetail() {
                   </View>
                   <TouchableOpacity
                     className="w-8 h-8 rounded-full border border-border justify-center items-center"
-                    onPress={() => router.push(`/student/${student.id}/edit`)}
+                    onPress={() =>
+                      Alert.alert('Edit', 'Edit student not implemented yet')
+                    }
                   >
-                    <Ionicons
-                      name="create"
-                      size={16}
-                      className="text-muted-foreground"
-                    />
+                    <Edit size={16} className="text-muted-foreground" />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -416,15 +417,11 @@ export default function ClassDetail() {
 
             {filteredStudents.length === 0 && !attendanceLoading && (
               <View className="py-8 items-center">
-                <Ionicons
-                  name="people-outline"
-                  size={48}
-                  className="text-muted-foreground"
-                />
+                <Users size={48} className="text-muted-foreground" />
                 <Text className="text-base text-muted-foreground mt-2 text-center">
-                  {searchQuery || filterStatus !== "all"
-                    ? "No students match your search criteria"
-                    : "No students in this class yet"}
+                  {searchQuery || filterStatus !== 'all'
+                    ? 'No students match your search criteria'
+                    : 'No students in this class yet'}
                 </Text>
               </View>
             )}
@@ -434,23 +431,21 @@ export default function ClassDetail() {
           <View className="flex-row gap-3 mb-5">
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl gap-2"
-              style={{ backgroundColor: "#8b5cf6" }}
-              onPress={() => router.push(`/attendance/${id}`)}
+              style={{ backgroundColor: '#8b5cf6' }}
+              onPress={() =>
+                navigation.navigate('TakeAttendance' as never, { id } as never)
+              }
             >
-              <Ionicons name="checkmark-circle" size={24} color="white" />
+              <Text className="text-white text-lg">✓</Text>
               <Text className="text-sm font-medium text-white">
                 Take Attendance
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl bg-card border border-border gap-2"
-              onPress={() => router.push(`/class/${id}/reports`)}
+              onPress={() => navigation.navigate('Reports' as never)}
             >
-              <Ionicons
-                name="analytics"
-                size={24}
-                className="text-foreground"
-              />
+              <BarChart3 size={24} className="text-foreground" />
               <Text className="text-sm font-medium text-foreground">
                 View Reports
               </Text>

@@ -6,9 +6,20 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { useState, useEffect } from "react";
-import { Ionicons } from "@expo/vector-icons";
+import { 
+  School, 
+  Book, 
+  Calendar, 
+  Users, 
+  User, 
+  Plus, 
+  BarChart3, 
+  UserCircle,
+  AlertCircle,
+  BookOpen
+} from "lucide-react-native";
 import { useUserStore } from "@/stores/userStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,6 +29,7 @@ import { DashboardService, ClassesService, TeachersService } from "@/services";
 
 export default function Home() {
   const { user } = useUserStore();
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [classes, setClasses] = useState<ClassWithDetails[]>([]);
@@ -112,7 +124,9 @@ export default function Home() {
   if (error) {
     return (
       <View className="flex-1 bg-background justify-center items-center px-5">
-        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center">
+          <AlertCircle size={24} color="#ef4444" />
+        </View>
         <Text className="text-foreground text-lg font-semibold mt-4 mb-2">
           Something went wrong
         </Text>
@@ -161,8 +175,8 @@ export default function Home() {
               : "Here's an overview of your school today"
           }
           trailing={
-            <TouchableOpacity onPress={() => router.push("/profile")}>
-              <Ionicons name="person" size={24} className="text-foreground" />
+            <TouchableOpacity onPress={() => navigation.navigate("Profile" as never)}>
+              <User size={24} className="text-foreground" />
             </TouchableOpacity>
           }
         />
@@ -179,7 +193,7 @@ export default function Home() {
               // Teacher-specific stats
               <>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="school" size={24} color="#8b5cf6" />
+                  <School size={24} color="#8b5cf6" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.totalClasses}
                   </Text>
@@ -188,7 +202,7 @@ export default function Home() {
                   </Text>
                 </View>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="book" size={24} color="#06b6d4" />
+                  <Book size={24} color="#06b6d4" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.totalSubjects}
                   </Text>
@@ -197,7 +211,7 @@ export default function Home() {
                   </Text>
                 </View>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="calendar" size={24} color="#10b981" />
+                  <Calendar size={24} color="#10b981" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.todaySessions}
                   </Text>
@@ -210,7 +224,7 @@ export default function Home() {
               // Admin/Principal stats
               <>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="school" size={24} color="#8b5cf6" />
+                  <School size={24} color="#8b5cf6" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.totalClasses}
                   </Text>
@@ -219,7 +233,7 @@ export default function Home() {
                   </Text>
                 </View>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="people" size={24} color="#06b6d4" />
+                  <Users size={24} color="#06b6d4" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.totalStudents}
                   </Text>
@@ -228,7 +242,7 @@ export default function Home() {
                   </Text>
                 </View>
                 <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Ionicons name="calendar" size={24} color="#10b981" />
+                  <Calendar size={24} color="#10b981" />
                   <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
                     {stats.todaySessions}
                   </Text>
@@ -248,9 +262,9 @@ export default function Home() {
               {(user.role === "admin" || user.role === "principal") && (
                 <TouchableOpacity
                   className="w-10 h-10 rounded-full bg-card border border-border justify-center items-center"
-                  onPress={() => router.push("/add-class")}
+                  onPress={() => navigation.navigate("AddClass" as never)}
                 >
-                  <Ionicons name="add" size={20} className="text-foreground" />
+                  <Plus size={20} className="text-foreground" />
                 </TouchableOpacity>
               )}
             </View>
@@ -259,8 +273,7 @@ export default function Home() {
             {user.role === "teacher" ? (
               assignments.length === 0 ? (
                 <View className="p-8 items-center">
-                  <Ionicons
-                    name="book-outline"
+                  <BookOpen
                     size={48}
                     className="text-muted-foreground"
                   />
@@ -281,59 +294,51 @@ export default function Home() {
                         ?.length || 0;
 
                     return (
-                      <Link
+                      <TouchableOpacity 
                         key={assignment.id}
-                        href={`/class/${assignment.classId}`}
-                        asChild
+                        className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
+                        onPress={() => navigation.navigate("ClassDetails" as never, { id: assignment.classId } as never)}
                       >
-                        <TouchableOpacity className="flex-row p-4 rounded-xl bg-card border border-border gap-4">
-                          <View
-                            className="w-12 h-12 rounded-full justify-center items-center"
-                            style={{ backgroundColor: color + "20" }}
-                          >
-                            <Ionicons name="school" size={24} color={color} />
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-lg font-semibold text-foreground mb-1">
-                              {assignment.class?.name}
-                            </Text>
-                            <Text className="text-sm text-muted-foreground mb-1">
-                              Grade {assignment.class?.grade} -{" "}
-                              {assignment.class?.section}
-                            </Text>
-                            <Text className="text-xs text-muted-foreground mb-3">
-                              Academic Year: {assignment.class?.academicYear}
-                              {isPrimary && " • Primary Teacher"}
-                            </Text>
-                            <View className="flex-row justify-between items-center">
-                              <View className="flex-row items-center gap-1">
-                                <Ionicons
-                                  name="people"
-                                  size={16}
-                                  className="text-muted-foreground"
-                                />
-                                <Text className="text-xs text-muted-foreground">
-                                  {studentCount} students
-                                </Text>
-                              </View>
-                              <TouchableOpacity
-                                className="px-3 py-1.5 rounded-2xl"
-                                style={{ backgroundColor: color }}
-                                onPress={(e) => {
-                                  e.preventDefault();
-                                  router.push(
-                                    `/attendance/${assignment.classId}`
-                                  );
-                                }}
-                              >
-                                <Text className="text-xs font-medium text-white">
-                                  Take Attendance
-                                </Text>
-                              </TouchableOpacity>
+                        <View
+                          className="w-12 h-12 rounded-full justify-center items-center"
+                          style={{ backgroundColor: color + "20" }}
+                        >
+                          <School size={24} color={color} />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-lg font-semibold text-foreground mb-1">
+                            {assignment.class?.name}
+                          </Text>
+                          <Text className="text-sm text-muted-foreground mb-1">
+                            Grade {assignment.class?.grade} -{" "}
+                            {assignment.class?.section}
+                          </Text>
+                          <Text className="text-xs text-muted-foreground mb-3">
+                            Academic Year: {assignment.class?.academicYear}
+                            {isPrimary && " • Primary Teacher"}
+                          </Text>
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-row items-center gap-1">
+                              <Users
+                                size={16}
+                                className="text-muted-foreground"
+                              />
+                              <Text className="text-xs text-muted-foreground">
+                                {studentCount} students
+                              </Text>
                             </View>
+                            <TouchableOpacity
+                              className="px-3 py-1.5 rounded-2xl"
+                              style={{ backgroundColor: color }}
+                              onPress={() => navigation.navigate("TakeAttendance" as never, { id: assignment.classId } as never)}
+                            >
+                              <Text className="text-xs font-medium text-white">
+                                Take Attendance
+                              </Text>
+                            </TouchableOpacity>
                           </View>
-                        </TouchableOpacity>
-                      </Link>
+                        </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -341,8 +346,7 @@ export default function Home() {
             ) : // Show classes for admin/principal
             classes.length === 0 ? (
               <View className="p-8 items-center">
-                <Ionicons
-                  name="school-outline"
+                <School
                   size={48}
                   className="text-muted-foreground"
                 />
@@ -357,55 +361,49 @@ export default function Home() {
                   const studentCount = classItem.students?.length || 0;
 
                   return (
-                    <Link
+                    <TouchableOpacity
                       key={classItem.id}
-                      href={`/class/${classItem.id}`}
-                      asChild
+                      className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
+                      onPress={() => navigation.navigate("ClassDetails" as never, { id: classItem.id } as never)}
                     >
-                      <TouchableOpacity className="flex-row p-4 rounded-xl bg-card border border-border gap-4">
-                        <View
-                          className="w-12 h-12 rounded-full justify-center items-center"
-                          style={{ backgroundColor: color + "20" }}
-                        >
-                          <Ionicons name="book" size={24} color={color} />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-lg font-semibold text-foreground mb-1">
-                            {classItem.name}
-                          </Text>
-                          <Text className="text-sm text-muted-foreground mb-1">
-                            Grade {classItem.grade} - {classItem.section}
-                          </Text>
-                          <Text className="text-xs text-muted-foreground mb-3">
-                            Academic Year: {classItem.academicYear}
-                          </Text>
-                          <View className="flex-row justify-between items-center">
-                            <View className="flex-row items-center gap-1">
-                              <Ionicons
-                                name="people"
-                                size={16}
-                                className="text-muted-foreground"
-                              />
-                              <Text className="text-xs text-muted-foreground">
-                                {studentCount} students
-                              </Text>
-                            </View>
-                            <TouchableOpacity
-                              className="px-3 py-1.5 rounded-2xl"
-                              style={{ backgroundColor: color }}
-                              onPress={(e) => {
-                                e.preventDefault();
-                                router.push(`/class/${classItem.id}`);
-                              }}
-                            >
-                              <Text className="text-xs font-medium text-white">
-                                View Details
-                              </Text>
-                            </TouchableOpacity>
+                      <View
+                        className="w-12 h-12 rounded-full justify-center items-center"
+                        style={{ backgroundColor: color + "20" }}
+                      >
+                        <Book size={24} color={color} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-lg font-semibold text-foreground mb-1">
+                          {classItem.name}
+                        </Text>
+                        <Text className="text-sm text-muted-foreground mb-1">
+                          Grade {classItem.grade} - {classItem.section}
+                        </Text>
+                        <Text className="text-xs text-muted-foreground mb-3">
+                          Academic Year: {classItem.academicYear}
+                        </Text>
+                        <View className="flex-row justify-between items-center">
+                          <View className="flex-row items-center gap-1">
+                            <Users
+                              size={16}
+                              className="text-muted-foreground"
+                            />
+                            <Text className="text-xs text-muted-foreground">
+                              {studentCount} students
+                            </Text>
                           </View>
+                          <TouchableOpacity
+                            className="px-3 py-1.5 rounded-2xl"
+                            style={{ backgroundColor: color }}
+                            onPress={() => navigation.navigate("ClassDetails" as never, { id: classItem.id } as never)}
+                          >
+                            <Text className="text-xs font-medium text-white">
+                              View Details
+                            </Text>
+                          </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
-                    </Link>
+                      </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -423,18 +421,18 @@ export default function Home() {
                 <>
                   <TouchableOpacity
                     className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => router.push("/my-attendance")}
+                    onPress={() => navigation.navigate("History" as never)}
                   >
-                    <Ionicons name="calendar" size={24} color="#8b5cf6" />
+                    <Calendar size={24} color="#8b5cf6" />
                     <Text className="text-sm font-medium text-foreground text-center">
                       My Attendance
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => router.push("/my-reports")}
+                    onPress={() => navigation.navigate("Reports" as never)}
                   >
-                    <Ionicons name="analytics" size={24} color="#06b6d4" />
+                    <BarChart3 size={24} color="#06b6d4" />
                     <Text className="text-sm font-medium text-foreground text-center">
                       My Reports
                     </Text>
@@ -445,18 +443,18 @@ export default function Home() {
                 <>
                   <TouchableOpacity
                     className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => router.push("/reports")}
+                    onPress={() => navigation.navigate("Reports" as never)}
                   >
-                    <Ionicons name="analytics" size={24} color="#8b5cf6" />
+                    <BarChart3 size={24} color="#8b5cf6" />
                     <Text className="text-sm font-medium text-foreground text-center">
                       View Reports
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => router.push("/teachers")}
+                    onPress={() => navigation.navigate("Teachers" as never)}
                   >
-                    <Ionicons name="people-circle" size={24} color="#06b6d4" />
+                    <UserCircle size={24} color="#06b6d4" />
                     <Text className="text-sm font-medium text-foreground text-center">
                       Manage Teachers
                     </Text>

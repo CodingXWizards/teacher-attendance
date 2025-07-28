@@ -1,14 +1,15 @@
-import React from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useThemeStore } from "@/stores/themeStore";
+import React from 'react';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+import { useThemeStore } from '@/stores/themeStore';
+import { LucideIcon } from 'lucide-react-native';
 
 interface LabelInputProps {
   label: string;
   value: string;
-  type?: "text" | "password";
+  type?: 'text' | 'password';
   placeholder?: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: LucideIcon;
   onChangeText: (text: string) => void;
   onIconPress?: () => void;
 }
@@ -16,9 +17,9 @@ interface LabelInputProps {
 export const LabelInput = ({
   label,
   value,
-  type = "text",
-  placeholder = "Enter your email",
-  icon,
+  type = 'text',
+  placeholder = 'Enter your email',
+  icon: Icon,
   onChangeText,
   onIconPress,
 }: LabelInputProps) => {
@@ -33,7 +34,7 @@ export const LabelInput = ({
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
-          secureTextEntry={type === "password"}
+          secureTextEntry={type === 'password'}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -41,10 +42,9 @@ export const LabelInput = ({
           className="absolute right-3 top-2.5"
           onPress={onIconPress}
         >
-          <Ionicons
-            name={icon}
+          <Icon
             size={20}
-            color={isDark ? "hsl(217.9 10.6% 64.9%)" : "hsl(220 8.9% 46.1%)"}
+            color={isDark ? 'hsl(217.9 10.6% 64.9%)' : 'hsl(220 8.9% 46.1%)'}
           />
         </TouchableOpacity>
       </View>
