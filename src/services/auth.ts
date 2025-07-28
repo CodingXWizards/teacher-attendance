@@ -1,4 +1,5 @@
-import { authApi, handleApiError } from "@/lib/api";
+import * as SecureStore from "expo-secure-store";
+
 import {
   AuthResponse,
   AuthTokens,
@@ -6,12 +7,12 @@ import {
   RegisterRequest,
 } from "@/types/auth";
 import { User } from "@/types/user";
-import * as SecureStore from "expo-secure-store";
+import { authApi, handleApiError } from "@/lib/api";
 
 class AuthService {
+  private static readonly USER_KEY = "user";
   private static readonly TOKEN_KEY = "access_token";
   private static readonly REFRESH_TOKEN_KEY = "refresh_token";
-  private static readonly USER_KEY = "user";
 
   /**
    * Login user with email and password
@@ -24,17 +25,12 @@ class AuthService {
         throw new Error("Login failed");
       }
 
-      const { user, tokens } = response.data;
+      const { user, tokens } = response;
 
       // Store tokens and user data
       await this.storeAuthData(tokens, user);
 
-      return {
-        success: response.success,
-        message: response.message,
-        statusCode: response.statusCode,
-        data: { user, tokens },
-      };
+      return { user, tokens };
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -51,17 +47,12 @@ class AuthService {
         throw new Error("Registration failed");
       }
 
-      const { user, tokens } = response.data;
+      const { user, tokens } = response;
 
       // Store tokens and user data
       await this.storeAuthData(tokens, user);
 
-      return {
-        success: response.success,
-        message: response.message,
-        statusCode: response.statusCode,
-        data: { user, tokens },
-      };
+      return { user, tokens };
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -116,8 +107,11 @@ class AuthService {
       if (!response) {
         throw new Error("Failed to get user profile");
       }
+      const user = response.user;
 
-      const user = response;
+      if (!user) {
+        throw new Error("User not found");
+      }
 
       // Update stored user data
       await this.storeUser(user);

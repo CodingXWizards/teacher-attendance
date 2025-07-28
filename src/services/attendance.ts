@@ -1,65 +1,23 @@
 import { attendanceApi, handleApiError } from "@/lib/api";
+import {
+  TeacherAttendance,
+  StudentAttendance,
+  CreateTeacherAttendanceRequest,
+  UpdateTeacherAttendanceRequest,
+  CreateStudentAttendanceRequest,
+  UpdateStudentAttendanceRequest,
+  AttendanceStatus,
+} from "@/types/attendance";
 
-export interface TeacherAttendance {
-  id: string;
-  teacherId: string;
-  teacherName: string;
-  date: string;
-  isPresent: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface StudentAttendance {
-  id: string;
-  studentId: string;
-  studentName: string;
-  classId: string;
-  className: string;
-  date: string;
-  isPresent: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateTeacherAttendanceRequest {
-  teacherId: string;
-  date: string;
-  isPresent: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-}
-
-export interface UpdateTeacherAttendanceRequest {
-  isPresent?: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-}
-
-export interface CreateStudentAttendanceRequest {
-  studentId: string;
-  classId: string;
-  date: string;
-  isPresent: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-}
-
-export interface UpdateStudentAttendanceRequest {
-  isPresent?: boolean;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-}
+// Re-export the types for backward compatibility
+export {
+  TeacherAttendance,
+  StudentAttendance,
+  CreateTeacherAttendanceRequest,
+  UpdateTeacherAttendanceRequest,
+  CreateStudentAttendanceRequest,
+  UpdateStudentAttendanceRequest,
+};
 
 export interface AttendanceListParams {
   page?: number;
@@ -92,17 +50,7 @@ class AttendanceService {
     };
   }> {
     try {
-      // Convert string IDs to numbers for API compatibility
-      const apiParams = params ? {
-        ...params,
-        teacherId: params.teacherId ? parseInt(params.teacherId) : undefined
-      } : undefined;
-      
-      const response = await attendanceApi.list(apiParams);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to fetch teacher attendance");
-      }
+      const response = await attendanceApi.teacher.list(params);
 
       return {
         attendance: response.data,
@@ -110,8 +58,8 @@ class AttendanceService {
           page: 1,
           limit: 10,
           total: 0,
-          totalPages: 0
-        }
+          totalPages: 0,
+        },
       };
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -121,15 +69,12 @@ class AttendanceService {
   /**
    * Get a single teacher attendance record
    */
-  static async getTeacherAttendanceRecord(id: string): Promise<TeacherAttendance> {
+  static async getTeacherAttendanceRecord(
+    id: string
+  ): Promise<TeacherAttendance> {
     try {
-      const response = await attendanceApi.get(id);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to fetch attendance record");
-      }
-
-      return response.data;
+      const response = await attendanceApi.teacher.get(id);
+      return response;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -138,21 +83,12 @@ class AttendanceService {
   /**
    * Create a new teacher attendance record
    */
-  static async createTeacherAttendance(attendanceData: CreateTeacherAttendanceRequest): Promise<TeacherAttendance> {
+  static async createTeacherAttendance(
+    attendanceData: CreateTeacherAttendanceRequest
+  ): Promise<TeacherAttendance> {
     try {
-      // Convert string ID to number for API compatibility
-      const apiData = {
-        ...attendanceData,
-        teacherId: parseInt(attendanceData.teacherId)
-      };
-      
-      const response = await attendanceApi.create(apiData);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to create attendance record");
-      }
-
-      return response.data;
+      const response = await attendanceApi.teacher.create(attendanceData);
+      return response;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -161,15 +97,13 @@ class AttendanceService {
   /**
    * Update an existing teacher attendance record
    */
-  static async updateTeacherAttendance(id: string, attendanceData: UpdateTeacherAttendanceRequest): Promise<TeacherAttendance> {
+  static async updateTeacherAttendance(
+    id: string,
+    attendanceData: UpdateTeacherAttendanceRequest
+  ): Promise<TeacherAttendance> {
     try {
-      const response = await attendanceApi.update(id, attendanceData);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to update attendance record");
-      }
-
-      return response.data;
+      const response = await attendanceApi.teacher.update(id, attendanceData);
+      return response;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -180,11 +114,7 @@ class AttendanceService {
    */
   static async deleteTeacherAttendance(id: string): Promise<void> {
     try {
-      const response = await attendanceApi.delete(id);
-      
-      if (!response.success) {
-        throw new Error(response.message || "Failed to delete attendance record");
-      }
+      await attendanceApi.teacher.delete(id);
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -195,13 +125,8 @@ class AttendanceService {
    */
   static async getAttendanceByDate(date: string): Promise<TeacherAttendance[]> {
     try {
-      const response = await attendanceApi.byDate(date);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to fetch attendance by date");
-      }
-
-      return response.data;
+      const response = await attendanceApi.teacher.byDate(date);
+      return response;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -210,15 +135,74 @@ class AttendanceService {
   /**
    * Get attendance by teacher
    */
-  static async getAttendanceByTeacher(teacherId: string): Promise<TeacherAttendance[]> {
+  static async getAttendanceByTeacher(
+    teacherId: string
+  ): Promise<TeacherAttendance[]> {
     try {
-      const response = await attendanceApi.byTeacher(teacherId);
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to fetch attendance by teacher");
-      }
+      const response = await attendanceApi.teacher.byTeacher(teacherId);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
 
+  /**
+   * Get student attendance by class
+   */
+  static async getStudentAttendanceByClass(
+    classId: string
+  ): Promise<StudentAttendance[]> {
+    try {
+      const response = await attendanceApi.student.byClass(classId);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Get student attendance by class and date
+   */
+  static async getStudentAttendanceByClassAndDate(
+    classId: string,
+    date: string
+  ): Promise<StudentAttendance[]> {
+    try {
+      const response = await attendanceApi.student.list({
+        classId,
+        date,
+      });
       return response.data;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Create student attendance record
+   */
+  static async createStudentAttendance(
+    attendanceData: CreateStudentAttendanceRequest
+  ): Promise<StudentAttendance> {
+    try {
+      const response = await attendanceApi.student.create(attendanceData);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Bulk create student attendance records
+   */
+  static async bulkCreateStudentAttendance(
+    attendanceData: CreateStudentAttendanceRequest[]
+  ): Promise<StudentAttendance[]> {
+    try {
+      const promises = attendanceData.map((data) =>
+        this.createStudentAttendance(data)
+      );
+      return await Promise.all(promises);
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -227,12 +211,16 @@ class AttendanceService {
   /**
    * Mark teacher present
    */
-  static async markTeacherPresent(teacherId: string, date: string, checkInTime?: string): Promise<TeacherAttendance> {
+  static async markTeacherPresent(
+    teacherId: string,
+    date: string,
+    checkInTime?: string
+  ): Promise<TeacherAttendance> {
     const attendanceData: CreateTeacherAttendanceRequest = {
       teacherId,
       date,
-      isPresent: true,
-      checkInTime
+      status: AttendanceStatus.PRESENT,
+      checkIn: checkInTime,
     };
 
     return this.createTeacherAttendance(attendanceData);
@@ -241,12 +229,16 @@ class AttendanceService {
   /**
    * Mark teacher absent
    */
-  static async markTeacherAbsent(teacherId: string, date: string, notes?: string): Promise<TeacherAttendance> {
+  static async markTeacherAbsent(
+    teacherId: string,
+    date: string,
+    notes?: string
+  ): Promise<TeacherAttendance> {
     const attendanceData: CreateTeacherAttendanceRequest = {
       teacherId,
       date,
-      isPresent: false,
-      notes
+      status: AttendanceStatus.ABSENT,
+      notes,
     };
 
     return this.createTeacherAttendance(attendanceData);
@@ -255,27 +247,34 @@ class AttendanceService {
   /**
    * Check out teacher
    */
-  static async checkOutTeacher(attendanceId: string, checkOutTime: string): Promise<TeacherAttendance> {
-    return this.updateTeacherAttendance(attendanceId, { checkOutTime });
+  static async checkOutTeacher(
+    attendanceId: string,
+    checkOutTime: string
+  ): Promise<TeacherAttendance> {
+    return this.updateTeacherAttendance(attendanceId, {
+      checkOut: checkOutTime,
+    });
   }
 
   /**
    * Get attendance summary for a date range
    */
-  static async getAttendanceSummary(startDate: string, endDate: string): Promise<AttendanceSummary> {
+  static async getAttendanceSummary(
+    startDate: string,
+    endDate: string
+  ): Promise<AttendanceSummary> {
     try {
-      const response = await attendanceApi.list({ 
+      // Get teacher attendance for the date range
+      const response = await attendanceApi.teacher.list({
         date: startDate,
         // Note: This is a simplified approach. In a real app, you'd have a dedicated summary endpoint
       });
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Failed to fetch attendance summary");
-      }
 
       const attendance = response.data;
       const total = attendance.length;
-      const present = attendance.filter(a => a.isPresent).length;
+      const present = attendance.filter(
+        (a: TeacherAttendance) => a.status === AttendanceStatus.PRESENT
+      ).length;
       const absent = total - present;
 
       return {
@@ -283,7 +282,7 @@ class AttendanceService {
         present,
         absent,
         presentPercentage: total > 0 ? (present / total) * 100 : 0,
-        absentPercentage: total > 0 ? (absent / total) * 100 : 0
+        absentPercentage: total > 0 ? (absent / total) * 100 : 0,
       };
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -293,9 +292,13 @@ class AttendanceService {
   /**
    * Bulk mark attendance for multiple teachers
    */
-  static async bulkMarkTeacherAttendance(attendanceData: CreateTeacherAttendanceRequest[]): Promise<TeacherAttendance[]> {
+  static async bulkMarkTeacherAttendance(
+    attendanceData: CreateTeacherAttendanceRequest[]
+  ): Promise<TeacherAttendance[]> {
     try {
-      const promises = attendanceData.map(data => this.createTeacherAttendance(data));
+      const promises = attendanceData.map((data) =>
+        this.createTeacherAttendance(data)
+      );
       return await Promise.all(promises);
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -303,4 +306,4 @@ class AttendanceService {
   }
 }
 
-export default AttendanceService; 
+export default AttendanceService;

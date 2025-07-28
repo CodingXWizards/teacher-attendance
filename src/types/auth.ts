@@ -23,11 +23,10 @@ export interface AuthTokens {
 }
 
 export interface AuthResponse {
-  success: boolean;
-  message: string;
-  statusCode: number;
-  data: {
-    user: User;
-    tokens: AuthTokens;
-  };
+  user: User;
+  tokens: AuthTokens;
+}
+
+export interface UserResponse {
+  user: User;
 }

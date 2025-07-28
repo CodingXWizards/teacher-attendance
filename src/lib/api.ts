@@ -1,11 +1,47 @@
+import * as SecureStore from "expo-secure-store";
+
 import {
   AuthTokens,
   LoginRequest,
   AuthResponse,
   RegisterRequest,
 } from "@/types/auth";
+import {
+  Class,
+  Subject,
+  Teacher,
+  Student,
+  UserStats,
+  ClassStats,
+  SearchParams,
+  TeacherClass,
+  DashboardStats,
+  TeacherWithUser,
+  StudentWithClass,
+  TeacherAttendance,
+  StudentAttendance,
+  CreateUserRequest,
+  UpdateUserRequest,
+  PaginatedResponse,
+  CreateClassRequest,
+  UpdateClassRequest,
+  CreateSubjectRequest,
+  UpdateSubjectRequest,
+  CreateTeacherRequest,
+  UpdateTeacherRequest,
+  CreateStudentRequest,
+  UpdateStudentRequest,
+  ChangePasswordRequest,
+  UpdatePasswordRequest,
+  AssignTeacherToClassRequest,
+  CreateTeacherAttendanceRequest,
+  UpdateTeacherAttendanceRequest,
+  CreateStudentAttendanceRequest,
+  UpdateStudentAttendanceRequest,
+  RemoveTeacherFromClassRequest,
+} from "@/types";
 import { User } from "@/types/user";
-import * as SecureStore from "expo-secure-store";
+import { UserResponse } from "@/types/auth";
 
 // Base API configuration
 const API_BASE_URL =
@@ -14,19 +50,10 @@ const API_BASE_URL =
 // Generic response types
 export interface ApiResponse<T = any> {
   success: boolean;
-  data?: T;
+  data: T;
   message?: string;
   error?: string;
   statusCode?: number;
-}
-
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }
 
 // Error types
@@ -64,7 +91,7 @@ class ApiClient {
   // Get authentication token
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync("token");
+      return await SecureStore.getItemAsync("access_token");
     } catch (error) {
       console.error("Error getting auth token:", error);
       return null;
@@ -117,6 +144,11 @@ class ApiClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    const token = await this.getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     // Prepare request config
     const requestConfig: RequestInit = {
       method,
@@ -153,18 +185,10 @@ class ApiClient {
           throw new ApiError(response.status, errorMessage, errorData);
         }
 
-        // Parse response
-        const contentType = response.headers.get("content-type");
-        let data: T;
-
-        if (contentType?.includes("application/json")) {
-          data = await response.json();
-        } else {
-          data = (await response.text()) as T;
-        }
+        const data: ApiResponse<T> = await response.json();
 
         // Return the data directly (unwrap from backend response format)
-        return data;
+        return data.data as T;
       } catch (error) {
         clearTimeout(timeoutId);
         throw error;
@@ -194,18 +218,10 @@ class ApiClient {
           throw new ApiError(response.status, errorMessage, errorData);
         }
 
-        // Parse response
-        const contentType = response.headers.get("content-type");
-        let data: T;
-
-        if (contentType?.includes("application/json")) {
-          data = await response.json();
-        } else {
-          data = (await response.text()) as T;
-        }
+        const data: ApiResponse<T> = await response.json();
 
         // Return the data directly (unwrap from backend response format)
-        return data;
+        return data.data as T;
       } catch (error) {
         clearTimeout(timeoutId);
         lastError = error as Error;
@@ -240,7 +256,10 @@ class ApiClient {
     endpoint: string,
     config?: Omit<RequestConfig, "method" | "body">
   ): Promise<T> {
-    return this.makeRequest<T>(endpoint, { ...config, method: "GET" });
+    return this.makeRequest<T>(endpoint, {
+      ...config,
+      method: "GET",
+    });
   }
 
   async post<T>(
@@ -248,7 +267,11 @@ class ApiClient {
     body?: any,
     config?: Omit<RequestConfig, "method">
   ): Promise<T> {
-    return this.makeRequest<T>(endpoint, { ...config, method: "POST", body });
+    return this.makeRequest<T>(endpoint, {
+      ...config,
+      method: "POST",
+      body,
+    });
   }
 
   async put<T>(
@@ -256,7 +279,11 @@ class ApiClient {
     body?: any,
     config?: Omit<RequestConfig, "method">
   ): Promise<T> {
-    return this.makeRequest<T>(endpoint, { ...config, method: "PUT", body });
+    return this.makeRequest<T>(endpoint, {
+      ...config,
+      method: "PUT",
+      body,
+    });
   }
 
   async patch<T>(
@@ -264,14 +291,21 @@ class ApiClient {
     body?: any,
     config?: Omit<RequestConfig, "method">
   ): Promise<T> {
-    return this.makeRequest<T>(endpoint, { ...config, method: "PATCH", body });
+    return this.makeRequest<T>(endpoint, {
+      ...config,
+      method: "PATCH",
+      body,
+    });
   }
 
   async delete<T>(
     endpoint: string,
     config?: Omit<RequestConfig, "method" | "body">
   ): Promise<T> {
-    return this.makeRequest<T>(endpoint, { ...config, method: "DELETE" });
+    return this.makeRequest<T>(endpoint, {
+      ...config,
+      method: "DELETE",
+    });
   }
 
   // Paginated request helper
@@ -280,8 +314,8 @@ class ApiClient {
     page: number = 1,
     limit: number = 10,
     config?: Omit<RequestConfig, "method" | "body">
-  ): Promise<T[]> {
-    return this.makeRequest<T[]>(endpoint, {
+  ): Promise<PaginatedResponse<T>> {
+    return this.makeRequest<PaginatedResponse<T>>(endpoint, {
       ...config,
       method: "GET",
       params: { page, limit },
@@ -292,20 +326,6 @@ class ApiClient {
 // Create and export API client instance
 export const api = new ApiClient(API_BASE_URL);
 
-// Type-safe API hooks and utilities
-export const createApiHook = <T>(endpoint: string) => {
-  return {
-    get: (params?: Record<string, string | number | boolean>) =>
-      api.get<T>(endpoint, { params }),
-    post: (body?: any) => api.post<T>(endpoint, body),
-    put: (body?: any) => api.put<T>(endpoint, body),
-    patch: (body?: any) => api.patch<T>(endpoint, body),
-    delete: () => api.delete<T>(endpoint),
-    getPaginated: (page?: number, limit?: number) =>
-      api.getPaginated<T>(endpoint, page, limit),
-  };
-};
-
 // Common API endpoints
 export const endpoints = {
   auth: {
@@ -315,26 +335,100 @@ export const endpoints = {
     refresh: "/auth/refresh",
     me: "/auth/me",
   },
+  users: {
+    list: "/user",
+    all: "/user/all",
+    stats: "/user/stats",
+    search: "/user/search",
+    profile: "/user/profile",
+    teachers: "/user/teachers",
+    byRole: (role: string) => `/user/role/${role}`,
+    byEmail: (email: string) => `/user/email/${email}`,
+    get: (id: string) => `/user/${id}`,
+    create: "/user",
+    update: (id: string) => `/user/${id}`,
+    updatePassword: (id: string) => `/user/${id}/password`,
+    changePassword: (id: string) => `/user/${id}/change-password`,
+    delete: (id: string) => `/user/${id}`,
+  },
+  subjects: {
+    list: "/subject",
+    active: "/subject/active",
+    get: (id: string) => `/subject/${id}`,
+    byCode: (code: string) => `/subject/code/${code}`,
+    byField: (field: string) => `/subject/field/${field}`,
+    create: "/subject",
+    update: (id: string) => `/subject/${id}`,
+    delete: (id: string) => `/subject/${id}`,
+    hardDelete: (id: string) => `/subject/${id}/hard`,
+  },
   teachers: {
-    list: "/teachers",
-    create: "/teachers",
-    get: (id: string | number) => `/teachers/${id}`,
-    update: (id: string | number) => `/teachers/${id}`,
-    delete: (id: string | number) => `/teachers/${id}`,
+    list: "/teacher",
+    get: (id: string) => `/teacher/${id}`,
+    byEmployeeId: (employeeId: string) => `/teacher/employee/${employeeId}`,
+    byDepartment: (department: string) => `/teacher/department/${department}`,
+    assignments: (teacherId: string) => `/teacher/${teacherId}/assignments`,
+    profile: "/teacher/profile",
+    create: "/teacher",
+    update: (id: string) => `/teacher/${id}`,
+    delete: (id: string) => `/teacher/${id}`,
+    assignToClass: "/teacher/assign-class",
+    removeFromClass: "/teacher/remove-class",
+  },
+  classes: {
+    list: "/class",
+    active: "/class/active",
+    get: (id: string) => `/class/${id}`,
+    byGrade: (grade: string) => `/class/grade/${grade}`,
+    byAcademicYear: (academicYear: string) =>
+      `/class/academic-year/${academicYear}`,
+    byNameAndGrade: (name: string, grade: string) =>
+      `/class/name/${name}/grade/${grade}`,
+    students: (classId: string) => `/class/${classId}/students`,
+    teachers: (classId: string) => `/class/${classId}/teachers`,
+    stats: (classId: string) => `/class/${classId}/stats`,
+    create: "/class",
+    update: (id: string) => `/class/${id}`,
+    delete: (id: string) => `/class/${id}`,
+  },
+  students: {
+    list: "/student",
+    active: "/student/active",
+    get: (id: string) => `/student/${id}`,
+    byStudentId: (studentId: string) => `/student/student/${studentId}`,
+    byClass: (classId: string) => `/student/class/${classId}`,
+    byGender: (gender: string) => `/student/gender/${gender}`,
+    attendance: (studentId: string) => `/student/${studentId}/attendance`,
+    create: "/student",
+    update: (id: string) => `/student/${id}`,
+    delete: (id: string) => `/student/${id}`,
   },
   attendance: {
-    list: "/attendance",
-    create: "/attendance",
-    get: (id: string | number) => `/attendance/${id}`,
-    update: (id: string | number) => `/attendance/${id}`,
-    delete: (id: string | number) => `/attendance/${id}`,
-    byDate: (date: string) => `/attendance/date/${date}`,
-    byTeacher: (teacherId: string | number) =>
-      `/attendance/teacher/${teacherId}`,
+    teacher: {
+      list: "/teacher-attendance",
+      get: (id: string) => `/teacher-attendance/${id}`,
+      byTeacher: (teacherId: string) =>
+        `/teacher-attendance/teacher/${teacherId}`,
+      byDate: (date: string) => `/teacher-attendance/date/${date}`,
+      create: "/teacher-attendance",
+      update: (id: string) => `/teacher-attendance/${id}`,
+      delete: (id: string) => `/teacher-attendance/${id}`,
+    },
+    student: {
+      list: "/student-attendance",
+      get: (id: string) => `/student-attendance/${id}`,
+      byStudent: (studentId: string) =>
+        `/student-attendance/student/${studentId}`,
+      byClass: (classId: string) => `/student-attendance/class/${classId}`,
+      byDate: (date: string) => `/student-attendance/date/${date}`,
+      create: "/student-attendance",
+      update: (id: string) => `/student-attendance/${id}`,
+      delete: (id: string) => `/student-attendance/${id}`,
+    },
   },
   reports: {
     summary: "/reports/summary",
-    teacher: (teacherId: string | number) => `/reports/teacher/${teacherId}`,
+    teacher: (teacherId: string) => `/reports/teacher/${teacherId}`,
     dateRange: "/reports/date-range",
   },
 } as const;
@@ -347,75 +441,336 @@ export const authApi = {
   register: (userData: RegisterRequest) =>
     api.post<AuthResponse>(endpoints.auth.register, userData),
 
-  logout: () => api.post(endpoints.auth.logout),
+  logout: () => api.post<void>(endpoints.auth.logout),
 
   refresh: () => api.post<AuthTokens>(endpoints.auth.refresh),
 
-  me: () => api.get<User>(endpoints.auth.me),
+  me: () => api.get<UserResponse>(endpoints.auth.me),
 };
 
-export const teachersApi = {
-  list: (params?: { page?: number; limit?: number; search?: string }) =>
-    api.getPaginated<any>(endpoints.teachers.list, params?.page, params?.limit),
-
-  create: (teacherData: {
-    name: string;
-    subject: string;
-    email?: string;
-    phone?: string;
-  }) => api.post<any>(endpoints.teachers.create, teacherData),
-
-  get: (id: string | number) => api.get<any>(endpoints.teachers.get(id)),
-
-  update: (id: string | number, teacherData: Partial<any>) =>
-    api.put<any>(endpoints.teachers.update(id), teacherData),
-
-  delete: (id: string | number) => api.delete(endpoints.teachers.delete(id)),
-};
-
-export const attendanceApi = {
+export const usersApi = {
   list: (params?: {
     page?: number;
     limit?: number;
-    date?: string;
-    teacherId?: number;
+    search?: string;
+    role?: string;
   }) =>
-    api.getPaginated<any>(
-      endpoints.attendance.list,
+    api.getPaginated<User>(endpoints.users.list, params?.page, params?.limit, {
+      params,
+    }),
+
+  all: () => api.get<User[]>(endpoints.users.all),
+
+  stats: () => api.get<UserStats>(endpoints.users.stats),
+
+  search: (params: SearchParams) =>
+    api.get<User[]>(endpoints.users.search, {
+      params: params as Record<string, string | number | boolean>,
+    }),
+
+  profile: () => api.get<User>(endpoints.users.profile),
+
+  teachers: () => api.get<User[]>(endpoints.users.teachers),
+
+  byRole: (role: string) => api.get<User[]>(endpoints.users.byRole(role)),
+
+  byEmail: (email: string) => api.get<User>(endpoints.users.byEmail(email)),
+
+  get: (id: string) => api.get<User>(endpoints.users.get(id)),
+
+  create: (userData: CreateUserRequest) =>
+    api.post<User>(endpoints.users.create, userData),
+
+  update: (id: string, userData: UpdateUserRequest) =>
+    api.put<User>(endpoints.users.update(id), userData),
+
+  updatePassword: (id: string, passwordData: UpdatePasswordRequest) =>
+    api.put<void>(endpoints.users.updatePassword(id), passwordData),
+
+  changePassword: (id: string, passwordData: ChangePasswordRequest) =>
+    api.put<void>(endpoints.users.changePassword(id), passwordData),
+
+  delete: (id: string) => api.delete<void>(endpoints.users.delete(id)),
+};
+
+export const subjectsApi = {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<Subject>(
+      endpoints.subjects.list,
       params?.page,
-      params?.limit
+      params?.limit,
+      { params }
     ),
 
-  create: (attendanceData: {
-    teacherId: number;
-    date: string;
-    isPresent: boolean;
-  }) => api.post<any>(endpoints.attendance.create, attendanceData),
+  active: () => api.get<Subject[]>(endpoints.subjects.active),
 
-  get: (id: string | number) => api.get<any>(endpoints.attendance.get(id)),
+  get: (id: string) => api.get<Subject>(endpoints.subjects.get(id)),
 
-  update: (id: string | number, attendanceData: Partial<any>) =>
-    api.put<any>(endpoints.attendance.update(id), attendanceData),
+  byCode: (code: string) => api.get<Subject>(endpoints.subjects.byCode(code)),
 
-  delete: (id: string | number) => api.delete(endpoints.attendance.delete(id)),
+  byField: (field: string) =>
+    api.get<Subject[]>(endpoints.subjects.byField(field)),
 
-  byDate: (date: string) => api.get<any[]>(endpoints.attendance.byDate(date)),
+  create: (subjectData: CreateSubjectRequest) =>
+    api.post<Subject>(endpoints.subjects.create, subjectData),
 
-  byTeacher: (teacherId: string | number) =>
-    api.get<any[]>(endpoints.attendance.byTeacher(teacherId)),
+  update: (id: string, subjectData: UpdateSubjectRequest) =>
+    api.put<Subject>(endpoints.subjects.update(id), subjectData),
+
+  delete: (id: string) => api.delete<void>(endpoints.subjects.delete(id)),
+
+  hardDelete: (id: string) =>
+    api.delete<void>(endpoints.subjects.hardDelete(id)),
+};
+
+export const teachersApi = {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    department?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<TeacherWithUser>(
+      endpoints.teachers.list,
+      params?.page,
+      params?.limit,
+      { params }
+    ),
+
+  get: (id: string) => api.get<TeacherWithUser>(endpoints.teachers.get(id)),
+
+  byEmployeeId: (employeeId: string) =>
+    api.get<TeacherWithUser>(endpoints.teachers.byEmployeeId(employeeId)),
+
+  byDepartment: (department: string) =>
+    api.get<TeacherWithUser[]>(endpoints.teachers.byDepartment(department)),
+
+  assignments: (teacherId: string) =>
+    api.get<TeacherClass[]>(endpoints.teachers.assignments(teacherId)),
+
+  profile: () => api.get<TeacherWithUser>(endpoints.teachers.profile),
+
+  create: (teacherData: CreateTeacherRequest) =>
+    api.post<Teacher>(endpoints.teachers.create, teacherData),
+
+  update: (id: string, teacherData: UpdateTeacherRequest) =>
+    api.put<Teacher>(endpoints.teachers.update(id), teacherData),
+
+  delete: (id: string) => api.delete<void>(endpoints.teachers.delete(id)),
+
+  assignToClass: (assignmentData: AssignTeacherToClassRequest) =>
+    api.post<TeacherClass>(endpoints.teachers.assignToClass, assignmentData),
+
+  removeFromClass: (assignmentData: RemoveTeacherFromClassRequest) =>
+    api.post<void>(endpoints.teachers.removeFromClass, assignmentData),
+};
+
+export const classesApi = {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    grade?: string;
+    academicYear?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<Class>(
+      endpoints.classes.list,
+      params?.page,
+      params?.limit,
+      { params }
+    ),
+
+  active: () => api.get<Class[]>(endpoints.classes.active),
+
+  get: (id: string) => api.get<Class>(endpoints.classes.get(id)),
+
+  byGrade: (grade: string) =>
+    api.get<Class[]>(endpoints.classes.byGrade(grade)),
+
+  byAcademicYear: (academicYear: string) =>
+    api.get<Class[]>(endpoints.classes.byAcademicYear(academicYear)),
+
+  byNameAndGrade: (name: string, grade: string) =>
+    api.get<Class>(endpoints.classes.byNameAndGrade(name, grade)),
+
+  students: (classId: string) =>
+    api.get<Student[]>(endpoints.classes.students(classId)),
+
+  teachers: (classId: string) =>
+    api.get<TeacherClass[]>(endpoints.classes.teachers(classId)),
+
+  stats: (classId: string) =>
+    api.get<ClassStats>(endpoints.classes.stats(classId)),
+
+  create: (classData: CreateClassRequest) =>
+    api.post<Class>(endpoints.classes.create, classData),
+
+  update: (id: string, classData: UpdateClassRequest) =>
+    api.put<Class>(endpoints.classes.update(id), classData),
+
+  delete: (id: string) => api.delete<void>(endpoints.classes.delete(id)),
+};
+
+export const studentsApi = {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    classId?: string;
+    gender?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<StudentWithClass>(
+      endpoints.students.list,
+      params?.page,
+      params?.limit,
+      { params }
+    ),
+
+  active: () => api.get<StudentWithClass[]>(endpoints.students.active),
+
+  get: (id: string) => api.get<StudentWithClass>(endpoints.students.get(id)),
+
+  byStudentId: (studentId: string) =>
+    api.get<StudentWithClass>(endpoints.students.byStudentId(studentId)),
+
+  byClass: (classId: string) =>
+    api.get<Student[]>(endpoints.students.byClass(classId)),
+
+  byGender: (gender: string) =>
+    api.get<StudentWithClass[]>(endpoints.students.byGender(gender)),
+
+  attendance: (
+    studentId: string,
+    params?: {
+      startDate?: string;
+      endDate?: string;
+      classId?: string;
+    }
+  ) =>
+    api.get<StudentAttendance[]>(endpoints.students.attendance(studentId), {
+      params,
+    }),
+
+  create: (studentData: CreateStudentRequest) =>
+    api.post<Student>(endpoints.students.create, studentData),
+
+  update: (id: string, studentData: UpdateStudentRequest) =>
+    api.put<Student>(endpoints.students.update(id), studentData),
+
+  delete: (id: string) => api.delete<void>(endpoints.students.delete(id)),
+};
+
+export const attendanceApi = {
+  teacher: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      teacherId?: string;
+      date?: string;
+    }) =>
+      api.getPaginated<TeacherAttendance>(
+        endpoints.attendance.teacher.list,
+        params?.page,
+        params?.limit,
+        { params }
+      ),
+
+    get: (id: string) =>
+      api.get<TeacherAttendance>(endpoints.attendance.teacher.get(id)),
+
+    byTeacher: (teacherId: string) =>
+      api.get<TeacherAttendance[]>(
+        endpoints.attendance.teacher.byTeacher(teacherId)
+      ),
+
+    byDate: (date: string) =>
+      api.get<TeacherAttendance[]>(endpoints.attendance.teacher.byDate(date)),
+
+    create: (attendanceData: CreateTeacherAttendanceRequest) =>
+      api.post<TeacherAttendance>(
+        endpoints.attendance.teacher.create,
+        attendanceData
+      ),
+
+    update: (id: string, attendanceData: UpdateTeacherAttendanceRequest) =>
+      api.put<TeacherAttendance>(
+        endpoints.attendance.teacher.update(id),
+        attendanceData
+      ),
+
+    delete: (id: string) =>
+      api.delete<void>(endpoints.attendance.teacher.delete(id)),
+  },
+  student: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      studentId?: string;
+      classId?: string;
+      date?: string;
+    }) =>
+      api.getPaginated<StudentAttendance>(
+        endpoints.attendance.student.list,
+        params?.page,
+        params?.limit,
+        { params }
+      ),
+
+    get: (id: string) =>
+      api.get<StudentAttendance>(endpoints.attendance.student.get(id)),
+
+    byStudent: (studentId: string) =>
+      api.get<StudentAttendance[]>(
+        endpoints.attendance.student.byStudent(studentId)
+      ),
+
+    byClass: (classId: string) =>
+      api.get<StudentAttendance[]>(
+        endpoints.attendance.student.byClass(classId)
+      ),
+
+    byDate: (date: string) =>
+      api.get<StudentAttendance[]>(endpoints.attendance.student.byDate(date)),
+
+    create: (attendanceData: CreateStudentAttendanceRequest) =>
+      api.post<StudentAttendance>(
+        endpoints.attendance.student.create,
+        attendanceData
+      ),
+
+    update: (id: string, attendanceData: UpdateStudentAttendanceRequest) =>
+      api.put<StudentAttendance>(
+        endpoints.attendance.student.update(id),
+        attendanceData
+      ),
+
+    delete: (id: string) =>
+      api.delete<void>(endpoints.attendance.student.delete(id)),
+  },
 };
 
 export const reportsApi = {
   summary: (params?: { startDate?: string; endDate?: string }) =>
-    api.get<any>(endpoints.reports.summary, { params }),
+    api.get<DashboardStats>(endpoints.reports.summary, { params }),
 
   teacher: (
-    teacherId: string | number,
+    teacherId: string,
     params?: { startDate?: string; endDate?: string }
-  ) => api.get<any>(endpoints.reports.teacher(teacherId), { params }),
+  ) =>
+    api.get<TeacherAttendance[]>(endpoints.reports.teacher(teacherId), {
+      params,
+    }),
 
   dateRange: (params: { startDate: string; endDate: string }) =>
-    api.get<any>(endpoints.reports.dateRange, { params }),
+    api.get<TeacherAttendance[]>(endpoints.reports.dateRange, { params }),
 };
 
 // Utility functions

@@ -1,10 +1,11 @@
 import "./global.css";
 
 import { Suspense, useCallback } from "react";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { drizzle } from "drizzle-orm/expo-sqlite";
 import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
+import { useThemeStore } from "@/stores/themeStore";
 
 import migrations from "@/db/migrations/migrations";
 import { MigrationTracker } from "@/utils/migrationTracker";
@@ -13,7 +14,7 @@ import AppRouter from "./_router";
 
 export const DATABASE_NAME = "teacher-attendance-v2";
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const runMigration = useCallback(async (database: SQLiteDatabase) => {
     try {
       // Check if migration is needed
@@ -46,3 +47,5 @@ export default function RootLayout() {
     </Suspense>
   );
 }
+
+export default RootLayoutContent;

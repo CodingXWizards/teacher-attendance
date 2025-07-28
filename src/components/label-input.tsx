@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useThemeStore } from "@/stores/themeStore";
 
 interface LabelInputProps {
   label: string;
@@ -21,14 +22,15 @@ export const LabelInput = ({
   onChangeText,
   onIconPress,
 }: LabelInputProps) => {
+  const { isDark } = useThemeStore();
+
   return (
     <View>
-      <Text className="text-gray-700 font-medium mb-1.5">{label}</Text>
+      <Text className="text-foreground font-medium mb-1.5">{label}</Text>
       <View className="relative">
         <TextInput
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-800"
+          className="w-full px-4 py-3 border border-border rounded-lg text-foreground placeholder:text-muted-foreground"
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={type === "password"}
@@ -39,7 +41,11 @@ export const LabelInput = ({
           className="absolute right-3 top-2.5"
           onPress={onIconPress}
         >
-          <Ionicons name={icon} size={20} color="#9CA3AF" />
+          <Ionicons
+            name={icon}
+            size={20}
+            color={isDark ? "hsl(217.9 10.6% 64.9%)" : "hsl(220 8.9% 46.1%)"}
+          />
         </TouchableOpacity>
       </View>
     </View>

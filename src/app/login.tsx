@@ -10,12 +10,13 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
-
 import { AuthService } from "@/services";
+import { Ionicons } from "@expo/vector-icons";
+import { useUserStore } from "@/stores/userStore";
 import { LabelInput } from "@/components/label-input";
 
 const LoginScreen = () => {
+  const { setUser } = useUserStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,27 +28,22 @@ const LoginScreen = () => {
       return;
     }
 
-    if (!email.includes("@")) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      await AuthService.login({ email, password });
+      const response = await AuthService.login({ email, password });
 
-      Alert.alert("Success", "Login successful!", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/"),
-        },
-      ]);
+      // Store user data in global state
+      setUser(response.user);
+
+      // Navigate to home screen
+      router.replace("/");
     } catch (error) {
-      console.log("Login error:", error);
+      console.error("Login error:", error);
       Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Login failed"
+        "Login Failed",
+        error instanceof Error
+          ? error.message
+          : "Invalid credentials. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -65,7 +61,7 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      className="flex-1 bg-background"
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -75,13 +71,13 @@ const LoginScreen = () => {
           <View>
             {/* Header */}
             <View className="items-center mb-12">
-              <View className="w-20 h-20 bg-blue-500 rounded-full items-center justify-center mb-4">
+              <View className="w-20 h-20 bg-primary rounded-full items-center justify-center mb-4">
                 <Ionicons name="school" size={40} color="white" />
               </View>
-              <Text className="text-3xl font-bold text-gray-800 mb-2">
+              <Text className="text-3xl font-bold text-foreground mb-2">
                 Welcome Back
               </Text>
-              <Text className="text-gray-600 text-center">
+              <Text className="text-muted-foreground text-center">
                 Sign in to your account to continue
               </Text>
             </View>
@@ -110,7 +106,7 @@ const LoginScreen = () => {
                 onPress={handleForgotPassword}
                 className="self-end"
               >
-                <Text className="text-blue-500 font-medium">
+                <Text className="text-primary font-medium">
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
@@ -119,14 +115,14 @@ const LoginScreen = () => {
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={isLoading}
-                className={`w-full py-2 mt-4 rounded-lg ${
-                  isLoading ? "bg-gray-400" : "bg-blue-500"
+                className={`w-full py-3 mt-4 rounded-lg ${
+                  isLoading ? "bg-muted" : "bg-primary"
                 }`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-center font-semibold text-lg">
+                  <Text className="text-primary-foreground text-center font-semibold text-lg">
                     Sign In
                   </Text>
                 )}
@@ -134,26 +130,20 @@ const LoginScreen = () => {
 
               {/* Divider */}
               <View className="flex-row items-center my-3">
-                <View className="flex-1 h-px bg-gray-300" />
-                <Text className="mx-4 text-gray-500">or</Text>
-                <View className="flex-1 h-px bg-gray-300" />
+                <View className="flex-1 h-px bg-border" />
+                <Text className="mx-4 text-muted-foreground">or</Text>
+                <View className="flex-1 h-px bg-border" />
               </View>
 
               {/* Register Link */}
               <View className="flex-row justify-center">
-                <Text className="text-gray-600">Don't have an account? </Text>
+                <Text className="text-muted-foreground">
+                  Don't have an account?{" "}
+                </Text>
                 <TouchableOpacity onPress={handleRegister}>
-                  <Text className="text-blue-500 font-medium">Sign Up</Text>
+                  <Text className="text-primary font-medium">Sign Up</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-
-            {/* Footer */}
-            <View className="mt-auto pt-5">
-              <Text className="text-gray-500 text-center text-sm">
-                By signing in, you agree to our Terms of Service and Privacy
-                Policy
-              </Text>
             </View>
           </View>
         </View>
