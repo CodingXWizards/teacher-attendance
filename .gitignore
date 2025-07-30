@@ -2,12 +2,7 @@
 
 # dependencies
 node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+.env
 
 # Native
 .kotlin/
@@ -26,9 +21,21 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
+# iOS
+ios/build/
+ios/Pods/
+ios/DerivedData/
+ios/*.xcworkspace
+ios/xcuserdata/
+ios/*.pbxuser
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.perspectivev3
+ios/*.xcuserstate
+ios/.xcode.env
+ios/.swiftpm/
+ios/.package.resolved
+ios/.DS_Store
 
 # local env files
 .env*.local
@@ -36,3 +43,42 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Android
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+android/build/
+android/.idea/
+android/local.properties
+android/.cxx/
+android/.DS_Store
+android/gradle.properties
+android/gradlew
+android/gradlew.bat
+android/gradle/
+
+# IntelliJ & Android Studio
+*.iml
+*.hprof
+*.log
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# Keystore (⚠️ Optional — only if it's not meant to be public)
+android/app/*.keystore
+android/app/*.jks
+
+# Crashlytics / Fabric
+android/app/crashlytics-build.properties
+
+# NDK
+android/ndk/
+
+# Others
+**/captures/
+
+# build
+build/

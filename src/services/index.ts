@@ -9,6 +9,10 @@ export { default as SubjectsService } from "./subjects";
 export { default as DashboardService } from "./dashboard";
 export { default as AttendanceService } from "./attendance";
 
+// Export offline-first services
+export { syncService } from "./syncService";
+export { databaseService } from "./databaseService";
+
 // Export types from the main types file
 export type {
   User,

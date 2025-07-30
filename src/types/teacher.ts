@@ -1,21 +1,17 @@
 import { User } from "./user";
 import { Class } from "./class";
 
-export interface Teacher {
-  id: string;
-  userId: string;
+// Teacher is now a User with teacher-specific fields
+export interface Teacher extends User {
   employeeId: string;
   department: string;
   phone: string;
   address: string;
   hireDate: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  user?: User;
 }
 
 export interface TeacherWithUser extends Teacher {
+  // For backward compatibility, but Teacher now includes all user fields
   user: User;
 }
 
@@ -37,7 +33,10 @@ export interface TeacherClassWithDetails extends TeacherClass {
 }
 
 export interface CreateTeacherRequest {
-  userId: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
   employeeId: string;
   department: string;
   phone: string;
@@ -47,6 +46,9 @@ export interface CreateTeacherRequest {
 }
 
 export interface UpdateTeacherRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
   employeeId?: string;
   department?: string;
   phone?: string;

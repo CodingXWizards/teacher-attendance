@@ -1,7 +1,6 @@
 export enum UserRole {
   TEACHER = "teacher",
   ADMIN = "admin",
-  PRINCIPAL = "principal",
 }
 
 export interface User {
@@ -10,6 +9,13 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+  // Teacher-specific fields (nullable for non-teachers)
+  employeeId?: string;
+  department?: string;
+  phone?: string;
+  address?: string;
+  hireDate?: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,7 +23,6 @@ export interface User {
 export interface UserStats {
   totalUsers: number;
   adminCount: number;
-  principalCount: number;
   teacherCount: number;
 }
 
@@ -27,6 +32,13 @@ export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   role: UserRole;
+  // Teacher-specific fields (required when role is teacher)
+  employeeId?: string;
+  department?: string;
+  phone?: string;
+  address?: string;
+  hireDate?: string;
+  isActive?: boolean;
 }
 
 export interface UpdateUserRequest {
@@ -34,6 +46,13 @@ export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   role?: UserRole;
+  // Teacher-specific fields
+  employeeId?: string;
+  department?: string;
+  phone?: string;
+  address?: string;
+  hireDate?: string;
+  isActive?: boolean;
 }
 
 export interface ChangePasswordRequest {
@@ -56,4 +75,48 @@ export interface UserListParams {
   limit?: number;
   search?: string;
   role?: string;
+  department?: string;
+  isActive?: boolean;
+}
+
+// Teacher-specific interfaces for backward compatibility
+export interface Teacher extends User {
+  employeeId: string;
+  department: string;
+  phone: string;
+  address: string;
+  hireDate: string;
+}
+
+export interface CreateTeacherRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+  department: string;
+  phone: string;
+  address: string;
+  hireDate: string;
+  isActive?: boolean;
+}
+
+export interface UpdateTeacherRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  employeeId?: string;
+  department?: string;
+  phone?: string;
+  address?: string;
+  hireDate?: string;
+  isActive?: boolean;
+}
+
+export interface TeacherListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  department?: string;
+  isActive?: boolean;
 }

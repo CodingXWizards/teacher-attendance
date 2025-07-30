@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   AuthResponse,
@@ -139,7 +139,7 @@ class AuthService {
    */
   static async getAccessToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync(this.TOKEN_KEY);
+      return await AsyncStorage.getItem(this.TOKEN_KEY);
     } catch (error) {
       console.error("Error getting access token:", error);
       return null;
@@ -151,7 +151,7 @@ class AuthService {
    */
   static async getRefreshToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync(this.REFRESH_TOKEN_KEY);
+      return await AsyncStorage.getItem(this.REFRESH_TOKEN_KEY);
     } catch (error) {
       console.error("Error getting refresh token:", error);
       return null;
@@ -163,7 +163,7 @@ class AuthService {
    */
   static async getStoredUser(): Promise<User | null> {
     try {
-      const userData = await SecureStore.getItemAsync(this.USER_KEY);
+      const userData = await AsyncStorage.getItem(this.USER_KEY);
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error("Error getting stored user:", error);
@@ -176,7 +176,7 @@ class AuthService {
    */
   private static async storeAuthData(
     tokens: AuthTokens,
-    user: User
+    user: User,
   ): Promise<void> {
     await Promise.all([this.storeTokens(tokens), this.storeUser(user)]);
   }
@@ -186,8 +186,8 @@ class AuthService {
    */
   private static async storeTokens(tokens: AuthTokens): Promise<void> {
     await Promise.all([
-      SecureStore.setItemAsync(this.TOKEN_KEY, tokens.accessToken),
-      SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, tokens.refreshToken),
+      AsyncStorage.setItem(this.TOKEN_KEY, tokens.accessToken),
+      AsyncStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken),
     ]);
   }
 
@@ -195,7 +195,7 @@ class AuthService {
    * Store user data
    */
   private static async storeUser(user: User): Promise<void> {
-    await SecureStore.setItemAsync(this.USER_KEY, JSON.stringify(user));
+    await AsyncStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
   /**
@@ -203,9 +203,9 @@ class AuthService {
    */
   private static async clearAuthData(): Promise<void> {
     await Promise.all([
-      SecureStore.deleteItemAsync(this.TOKEN_KEY),
-      SecureStore.deleteItemAsync(this.REFRESH_TOKEN_KEY),
-      SecureStore.deleteItemAsync(this.USER_KEY),
+      AsyncStorage.removeItem(this.TOKEN_KEY),
+      AsyncStorage.removeItem(this.REFRESH_TOKEN_KEY),
+      AsyncStorage.removeItem(this.USER_KEY),
     ]);
   }
 }

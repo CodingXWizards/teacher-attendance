@@ -1,98 +1,69 @@
 import React, { useEffect } from "react";
-import { router, Stack } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 
+import LoginScreen from "@/app/login";
 import { AuthService } from "@/services";
+import DashboardScreen from "@/app/index";
+import ProfileScreen from "@/app/profile";
+import AttendanceScreen from "@/app/attendance";
+import ClassDetailsScreen from "@/app/class/[id]";
 import { useUserStore } from "@/stores/userStore";
+import TakeAttendanceScreen from "@/app/attendance/[id]";
+import { createStackNavigator } from "@react-navigation/stack";
+import StudentDetailsScreen from "@/app/class/student/[studentId]";
+
+const Stack = createStackNavigator();
 
 const AppRouter = () => {
   const { setUser } = useUserStore();
+  const navigation = useNavigation();
 
   useEffect(() => {
-    AuthService.isAuthenticated().then(async (isAuthenticated) => {
-      if (!isAuthenticated) {
-        router.replace("/login");
-      } else {
+    AuthService.isAuthenticated().then(async isAuthenticated => {
+      if (isAuthenticated) {
         try {
           const user = await AuthService.getCurrentUser();
           setUser(user);
-          router.replace("/");
+          navigation.navigate("Dashboard" as never);
         } catch (error) {
           console.error("Error getting current user:", error);
-          router.replace("/login");
         }
+      } else {
+        navigation.navigate("Login" as never);
       }
     });
   }, []);
 
   return (
-    <Stack>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen
-        name="index"
-        options={{
-          title: "Dashboard",
-          headerShown: false,
-        }}
+        name="Attendance"
+        component={AttendanceScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen
+        name="ClassDetails"
+        component={ClassDetailsScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="login"
-        options={{
-          title: "Login",
-          headerShown: false,
-        }}
+        name="StudentDetails"
+        component={StudentDetailsScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="attendance"
-        options={{
-          title: "Take Attendance",
-        }}
+        name="TakeAttendance"
+        component={TakeAttendanceScreen}
+        options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="history"
-        options={{
-          title: "Attendance History",
-        }}
-      />
-      <Stack.Screen
-        name="teachers"
-        options={{
-          title: "Manage Teachers",
-        }}
-      />
-      <Stack.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-        }}
-      />
-      <Stack.Screen
-        name="class/[id]"
-        options={{
-          title: "Class Details",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="class/student/[studentId]"
-        options={{
-          title: "Student Details",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="attendance/[id]"
-        options={{
-          title: "Take Attendance",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          headerShown: false,
-        }}
-      />
-    </Stack>
+    </Stack.Navigator>
   );
 };
 

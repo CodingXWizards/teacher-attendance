@@ -44,27 +44,28 @@ class DashboardService {
    */
   static async getTeacherStats(teacherId: string): Promise<DashboardStats> {
     try {
-      const assignments =
-        await TeachersService.getTeacherAssignments(teacherId);
+      const assignments = await TeachersService.getTeacherAssignments(
+        teacherId,
+      );
 
       // For teachers, we can only show what they have access to
       const todaySessions = assignments.length;
 
       // Count unique classes the teacher teaches
-      const uniqueClasses = new Set(assignments.map((a) => a.classId)).size;
+      const uniqueClasses = new Set(assignments.map(a => a.classId)).size;
 
       // Calculate total students from all assigned classes
       let totalStudents = 0;
       for (const assignment of assignments) {
         try {
           const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId
+            assignment.classId,
           );
           totalStudents += classDetails.students?.length || 0;
         } catch (error) {
           console.warn(
             `Failed to get student count for class ${assignment.classId}:`,
-            error
+            error,
           );
         }
       }
@@ -85,7 +86,7 @@ class DashboardService {
    * Get teacher dashboard data (assignments with class details)
    */
   static async getTeacherDashboard(
-    teacherId: string
+    teacherId: string,
   ): Promise<TeacherDashboardData> {
     try {
       const [assignments, stats] = await Promise.all([
@@ -99,13 +100,13 @@ class DashboardService {
       for (const assignment of assignments) {
         try {
           const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId
+            assignment.classId,
           );
           classesWithDetails.push(classDetails);
         } catch (error) {
           console.warn(
             `Failed to get details for class ${assignment.classId}:`,
-            error
+            error,
           );
         }
       }
@@ -124,23 +125,24 @@ class DashboardService {
    * Get classes for a teacher with student counts
    */
   static async getTeacherClasses(
-    teacherId: string
+    teacherId: string,
   ): Promise<ClassWithDetails[]> {
     try {
-      const assignments =
-        await TeachersService.getTeacherAssignments(teacherId);
+      const assignments = await TeachersService.getTeacherAssignments(
+        teacherId,
+      );
       const classesWithDetails: ClassWithDetails[] = [];
 
       for (const assignment of assignments) {
         try {
           const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId
+            assignment.classId,
           );
           classesWithDetails.push(classDetails);
         } catch (error) {
           console.warn(
             `Failed to get details for class ${assignment.classId}:`,
-            error
+            error,
           );
         }
       }
@@ -193,7 +195,7 @@ class DashboardService {
         } catch (error) {
           console.warn(
             `Failed to get summary for class ${classData.id}:`,
-            error
+            error,
           );
         }
       }
@@ -261,10 +263,10 @@ class DashboardService {
         totalStudents: students.length,
         totalTeachers: teachers.length,
         totalSubjects: subjects.length,
-        activeClasses: classes.filter((c) => c.isActive).length,
-        activeStudents: students.filter((s) => s.isActive).length,
-        activeTeachers: teachers.filter((t) => t.isActive).length,
-        activeSubjects: subjects.filter((s) => s.isActive).length,
+        activeClasses: classes.filter(c => c.isActive).length,
+        activeStudents: students.filter(s => s.isActive).length,
+        activeTeachers: teachers.filter(t => t.isActive).length,
+        activeSubjects: subjects.filter(s => s.isActive).length,
       };
     } catch (error) {
       throw new Error(`Failed to get admin quick stats: ${error}`);

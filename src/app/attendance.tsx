@@ -8,10 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
-import { useSQLiteContext } from "expo-sqlite";
-import { drizzle } from "drizzle-orm/expo-sqlite";
-import * as schema from "@/db/schema";
-import { createDbHelpers } from "@/db";
+import { useDatabase } from "@/components/DatabaseProvider";
 
 type Teacher = {
   id: number;
@@ -37,10 +34,8 @@ export default function Attendance() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Get the SQLite database instance from context
-  const expoDb = useSQLiteContext();
-  const db = drizzle(expoDb, { schema });
-  const dbHelpers = createDbHelpers(db);
+  // Get the database helpers from context
+  const { dbHelpers } = useDatabase();
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -54,6 +49,8 @@ export default function Attendance() {
   }, []);
 
   const loadTeachersAndAttendance = async () => {
+    if (!dbHelpers) return;
+    
     try {
       setLoading(true);
 
@@ -86,6 +83,8 @@ export default function Attendance() {
   };
 
   const saveAttendance = async () => {
+    if (!dbHelpers) return;
+    
     try {
       setSaving(true);
 

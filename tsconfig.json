@@ -1,12 +1,11 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "strict": true,
-    "baseUrl": "./src",
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "paths": {
-      "@/*": [
-        "*"
-      ]
+      "@/*": ["src/*"]
     }
   }
 }
