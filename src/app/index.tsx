@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -19,13 +18,14 @@ import {
   Plus,
   Book,
 } from "lucide-react-native";
+import { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useUserStore } from "@/stores/userStore";
 import { Appbar } from "@/components/appbar";
+import { useUserStore } from "@/stores/userStore";
 import DashboardService from "@/services/dashboard";
-import { ClassWithDetails, TeacherClass, Class } from "@/types";
+import { ClassWithDetails, TeacherClass } from "@/types";
 
 // Interface for class summary from dashboard service
 interface ClassSummary {

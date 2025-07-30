@@ -1,15 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { initDatabase, createDbHelpers } from "@/db";
+import React, { createContext, useContext, useEffect, useState } from "react";
+
+import { initDatabase } from "@/db";
 
 interface DatabaseContextType {
   database: any;
-  dbHelpers: ReturnType<typeof createDbHelpers> | null;
 }
 
 const DatabaseContext = createContext<DatabaseContextType>({
   database: null,
-  dbHelpers: null,
 });
 
 export const useDatabase = () => {
@@ -28,9 +27,6 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   children,
 }) => {
   const [database, setDatabase] = useState<any>(null);
-  const [dbHelpers, setDbHelpers] = useState<ReturnType<
-    typeof createDbHelpers
-  > | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,10 +34,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
       try {
         console.log("🔄 Initializing database...");
         const db = await initDatabase();
-        const helpers = createDbHelpers(db);
-
         setDatabase(db);
-        setDbHelpers(helpers);
         console.log("✅ Database initialized successfully");
       } catch (error) {
         console.error("❌ Database initialization failed:", error);
@@ -62,7 +55,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   }
 
   return (
-    <DatabaseContext.Provider value={{ database, dbHelpers }}>
+    <DatabaseContext.Provider value={{ database }}>
       {children}
     </DatabaseContext.Provider>
   );

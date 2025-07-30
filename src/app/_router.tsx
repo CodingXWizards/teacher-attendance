@@ -3,11 +3,8 @@ import { useNavigation } from "@react-navigation/native";
 
 import LoginScreen from "@/app/login";
 import { AuthService } from "@/services";
-import HistoryScreen from "@/app/history";
 import DashboardScreen from "@/app/index";
-import ReportsScreen from "@/app/reports";
 import ProfileScreen from "@/app/profile";
-import TeachersScreen from "@/app/teachers";
 import AttendanceScreen from "@/app/attendance";
 import ClassDetailsScreen from "@/app/class/[id]";
 import { useUserStore } from "@/stores/userStore";
@@ -48,21 +45,6 @@ const AppRouter = () => {
       <Stack.Screen
         name="Attendance"
         component={AttendanceScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Teachers"
-        component={TeachersScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Reports"
-        component={ReportsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen name="Profile" component={ProfileScreen} />
