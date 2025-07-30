@@ -1,31 +1,43 @@
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
+  TouchableOpacity,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
   ActivityIndicator,
+  StyleSheet,
+  Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useState, useEffect } from "react";
-import { 
-  School, 
-  Book, 
-  Calendar, 
-  Users, 
-  User, 
-  Plus, 
-  BarChart3, 
-  UserCircle,
-  AlertCircle,
-  BookOpen
+import {
+  User,
+  School,
+  Users,
+  BookOpen,
+  Calendar,
+  BarChart3,
+  Plus,
+  Book,
 } from "lucide-react-native";
-import { useUserStore } from "@/stores/userStore";
+import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useUserStore } from "@/stores/userStore";
 import { Appbar } from "@/components/appbar";
-import { ClassWithDetails, DashboardStats, TeacherClass } from "@/types";
-import { DashboardService, ClassesService, TeachersService } from "@/services";
+import DashboardService from "@/services/dashboard";
+import { ClassWithDetails, TeacherClass, Class } from "@/types";
+
+// Interface for class summary from dashboard service
+interface ClassSummary {
+  id: string;
+  name: string;
+  grade: string;
+  section: string;
+  academicYear: string;
+  studentCount: number;
+  teacherCount: number;
+  color: string;
+}
 
 export default function Home() {
   const { user } = useUserStore();
@@ -33,124 +45,29 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [classes, setClasses] = useState<ClassWithDetails[]>([]);
+  const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
   const [assignments, setAssignments] = useState<TeacherClass[]>([]);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalClasses: 0,
-    totalStudents: 0,
-    totalTeachers: 0,
-    totalSubjects: 0,
-    todaySessions: 0,
-  });
   const [error, setError] = useState<string | null>(null);
-
-  const loadDashboardData = async () => {
-    try {
-      setError(null);
-
-      if (user?.role === "teacher") {
-        // For teachers, first get their teacher profile to get the teacher ID
-        const teacherProfile = await TeachersService.getTeacherProfile();
-        const teacherDashboard = await DashboardService.getTeacherDashboard(
-          teacherProfile.id
-        );
-        setClasses(teacherDashboard.classes);
-        setAssignments(teacherDashboard.assignments);
-        setStats(teacherDashboard.stats);
-      } else {
-        // For admins/principals, get all classes and general stats
-        const [allClasses, dashboardStats] = await Promise.all([
-          ClassesService.getActiveClasses(),
-          DashboardService.getDashboardStats(),
-        ]);
-
-        const classesWithDetails: ClassWithDetails[] = [];
-
-        for (const classData of allClasses) {
-          try {
-            const details = await ClassesService.getClassWithDetails(
-              classData.id
-            );
-            classesWithDetails.push(details);
-          } catch (error) {
-            console.warn(
-              `Failed to get details for class ${classData.id}:`,
-              error
-            );
-          }
-        }
-
-        setClasses(classesWithDetails);
-        setStats(dashboardStats);
-      }
-    } catch (err) {
-      console.error("Failed to load dashboard data:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to load dashboard data"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
 
   if (!user) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (loading) {
-    return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" />
-        <Text className="text-muted-foreground mt-4">Loading dashboard...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View className="flex-1 bg-background justify-center items-center px-5">
-        <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center">
-          <AlertCircle size={24} color="#ef4444" />
-        </View>
-        <Text className="text-foreground text-lg font-semibold mt-4 mb-2">
-          Something went wrong
-        </Text>
-        <Text className="text-muted-foreground text-center mb-4">{error}</Text>
-        <TouchableOpacity
-          className="px-6 py-3 bg-primary rounded-lg"
-          onPress={loadDashboardData}
-        >
-          <Text className="text-white font-medium">Try Again</Text>
-        </TouchableOpacity>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8b5cf6" />
+        <Text style={styles.loadingText}>Loading user...</Text>
       </View>
     );
   }
 
   const generateColorFromString = (str: string): string => {
     const colors = [
-      "#8b5cf6", // Purple
-      "#06b6d4", // Cyan
-      "#10b981", // Emerald
-      "#f59e0b", // Amber
-      "#ef4444", // Red
-      "#3b82f6", // Blue
-      "#84cc16", // Lime
-      "#f97316", // Orange
+      "#3b82f6", // blue
+      "#10b981", // emerald
+      "#f59e0b", // amber
+      "#ef4444", // red
+      "#8b5cf6", // violet
+      "#06b6d4", // cyan
+      "#84cc16", // lime
+      "#f97316", // orange
     ];
 
     let hash = 0;
@@ -163,9 +80,72 @@ export default function Home() {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (user.role === "teacher") {
+        // Load teacher-specific data
+        const teacherDashboard = await DashboardService.getTeacherDashboard(
+          user.id,
+        );
+        setClasses(teacherDashboard.classes);
+        setAssignments(teacherDashboard.assignments);
+      } else {
+        // Load admin/principal data
+        const allClassSummaries = await DashboardService.getAllClassSummaries();
+        setClassSummaries(allClassSummaries);
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load dashboard";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboardData();
+    setRefreshing(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8b5cf6" />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
+          <ActivityIndicator size="large" color="#ef4444" />
+        </View>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={loadDashboardData}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
         <Appbar
           showBack={false}
           title={`Good morning, ${user.firstName}!`}
@@ -175,165 +155,166 @@ export default function Home() {
               : "Here's an overview of your school today"
           }
           trailing={
-            <TouchableOpacity onPress={() => navigation.navigate("Profile" as never)}>
-              <User size={24} className="text-foreground" />
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => navigation.navigate("Profile" as never)}
+            >
+              <User size={24} color="#1f2937" />
             </TouchableOpacity>
           }
         />
         <ScrollView
-          className="flex-1 px-4 py-4"
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
           {/* Stats Cards */}
-          <View className="flex flex-row gap-3 mb-8">
+          <View style={styles.statsContainer}>
             {user.role === "teacher" ? (
               // Teacher-specific stats
               <>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <School size={24} color="#8b5cf6" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.totalClasses}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    My Classes
-                  </Text>
+                <View style={styles.statCard}>
+                  <BookOpen size={24} color="#8b5cf6" />
+                  <Text style={styles.statNumber}>{assignments.length}</Text>
+                  <Text style={styles.statLabel}>Assigned Classes</Text>
                 </View>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Book size={24} color="#06b6d4" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.totalSubjects}
+                <View style={styles.statCard}>
+                  <Users size={24} color="#8b5cf6" />
+                  <Text style={styles.statNumber}>
+                    {classes.reduce(
+                      (total, cls) => total + (cls.students?.length || 0),
+                      0,
+                    )}
                   </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    My Subjects
-                  </Text>
+                  <Text style={styles.statLabel}>Total Students</Text>
                 </View>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Calendar size={24} color="#10b981" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.todaySessions}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Today's Classes
-                  </Text>
+                <View style={styles.statCard}>
+                  <Calendar size={24} color="#8b5cf6" />
+                  <Text style={styles.statNumber}>{new Date().getDate()}</Text>
+                  <Text style={styles.statLabel}>Today's Date</Text>
                 </View>
               </>
             ) : (
               // Admin/Principal stats
               <>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
+                <View style={styles.statCard}>
                   <School size={24} color="#8b5cf6" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.totalClasses}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Total Classes
-                  </Text>
+                  <Text style={styles.statNumber}>{classSummaries.length}</Text>
+                  <Text style={styles.statLabel}>Total Classes</Text>
                 </View>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Users size={24} color="#06b6d4" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.totalStudents}
+                <View style={styles.statCard}>
+                  <Users size={24} color="#8b5cf6" />
+                  <Text style={styles.statNumber}>
+                    {classSummaries.reduce(
+                      (total, cls) => total + cls.studentCount,
+                      0,
+                    )}
                   </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Total Students
-                  </Text>
+                  <Text style={styles.statLabel}>Total Students</Text>
                 </View>
-                <View className="flex-1 p-4 rounded-xl bg-card border border-border items-center">
-                  <Calendar size={24} color="#10b981" />
-                  <Text className="text-2xl font-bold text-foreground mt-2 mb-1">
-                    {stats.todaySessions}
+                <View style={styles.statCard}>
+                  <BookOpen size={24} color="#8b5cf6" />
+                  <Text style={styles.statNumber}>
+                    {classSummaries.reduce(
+                      (total, cls) => total + cls.teacherCount,
+                      0,
+                    )}
                   </Text>
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Today's Sessions
-                  </Text>
+                  <Text style={styles.statLabel}>Active Teachers</Text>
                 </View>
               </>
             )}
           </View>
+
           {/* Classes Section */}
-          <View className="mb-8">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold text-foreground">
-                {user.role === "teacher" ? "Your Assignments" : "All Classes"}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {user.role === "teacher" ? "Your Classes" : "All Classes"}
               </Text>
-              {(user.role === "admin" || user.role === "principal") && (
+              {user.role !== "teacher" && (
                 <TouchableOpacity
-                  className="w-10 h-10 rounded-full bg-card border border-border justify-center items-center"
-                  onPress={() => navigation.navigate("AddClass" as never)}
+                  style={styles.addButton}
+                  onPress={() =>
+                    Alert.alert("Add Class", "Add class not implemented yet")
+                  }
                 >
-                  <Plus size={20} className="text-foreground" />
+                  <Plus size={20} color="#1f2937" />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Teacher's Assigned Classes */}
             {user.role === "teacher" ? (
+              // Show assignments for teacher
               assignments.length === 0 ? (
-                <View className="p-8 items-center">
-                  <BookOpen
-                    size={48}
-                    className="text-muted-foreground"
-                  />
-                  <Text className="text-muted-foreground text-center mt-4">
+                <View style={styles.emptyContainer}>
+                  <Book size={48} color="#6b7280" />
+                  <Text style={styles.emptyText}>
                     No classes assigned yet. Contact your administrator.
                   </Text>
                 </View>
               ) : (
-                <View className="gap-4">
-                  {assignments.map((assignment) => {
+                <View style={styles.classesList}>
+                  {assignments.map(assignment => {
                     const color = generateColorFromString(
-                      assignment.class?.name || ""
+                      assignment.class?.name || "",
                     );
-                    const isPrimary = assignment.isPrimaryTeacher;
-
-                    const studentCount =
-                      classes.find((c) => c.id === assignment.classId)?.students
-                        ?.length || 0;
+                    const studentCount = 0; // Will be populated when we have ClassWithDetails
 
                     return (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={assignment.id}
-                        className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
-                        onPress={() => navigation.navigate("ClassDetails" as never, { id: assignment.classId } as never)}
+                        style={styles.classCard}
+                        onPress={() =>
+                          navigation.navigate(
+                            "ClassDetails" as never,
+                            { id: assignment.classId } as never,
+                          )
+                        }
                       >
                         <View
-                          className="w-12 h-12 rounded-full justify-center items-center"
-                          style={{ backgroundColor: color + "20" }}
+                          style={[
+                            styles.classIcon,
+                            { backgroundColor: color + "20" },
+                          ]}
                         >
-                          <School size={24} color={color} />
+                          <Book size={24} color={color} />
                         </View>
-                        <View className="flex-1">
-                          <Text className="text-lg font-semibold text-foreground mb-1">
+                        <View style={styles.classInfo}>
+                          <Text style={styles.className}>
                             {assignment.class?.name}
                           </Text>
-                          <Text className="text-sm text-muted-foreground mb-1">
+                          <Text style={styles.classDetails}>
                             Grade {assignment.class?.grade} -{" "}
                             {assignment.class?.section}
                           </Text>
-                          <Text className="text-xs text-muted-foreground mb-3">
+                          <Text style={styles.academicYear}>
                             Academic Year: {assignment.class?.academicYear}
-                            {isPrimary && " • Primary Teacher"}
                           </Text>
-                          <View className="flex-row justify-between items-center">
-                            <View className="flex-row items-center gap-1">
-                              <Users
-                                size={16}
-                                className="text-muted-foreground"
-                              />
-                              <Text className="text-xs text-muted-foreground">
+                          <View style={styles.classFooter}>
+                            <View style={styles.studentCount}>
+                              <Users size={16} color="#6b7280" />
+                              <Text style={styles.studentCountText}>
                                 {studentCount} students
                               </Text>
                             </View>
                             <TouchableOpacity
-                              className="px-3 py-1.5 rounded-2xl"
-                              style={{ backgroundColor: color }}
-                              onPress={() => navigation.navigate("TakeAttendance" as never, { id: assignment.classId } as never)}
+                              style={[
+                                styles.viewButton,
+                                { backgroundColor: color },
+                              ]}
+                              onPress={() =>
+                                navigation.navigate(
+                                  "ClassDetails" as never,
+                                  { id: assignment.classId } as never,
+                                )
+                              }
                             >
-                              <Text className="text-xs font-medium text-white">
-                                Take Attendance
+                              <Text style={styles.viewButtonText}>
+                                View Details
                               </Text>
                             </TouchableOpacity>
                           </View>
@@ -344,60 +325,65 @@ export default function Home() {
                 </View>
               )
             ) : // Show classes for admin/principal
-            classes.length === 0 ? (
-              <View className="p-8 items-center">
-                <School
-                  size={48}
-                  className="text-muted-foreground"
-                />
-                <Text className="text-muted-foreground text-center mt-4">
+            classSummaries.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <School size={48} color="#6b7280" />
+                <Text style={styles.emptyText}>
                   No classes found. Create your first class to get started.
                 </Text>
               </View>
             ) : (
-              <View className="gap-4">
-                {classes.map((classItem) => {
-                  const color = generateColorFromString(classItem.name);
-                  const studentCount = classItem.students?.length || 0;
+              <View style={styles.classesList}>
+                {classSummaries.map(classItem => {
+                  const color = classItem.color;
 
                   return (
                     <TouchableOpacity
                       key={classItem.id}
-                      className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
-                      onPress={() => navigation.navigate("ClassDetails" as never, { id: classItem.id } as never)}
+                      style={styles.classCard}
+                      onPress={() =>
+                        navigation.navigate(
+                          "ClassDetails" as never,
+                          { id: classItem.id } as never,
+                        )
+                      }
                     >
                       <View
-                        className="w-12 h-12 rounded-full justify-center items-center"
-                        style={{ backgroundColor: color + "20" }}
+                        style={[
+                          styles.classIcon,
+                          { backgroundColor: color + "20" },
+                        ]}
                       >
                         <Book size={24} color={color} />
                       </View>
-                      <View className="flex-1">
-                        <Text className="text-lg font-semibold text-foreground mb-1">
-                          {classItem.name}
-                        </Text>
-                        <Text className="text-sm text-muted-foreground mb-1">
+                      <View style={styles.classInfo}>
+                        <Text style={styles.className}>{classItem.name}</Text>
+                        <Text style={styles.classDetails}>
                           Grade {classItem.grade} - {classItem.section}
                         </Text>
-                        <Text className="text-xs text-muted-foreground mb-3">
+                        <Text style={styles.academicYear}>
                           Academic Year: {classItem.academicYear}
                         </Text>
-                        <View className="flex-row justify-between items-center">
-                          <View className="flex-row items-center gap-1">
-                            <Users
-                              size={16}
-                              className="text-muted-foreground"
-                            />
-                            <Text className="text-xs text-muted-foreground">
-                              {studentCount} students
+                        <View style={styles.classFooter}>
+                          <View style={styles.studentCount}>
+                            <Users size={16} color="#6b7280" />
+                            <Text style={styles.studentCountText}>
+                              {classItem.studentCount} students
                             </Text>
                           </View>
                           <TouchableOpacity
-                            className="px-3 py-1.5 rounded-2xl"
-                            style={{ backgroundColor: color }}
-                            onPress={() => navigation.navigate("ClassDetails" as never, { id: classItem.id } as never)}
+                            style={[
+                              styles.viewButton,
+                              { backgroundColor: color },
+                            ]}
+                            onPress={() =>
+                              navigation.navigate(
+                                "ClassDetails" as never,
+                                { id: classItem.id } as never,
+                              )
+                            }
                           >
-                            <Text className="text-xs font-medium text-white">
+                            <Text style={styles.viewButtonText}>
                               View Details
                             </Text>
                           </TouchableOpacity>
@@ -411,56 +397,37 @@ export default function Home() {
           </View>
 
           {/* Quick Actions */}
-          <View className="mb-8">
-            <Text className="text-xl font-bold text-foreground mb-4">
-              Quick Actions
-            </Text>
-            <View className="flex-row gap-3">
-              {user.role === "teacher" ? (
-                // Teacher-specific actions
-                <>
-                  <TouchableOpacity
-                    className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => navigation.navigate("History" as never)}
-                  >
-                    <Calendar size={24} color="#8b5cf6" />
-                    <Text className="text-sm font-medium text-foreground text-center">
-                      My Attendance
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => navigation.navigate("Reports" as never)}
-                  >
-                    <BarChart3 size={24} color="#06b6d4" />
-                    <Text className="text-sm font-medium text-foreground text-center">
-                      My Reports
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                // Admin/Principal actions
-                <>
-                  <TouchableOpacity
-                    className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => navigation.navigate("Reports" as never)}
-                  >
-                    <BarChart3 size={24} color="#8b5cf6" />
-                    <Text className="text-sm font-medium text-foreground text-center">
-                      View Reports
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 p-4 rounded-xl bg-card border border-border items-center gap-2"
-                    onPress={() => navigation.navigate("Teachers" as never)}
-                  >
-                    <UserCircle size={24} color="#06b6d4" />
-                    <Text className="text-sm font-medium text-foreground text-center">
-                      Manage Teachers
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate("Attendance" as never)}
+              >
+                <Calendar size={24} color="#8b5cf6" />
+                <Text style={styles.quickActionText}>Take Attendance</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate("History" as never)}
+              >
+                <BarChart3 size={24} color="#8b5cf6" />
+                <Text style={styles.quickActionText}>View History</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate("Teachers" as never)}
+              >
+                <Users size={24} color="#8b5cf6" />
+                <Text style={styles.quickActionText}>Manage Teachers</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate("Reports" as never)}
+              >
+                <BarChart3 size={24} color="#8b5cf6" />
+                <Text style={styles.quickActionText}>Generate Reports</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -468,3 +435,220 @@ export default function Home() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#6b7280",
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#fef2f2",
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  errorTitle: {
+    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 32,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyContainer: {
+    padding: 32,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#6b7280",
+    textAlign: "center",
+    marginTop: 16,
+  },
+  classesList: {
+    gap: 16,
+  },
+  classCard: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    gap: 16,
+    alignItems: "center",
+  },
+  classIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  classInfo: {
+    flex: 1,
+  },
+  className: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  classDetails: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  academicYear: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 12,
+  },
+  classFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  studentCount: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  studentCountText: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  viewButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  viewButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#ffffff",
+  },
+  quickActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  quickActionCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    gap: 8,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1f2937",
+    textAlign: "center",
+  },
+});

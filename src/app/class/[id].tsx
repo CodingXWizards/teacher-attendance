@@ -7,7 +7,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
+  StyleSheet,
+} from "react-native";
 import {
   Search,
   AlertCircle,
@@ -15,16 +16,16 @@ import {
   Edit,
   BarChart3,
   MoreVertical,
-} from 'lucide-react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+} from "lucide-react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 
-import { Appbar } from '@/components/appbar';
-import ClassesService from '@/services/classes';
-import { ClassWithDetails, Student } from '@/types';
-import { AttendanceStatus } from '@/types/attendance';
-import AttendanceService from '@/services/attendance';
+import { Appbar } from "@/components/appbar";
+import ClassesService from "@/services/classes";
+import { ClassWithDetails, Student } from "@/types";
+import { AttendanceStatus } from "@/types/attendance";
+import AttendanceService from "@/services/attendance";
 
 // Extended student interface with attendance info
 interface StudentWithAttendance extends Student {
@@ -39,10 +40,10 @@ export default function ClassDetail() {
   const route = useRoute();
   const navigation = useNavigation();
   const { id } = route.params as { id: string };
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
-    'all' | 'present' | 'absent' | 'late'
-  >('all');
+    "all" | "present" | "absent"
+  >("all");
 
   // State for class data
   const [classData, setClassData] = useState<ClassWithDetails | null>(null);
@@ -66,9 +67,9 @@ export default function ClassDetail() {
         const errorMessage =
           error instanceof Error
             ? error.message
-            : 'Failed to load class details';
+            : "Failed to load class details";
         setClassError(errorMessage);
-        Alert.alert('Error', errorMessage);
+        Alert.alert("Error", errorMessage);
       } finally {
         setClassLoading(false);
       }
@@ -87,7 +88,7 @@ export default function ClassDetail() {
       try {
         setAttendanceLoading(true);
         setAttendanceError(null);
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
         const data = await AttendanceService.getStudentAttendanceByClassAndDate(
           id,
           today,
@@ -95,7 +96,7 @@ export default function ClassDetail() {
         setTodayAttendance(data);
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Failed to load attendance';
+          error instanceof Error ? error.message : "Failed to load attendance";
         setAttendanceError(errorMessage);
         console.warn("Failed to load today's attendance:", errorMessage);
       } finally {
@@ -115,9 +116,9 @@ export default function ClassDetail() {
       setClassData(data);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to load class details';
+        error instanceof Error ? error.message : "Failed to load class details";
       setClassError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      Alert.alert("Error", errorMessage);
     } finally {
       setClassLoading(false);
     }
@@ -129,7 +130,7 @@ export default function ClassDetail() {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const data = await AttendanceService.getStudentAttendanceByClassAndDate(
         id,
         today,
@@ -137,7 +138,7 @@ export default function ClassDetail() {
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to load attendance';
+        error instanceof Error ? error.message : "Failed to load attendance";
       setAttendanceError(errorMessage);
       console.warn("Failed to load today's attendance:", errorMessage);
     } finally {
@@ -171,10 +172,10 @@ export default function ClassDetail() {
           status: todayRecord?.status || AttendanceStatus.ABSENT,
           lastPresent:
             todayRecord?.status === AttendanceStatus.PRESENT
-              ? new Date().toISOString().split('T')[0]
+              ? new Date().toISOString().split("T")[0]
               : new Date(Date.now() - 24 * 60 * 60 * 1000)
                   .toISOString()
-                  .split('T')[0],
+                  .split("T")[0],
           attendancePercentage,
         },
       } as StudentWithAttendance;
@@ -190,7 +191,7 @@ export default function ClassDetail() {
         student.studentId.includes(searchQuery);
 
       const matchesFilter =
-        filterStatus === 'all' || student.attendance?.status === filterStatus;
+        filterStatus === "all" || student.attendance?.status === filterStatus;
 
       return matchesSearch && matchesFilter;
     });
@@ -199,56 +200,45 @@ export default function ClassDetail() {
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return '#10b981';
+        return "#10b981";
       case AttendanceStatus.ABSENT:
-        return '#ef4444';
-      case AttendanceStatus.LATE:
-        return '#f59e0b';
-      case AttendanceStatus.HALF_DAY:
-        return '#8b5cf6';
+        return "#ef4444";
+
       default:
-        return '#94a3b8';
+        return "#94a3b8";
     }
   };
 
   const getStatusIcon = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return '✓';
+        return "✓";
       case AttendanceStatus.ABSENT:
-        return '✗';
-      case AttendanceStatus.LATE:
-        return '⏰';
-      case AttendanceStatus.HALF_DAY:
-        return '⊖';
+        return "✗";
+
       default:
-        return '?';
+        return "?";
     }
   };
 
   const getStatusText = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return 'Present';
+        return "Present";
       case AttendanceStatus.ABSENT:
-        return 'Absent';
-      case AttendanceStatus.LATE:
-        return 'Late';
-      case AttendanceStatus.HALF_DAY:
-        return 'Half Day';
+        return "Absent";
+
       default:
-        return 'Unknown';
+        return "Unknown";
     }
   };
 
   // Loading state
   if (classLoading) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text className="text-lg text-foreground mt-4">
-          Loading class details...
-        </Text>
+        <Text style={styles.loadingText}>Loading class details...</Text>
       </View>
     );
   }
@@ -256,26 +246,21 @@ export default function ClassDetail() {
   // Error state
   if (classError || !classData) {
     return (
-      <View className="flex-1 bg-background justify-center items-center px-5">
-        <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-4">
+      <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
           <AlertCircle size={32} color="#ef4444" />
         </View>
-        <Text className="text-lg text-foreground mt-4 text-center">
-          {classError || 'Class not found'}
-        </Text>
-        <TouchableOpacity
-          className="mt-4 px-6 py-3 bg-primary rounded-xl"
-          onPress={refreshClass}
-        >
-          <Text className="text-white font-medium">Try Again</Text>
+        <Text style={styles.errorText}>{classError || "Class not found"}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refreshClass}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <Appbar
           title={classData.grade}
@@ -283,51 +268,52 @@ export default function ClassDetail() {
           trailing={
             <TouchableOpacity
               onPress={() =>
-                Alert.alert('Settings', 'Settings not implemented yet')
+                Alert.alert("Settings", "Settings not implemented yet")
               }
             >
-              <MoreVertical size={24} className="text-foreground" />
+              <MoreVertical size={24} color="#1f2937" />
             </TouchableOpacity>
           }
         />
         <ScrollView
-          className="flex-1 px-4 py-4"
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={classLoading || attendanceLoading}
               onRefresh={handleRefresh}
-              colors={['#8b5cf6']}
+              colors={["#8b5cf6"]}
               tintColor="#8b5cf6"
             />
           }
         >
           {/* Search and Filter */}
-          <View className="mb-6">
-            <View className="flex-row items-center px-4 py-3 rounded-xl border border-border mb-3">
-              <Search size={18} className="text-muted-foreground mr-3" />
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Search size={18} color="#6b7280" style={styles.searchIcon} />
               <TextInput
-                className="flex-1 h-full text-base text-foreground placeholder:text-muted-foreground"
+                style={styles.searchInput}
                 placeholder="Search students..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
             </View>
-            <View className="flex-row gap-2">
-              {(['all', 'present', 'absent', 'late'] as const).map(status => (
+            <View style={styles.filterContainer}>
+              {(["all", "present", "absent"] as const).map(status => (
                 <TouchableOpacity
                   key={status}
-                  className={`flex-1 py-2 px-3 rounded-2xl border ${
-                    filterStatus === status
-                      ? 'bg-primary border-primary'
-                      : 'bg-card border-border'
-                  }`}
+                  style={[
+                    styles.filterButton,
+                    filterStatus === status && styles.filterButtonActive,
+                  ]}
                   onPress={() => setFilterStatus(status)}
                 >
                   <Text
-                    className={`text-xs font-medium text-center ${
-                      filterStatus === status ? 'text-white' : 'text-foreground'
-                    }`}
+                    style={[
+                      styles.filterButtonText,
+                      filterStatus === status && styles.filterButtonTextActive,
+                    ]}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                   </Text>
@@ -337,66 +323,66 @@ export default function ClassDetail() {
           </View>
 
           {/* Students List */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold text-foreground">
-                Students
-              </Text>
+          <View style={styles.studentsSection}>
+            <View style={styles.studentsHeader}>
+              <Text style={styles.studentsTitle}>Students</Text>
             </View>
 
             {attendanceLoading && (
-              <View className="py-4 items-center">
+              <View style={styles.loadingStudentsContainer}>
                 <ActivityIndicator size="small" color="#8b5cf6" />
-                <Text className="text-sm text-muted-foreground mt-2">
+                <Text style={styles.loadingStudentsText}>
                   Loading attendance...
                 </Text>
               </View>
             )}
 
-            <View className="gap-3">
+            <View style={styles.studentsList}>
               {filteredStudents.map(student => (
                 <TouchableOpacity
                   key={student.id}
-                  className="flex-row p-4 rounded-xl bg-card border border-border gap-4"
+                  style={styles.studentCard}
                   onPress={() =>
-                    navigation.navigate('StudentDetails', {
+                    navigation.navigate("StudentDetails", {
                       studentId: student.id,
                     })
                   }
                 >
-                  <View className="flex-1">
-                    <View className="flex-row justify-between items-center mb-1">
-                      <Text className="text-base font-semibold text-foreground">
+                  <View style={styles.studentInfo}>
+                    <View style={styles.studentHeader}>
+                      <Text style={styles.studentName}>
                         {student.firstName} {student.lastName}
                       </Text>
                       {student.attendance && (
-                        <View className="flex-row items-center gap-1">
+                        <View style={styles.statusContainer}>
                           <Text
-                            className="text-xs font-medium"
-                            style={{
-                              color: getStatusColor(student.attendance.status),
-                            }}
+                            style={[
+                              styles.statusText,
+                              {
+                                color: getStatusColor(
+                                  student.attendance.status,
+                                ),
+                              },
+                            ]}
                           >
-                            {getStatusIcon(student.attendance.status)}{' '}
+                            {getStatusIcon(student.attendance.status)}{" "}
                             {getStatusText(student.attendance.status)}
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text className="text-sm text-muted-foreground mb-1">
+                    <Text style={styles.studentId}>
                       ID: {student.studentId}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mb-2">
-                      {student.email}
-                    </Text>
-                    <View className="flex-row justify-between">
+                    <Text style={styles.studentEmail}>{student.email}</Text>
+                    <View style={styles.studentFooter}>
                       {student.attendance && (
                         <>
-                          <Text className="text-xs text-muted-foreground">
-                            Attendance:{' '}
+                          <Text style={styles.attendanceInfo}>
+                            Attendance:{" "}
                             {student.attendance.attendancePercentage}%
                           </Text>
-                          <Text className="text-xs text-muted-foreground">
+                          <Text style={styles.lastPresentInfo}>
                             Last present: {student.attendance.lastPresent}
                           </Text>
                         </>
@@ -404,51 +390,46 @@ export default function ClassDetail() {
                     </View>
                   </View>
                   <TouchableOpacity
-                    className="w-8 h-8 rounded-full border border-border justify-center items-center"
+                    style={styles.editButton}
                     onPress={() =>
-                      Alert.alert('Edit', 'Edit student not implemented yet')
+                      Alert.alert("Edit", "Edit student not implemented yet")
                     }
                   >
-                    <Edit size={16} className="text-muted-foreground" />
+                    <Edit size={16} color="#6b7280" />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
             </View>
 
             {filteredStudents.length === 0 && !attendanceLoading && (
-              <View className="py-8 items-center">
-                <Users size={48} className="text-muted-foreground" />
-                <Text className="text-base text-muted-foreground mt-2 text-center">
-                  {searchQuery || filterStatus !== 'all'
-                    ? 'No students match your search criteria'
-                    : 'No students in this class yet'}
+              <View style={styles.emptyStudentsContainer}>
+                <Users size={48} color="#6b7280" />
+                <Text style={styles.emptyStudentsText}>
+                  {searchQuery || filterStatus !== "all"
+                    ? "No students match your search criteria"
+                    : "No students in this class yet"}
                 </Text>
               </View>
             )}
           </View>
 
           {/* Quick Actions */}
-          <View className="flex-row gap-3 mb-5">
+          <View style={styles.quickActions}>
             <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl gap-2"
-              style={{ backgroundColor: '#8b5cf6' }}
+              style={styles.takeAttendanceButton}
               onPress={() =>
-                navigation.navigate('TakeAttendance' as never, { id } as never)
+                navigation.navigate("TakeAttendance" as never, { id } as never)
               }
             >
-              <Text className="text-white text-lg">✓</Text>
-              <Text className="text-sm font-medium text-white">
-                Take Attendance
-              </Text>
+              <Text style={styles.takeAttendanceIcon}>✓</Text>
+              <Text style={styles.takeAttendanceText}>Take Attendance</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl bg-card border border-border gap-2"
-              onPress={() => navigation.navigate('Reports' as never)}
+              style={styles.viewReportsButton}
+              onPress={() => navigation.navigate("Reports" as never)}
             >
-              <BarChart3 size={24} className="text-foreground" />
-              <Text className="text-sm font-medium text-foreground">
-                View Reports
-              </Text>
+              <BarChart3 size={24} color="#1f2937" />
+              <Text style={styles.viewReportsText}>View Reports</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -456,3 +437,254 @@ export default function ClassDetail() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#1f2937",
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorIconContainer: {
+    width: 64,
+    height: 64,
+    backgroundColor: "#fef2f2",
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#1f2937",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  searchSection: {
+    marginBottom: 24,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginBottom: 12,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: "100%",
+    fontSize: 16,
+    color: "#1f2937",
+  },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+  },
+  filterButtonActive: {
+    backgroundColor: "#8b5cf6",
+    borderColor: "#8b5cf6",
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    color: "#1f2937",
+  },
+  filterButtonTextActive: {
+    color: "#ffffff",
+  },
+  studentsSection: {
+    marginBottom: 24,
+  },
+  studentsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  studentsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  loadingStudentsContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  loadingStudentsText: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 8,
+  },
+  studentsList: {
+    gap: 12,
+  },
+  studentCard: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    gap: 16,
+  },
+  studentInfo: {
+    flex: 1,
+  },
+  studentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  studentName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  studentId: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  studentEmail: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 8,
+  },
+  studentFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  attendanceInfo: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  lastPresentInfo: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyStudentsContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  emptyStudentsText: {
+    fontSize: 16,
+    color: "#6b7280",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  quickActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  takeAttendanceButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: "#8b5cf6",
+  },
+  takeAttendanceIcon: {
+    color: "#ffffff",
+    fontSize: 18,
+  },
+  takeAttendanceText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#ffffff",
+  },
+  viewReportsButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    gap: 8,
+  },
+  viewReportsText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1f2937",
+  },
+});

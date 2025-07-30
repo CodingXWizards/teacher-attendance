@@ -1,31 +1,33 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Alert,
-  TextInput,
   ActivityIndicator,
+  TextInput,
+  StyleSheet,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { 
-  User as UserIcon, 
-  Shield, 
-  Crown, 
-  Settings, 
-  LogOut, 
-  Eye, 
+import {
+  Settings,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  School,
+  Eye,
   EyeOff,
-  CheckCircle,
-  XCircle
+  LogOut,
 } from "lucide-react-native";
-import React, { useState, useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Appbar } from "@/components/appbar";
-import { AuthService } from "@/services";
-import { User, UserRole } from "@/types";
 import { useUserStore } from "@/stores/userStore";
+import { Appbar } from "@/components/appbar";
+import { UserRole } from "@/types/user";
+import { AuthService } from "@/services";
 
 interface ProfileFormData {
   firstName: string;
@@ -46,102 +48,104 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Profile form state
+  // Form states
   const [profileForm, setProfileForm] = useState<ProfileFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
   });
 
-  // Password form state
   const [passwordForm, setPasswordForm] = useState<PasswordFormData>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
+  // Password visibility states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Load user data
-  useEffect(() => {
-    if (user) {
-      setProfileForm({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      });
-    }
-  }, [user]);
+  if (!user) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   const getRoleDisplayName = (role: UserRole) => {
     switch (role) {
-      case "admin":
-        return "Administrator";
-      case "teacher":
+      case UserRole.TEACHER:
         return "Teacher";
-      case "principal":
+      case UserRole.ADMIN:
+        return "Administrator";
+      case UserRole.PRINCIPAL:
         return "Principal";
       default:
-        return "User";
+        return "Unknown";
     }
   };
 
   const getRoleColor = (role: UserRole) => {
     switch (role) {
-      case "admin":
-        return "#ef4444"; // Red
-      case "teacher":
-        return "#3b82f6"; // Blue
-      case "principal":
-        return "#8b5cf6"; // Purple
+      case UserRole.TEACHER:
+        return "#3b82f6";
+      case UserRole.ADMIN:
+        return "#8b5cf6";
+      case UserRole.PRINCIPAL:
+        return "#10b981";
       default:
-        return "#6b7280"; // Gray
+        return "#6b7280";
     }
   };
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
-      case "admin":
-        return Shield;
-      case "teacher":
-        return UserIcon;
-      case "principal":
-        return Crown;
+      case UserRole.TEACHER:
+        return User;
+      case UserRole.ADMIN:
+        return Settings;
+      case UserRole.PRINCIPAL:
+        return School;
       default:
-        return UserIcon;
+        return User;
     }
   };
 
   const handleUpdateProfile = async () => {
-    if (!user) return;
+    if (!profileForm.firstName || !profileForm.lastName || !profileForm.email) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // Here you would typically call an API to update the profile
-      // For now, we'll just simulate the update
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // TODO: Implement profile update API call
+      // const updatedUser = await AuthService.updateProfile(profileForm);
+      // setUser(updatedUser);
 
-      // Update local state
-      const updatedUser: User = {
-        ...user,
-        firstName: profileForm.firstName,
-        lastName: profileForm.lastName,
-        email: profileForm.email,
-      };
-
-      setUser(updatedUser);
+      Alert.alert("Success", "Profile updated successfully");
       setIsEditing(false);
-      Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
-      Alert.alert("Error", "Failed to update profile");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update profile";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChangePassword = async () => {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
+      Alert.alert("Error", "Please fill in all password fields");
+      return;
+    }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       Alert.alert("Error", "New passwords do not match");
       return;
@@ -154,322 +158,282 @@ export default function ProfilePage() {
 
     setIsLoading(true);
     try {
-      // Here you would typically call an API to change the password
-      // For now, we'll just simulate the change
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // TODO: Implement password change API call
+      // await AuthService.changePassword(passwordForm);
 
+      Alert.alert("Success", "Password changed successfully");
+      setIsChangingPassword(false);
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
-      setIsChangingPassword(false);
-      Alert.alert("Success", "Password changed successfully!");
     } catch (error) {
-      Alert.alert("Error", "Failed to change password");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to change password";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await AuthService.logout();
+            setUser(null);
+            navigation.navigate("Login" as never);
+          } catch (error) {
+            console.error("Logout error:", error);
+            // Force logout even if API call fails
+            setUser(null);
+            navigation.navigate("Login" as never);
+          }
         },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await AuthService.logout();
-              setUser(null);
-              navigation.navigate("Login" as never);
-            } catch (error) {
-              console.error("Logout error:", error);
-              Alert.alert("Error", "Failed to logout");
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
-
-  if (!user) {
-    return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
 
   const RoleIcon = getRoleIcon(user.role);
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
         <Appbar
           title="Profile"
           subtitle="Manage your account"
           trailing={
-            <TouchableOpacity onPress={() => Alert.alert("Settings", "Settings not implemented yet")}>
-              <Settings size={24} className="text-foreground" />
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() =>
+                Alert.alert("Settings", "Settings not implemented yet")
+              }
+            >
+              <Settings size={24} color="#1f2937" />
             </TouchableOpacity>
           }
         />
         <ScrollView
-          className="flex-1 px-4 py-4"
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Profile Header */}
-          <View className="bg-card rounded-xl p-6 mb-6 border border-border">
-            <View className="items-center mb-4">
-              <View className="w-20 h-20 bg-primary rounded-full items-center justify-center mb-4">
-                <Text className="text-white text-2xl font-bold">
-                  {user.firstName.charAt(0)}
-                  {user.lastName.charAt(0)}
-                </Text>
-              </View>
-              <Text className="text-xl font-bold text-foreground mb-2">
-                {user.firstName} {user.lastName}
+          <View style={styles.profileHeader}>
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileInitials}>
+                {user.firstName.charAt(0)}
+                {user.lastName.charAt(0)}
               </Text>
-              <Text className="text-muted-foreground mb-3">{user.email}</Text>
-              <View className="flex-row items-center bg-primary/10 px-3 py-1 rounded-full">
-                <RoleIcon size={16} color={getRoleColor(user.role)} />
-                <Text
-                  className="text-sm font-medium ml-2"
-                  style={{ color: getRoleColor(user.role) }}
-                >
-                  {getRoleDisplayName(user.role)}
-                </Text>
-              </View>
+            </View>
+            <Text style={styles.profileName}>
+              {user.firstName} {user.lastName}
+            </Text>
+            <Text style={styles.profileEmail}>{user.email}</Text>
+            <View style={styles.roleContainer}>
+              <RoleIcon size={16} color={getRoleColor(user.role)} />
+              <Text
+                style={[styles.roleText, { color: getRoleColor(user.role) }]}
+              >
+                {getRoleDisplayName(user.role)}
+              </Text>
             </View>
           </View>
 
           {/* Profile Information */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold text-foreground">
-                Personal Information
-              </Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Personal Information</Text>
               <TouchableOpacity
+                style={styles.editButton}
                 onPress={() => setIsEditing(!isEditing)}
-                className="px-3 py-1 bg-primary rounded-lg"
               >
-                <Text className="text-white text-sm font-medium">
+                <Text style={styles.editButtonText}>
                   {isEditing ? "Cancel" : "Edit"}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <View className="bg-card rounded-xl p-4 border border-border">
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-muted-foreground mb-2">
-                  First Name
-                </Text>
-                {isEditing ? (
-                  <TextInput
-                    className="border border-border rounded-lg px-3 py-2 text-foreground"
-                    value={profileForm.firstName}
-                    onChangeText={(text) =>
-                      setProfileForm({ ...profileForm, firstName: text })
-                    }
-                    placeholder="Enter first name"
-                  />
-                ) : (
-                  <Text className="text-foreground">{user.firstName}</Text>
-                )}
+            <View style={styles.formCard}>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>First Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={profileForm.firstName}
+                  onChangeText={text =>
+                    setProfileForm({ ...profileForm, firstName: text })
+                  }
+                  editable={isEditing}
+                  placeholder="Enter first name"
+                />
               </View>
 
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-muted-foreground mb-2">
-                  Last Name
-                </Text>
-                {isEditing ? (
-                  <TextInput
-                    className="border border-border rounded-lg px-3 py-2 text-foreground"
-                    value={profileForm.lastName}
-                    onChangeText={(text) =>
-                      setProfileForm({ ...profileForm, lastName: text })
-                    }
-                    placeholder="Enter last name"
-                  />
-                ) : (
-                  <Text className="text-foreground">{user.lastName}</Text>
-                )}
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Last Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={profileForm.lastName}
+                  onChangeText={text =>
+                    setProfileForm({ ...profileForm, lastName: text })
+                  }
+                  editable={isEditing}
+                  placeholder="Enter last name"
+                />
               </View>
 
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-muted-foreground mb-2">
-                  Email
-                </Text>
-                {isEditing ? (
-                  <TextInput
-                    className="border border-border rounded-lg px-3 py-2 text-foreground"
-                    value={profileForm.email}
-                    onChangeText={(text) =>
-                      setProfileForm({ ...profileForm, email: text })
-                    }
-                    placeholder="Enter email"
-                    keyboardType="email-address"
-                  />
-                ) : (
-                  <Text className="text-foreground">{user.email}</Text>
-                )}
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={profileForm.email}
+                  onChangeText={text =>
+                    setProfileForm({ ...profileForm, email: text })
+                  }
+                  editable={isEditing}
+                  placeholder="Enter email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
               </View>
 
               {isEditing && (
                 <TouchableOpacity
+                  style={styles.saveButton}
                   onPress={handleUpdateProfile}
                   disabled={isLoading}
-                  className="bg-primary py-3 rounded-lg items-center"
                 >
-                  {isLoading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text className="text-white font-medium">Save Changes</Text>
-                  )}
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
           {/* Change Password */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold text-foreground">
-                Change Password
-              </Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Security</Text>
               <TouchableOpacity
+                style={styles.editButton}
                 onPress={() => setIsChangingPassword(!isChangingPassword)}
-                className="px-3 py-1 bg-primary rounded-lg"
               >
-                <Text className="text-white text-sm font-medium">
+                <Text style={styles.editButtonText}>
                   {isChangingPassword ? "Cancel" : "Change"}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {isChangingPassword && (
-              <View className="bg-card rounded-xl p-4 border border-border">
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-muted-foreground mb-2">
-                    Current Password
-                  </Text>
-                  <View className="flex-row items-center border border-border rounded-lg px-3">
-                    <TextInput
-                      className="flex-1 py-2 text-foreground"
-                      value={passwordForm.currentPassword}
-                      onChangeText={(text) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          currentPassword: text,
-                        })
-                      }
-                      placeholder="Enter current password"
-                      secureTextEntry={!showCurrentPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                    >
-                      {showCurrentPassword ? (
-                        <EyeOff size={20} className="text-muted-foreground" />
-                      ) : (
-                        <Eye size={20} className="text-muted-foreground" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
+            <View style={styles.formCard}>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Current Password</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={passwordForm.currentPassword}
+                    onChangeText={text =>
+                      setPasswordForm({
+                        ...passwordForm,
+                        currentPassword: text,
+                      })
+                    }
+                    secureTextEntry={!showCurrentPassword}
+                    placeholder="Enter current password"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff size={20} color="#6b7280" />
+                    ) : (
+                      <Eye size={20} color="#6b7280" />
+                    )}
+                  </TouchableOpacity>
                 </View>
+              </View>
 
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-muted-foreground mb-2">
-                    New Password
-                  </Text>
-                  <View className="flex-row items-center border border-border rounded-lg px-3">
-                    <TextInput
-                      className="flex-1 py-2 text-foreground"
-                      value={passwordForm.newPassword}
-                      onChangeText={(text) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          newPassword: text,
-                        })
-                      }
-                      placeholder="Enter new password"
-                      secureTextEntry={!showNewPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? (
-                        <EyeOff size={20} className="text-muted-foreground" />
-                      ) : (
-                        <Eye size={20} className="text-muted-foreground" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>New Password</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={passwordForm.newPassword}
+                    onChangeText={text =>
+                      setPasswordForm({ ...passwordForm, newPassword: text })
+                    }
+                    secureTextEntry={!showNewPassword}
+                    placeholder="Enter new password"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff size={20} color="#6b7280" />
+                    ) : (
+                      <Eye size={20} color="#6b7280" />
+                    )}
+                  </TouchableOpacity>
                 </View>
+              </View>
 
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-muted-foreground mb-2">
-                    Confirm New Password
-                  </Text>
-                  <View className="flex-row items-center border border-border rounded-lg px-3">
-                    <TextInput
-                      className="flex-1 py-2 text-foreground"
-                      value={passwordForm.confirmPassword}
-                      onChangeText={(text) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          confirmPassword: text,
-                        })
-                      }
-                      placeholder="Confirm new password"
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={20} className="text-muted-foreground" />
-                      ) : (
-                        <Eye size={20} className="text-muted-foreground" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Confirm New Password</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={passwordForm.confirmPassword}
+                    onChangeText={text =>
+                      setPasswordForm({
+                        ...passwordForm,
+                        confirmPassword: text,
+                      })
+                    }
+                    secureTextEntry={!showConfirmPassword}
+                    placeholder="Confirm new password"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={20} color="#6b7280" />
+                    ) : (
+                      <Eye size={20} color="#6b7280" />
+                    )}
+                  </TouchableOpacity>
                 </View>
+              </View>
 
+              {isChangingPassword && (
                 <TouchableOpacity
+                  style={styles.saveButton}
                   onPress={handleChangePassword}
                   disabled={isLoading}
-                  className="bg-primary py-3 rounded-lg items-center"
                 >
-                  {isLoading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text className="text-white font-medium">Change Password</Text>
-                  )}
+                  <Text style={styles.saveButtonText}>Change Password</Text>
                 </TouchableOpacity>
-              </View>
-            )}
+              )}
+            </View>
           </View>
 
-          {/* Account Actions */}
-          <View className="mb-6">
-            <Text className="text-lg font-semibold text-foreground mb-4">
-              Account Actions
-            </Text>
-            <View className="bg-card rounded-xl border border-border">
+          {/* Logout Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account Actions</Text>
+            <View style={styles.logoutCard}>
               <TouchableOpacity
+                style={styles.logoutButton}
                 onPress={handleLogout}
-                className="flex-row items-center p-4 border-b border-border"
               >
                 <LogOut size={20} color="#ef4444" />
-                <Text className="text-red-500 font-medium ml-3">Logout</Text>
+                <Text style={styles.logoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -478,3 +442,177 @@ export default function ProfilePage() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileHeader: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  profileInitials: {
+    color: "#ffffff",
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 8,
+  },
+  profileEmail: {
+    color: "#6b7280",
+    marginBottom: 12,
+  },
+  roleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8b5cf610",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 8,
+  },
+  roleText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 8,
+  },
+  editButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  formCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  formField: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6b7280",
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: "#1f2937",
+    fontSize: 16,
+  },
+  passwordInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 8,
+    color: "#1f2937",
+    fontSize: 16,
+  },
+  eyeButton: {
+    padding: 4,
+  },
+  saveButton: {
+    backgroundColor: "#8b5cf6",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  logoutCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    gap: 12,
+  },
+  logoutText: {
+    color: "#ef4444",
+    fontWeight: "500",
+  },
+});

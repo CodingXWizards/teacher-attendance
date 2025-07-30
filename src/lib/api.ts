@@ -42,10 +42,7 @@ import {
 } from "@/types";
 import { User } from "@/types/user";
 import { UserResponse } from "@/types/auth";
-
-// Base API configuration
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+import { API_BASE_URL } from "@/constants/api";
 
 // Generic response types
 export interface ApiResponse<T = any> {
@@ -61,7 +58,7 @@ export class ApiError extends Error {
   constructor(
     public statusCode: number,
     public message: string,
-    public data?: any
+    public data?: any,
   ) {
     super(message);
     this.name = "ApiError";
@@ -75,14 +72,12 @@ export interface RequestConfig {
   body?: any;
   params?: Record<string, string | number | boolean>;
   timeout?: number;
-  retries?: number;
 }
 
 // API client class
 class ApiClient {
   private baseURL: string;
   private defaultTimeout: number = 10000; // 10 seconds
-  private defaultRetries: number = 3;
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
@@ -101,7 +96,7 @@ class ApiClient {
   // Build URL with query parameters
   private buildURL(
     endpoint: string,
-    params?: Record<string, string | number | boolean>
+    params?: Record<string, string | number | boolean>,
   ): string {
     // Ensure endpoint starts with / if it doesn't already
     const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
@@ -126,135 +121,63 @@ class ApiClient {
   // Make HTTP request with optional retry logic
   private async makeRequest<T>(
     endpoint: string,
-    config: RequestConfig = {}
+    config: RequestConfig = {},
   ): Promise<T> {
-    const {
-      method = "GET",
-      headers = {},
-      body,
-      params,
-      timeout = this.defaultTimeout,
-      // Default: GET requests retry, others don't
-      retries = method === "GET" ? this.defaultRetries : 0,
-    } = config;
+    const { method = "GET", headers = {}, body, params } = config;
 
     const url = this.buildURL(endpoint, params);
-
-    // Create a custom timeout solution for React Native compatibility
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     const token = await this.getAuthToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
-    // Prepare request config
-    const requestConfig: RequestInit = {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      signal: controller.signal,
-    };
+    try {
+      // Prepare request config
+      const requestConfig: RequestInit = {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+      };
 
-    if (body && method !== "GET") {
-      requestConfig.body = JSON.stringify(body);
-    }
-
-    // If retries is 0, do a single attempt
-    if (!retries || retries < 1) {
-      try {
-        const response = await fetch(url, requestConfig);
-        clearTimeout(timeoutId);
-
-        // Handle HTTP errors
-        if (!response.ok) {
-          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-          let errorData: any = null;
-
-          try {
-            const errorResponse = await response.json();
-            errorMessage = errorResponse.message || errorMessage;
-            errorData = errorResponse.data;
-          } catch {
-            // If error response is not JSON, use default message
-          }
-
-          throw new ApiError(response.status, errorMessage, errorData);
-        }
-
-        const data: ApiResponse<T> = await response.json();
-
-        // Return the data directly (unwrap from backend response format)
-        return data.data as T;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
+      if (token) {
+        requestConfig.headers = {
+          ...requestConfig.headers,
+          Authorization: `Bearer ${token}`,
+        };
       }
-    }
 
-    // Retry logic for retries > 0
-    let lastError: Error | null = null;
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const response = await fetch(url, requestConfig);
-        clearTimeout(timeoutId);
-
-        // Handle HTTP errors
-        if (!response.ok) {
-          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-          let errorData: any = null;
-
-          try {
-            const errorResponse = await response.json();
-            errorMessage = errorResponse.message || errorMessage;
-            errorData = errorResponse.data;
-          } catch {
-            // If error response is not JSON, use default message
-          }
-
-          throw new ApiError(response.status, errorMessage, errorData);
-        }
-
-        const data: ApiResponse<T> = await response.json();
-
-        // Return the data directly (unwrap from backend response format)
-        return data.data as T;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        lastError = error as Error;
-
-        // Don't retry on client errors (4xx) except 429 (rate limit)
-        if (
-          error instanceof ApiError &&
-          error.statusCode >= 400 &&
-          error.statusCode < 500 &&
-          error.statusCode !== 429
-        ) {
-          throw error;
-        }
-
-        // Don't retry on last attempt
-        if (attempt === retries) {
-          break;
-        }
-
-        // Wait before retry (exponential backoff)
-        const delay = Math.pow(2, attempt) * 1000;
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      if (body && method !== "GET") {
+        requestConfig.body = JSON.stringify(body);
       }
-    }
+      const response = await fetch(url, requestConfig);
+      // Handle HTTP errors
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        let errorData: any = null;
 
-    // If we get here, all retries failed
-    throw lastError || new Error("Request failed after all retries");
+        try {
+          const errorResponse = await response.json();
+          errorMessage = errorResponse.message || errorMessage;
+          errorData = errorResponse.data;
+        } catch (error) {
+          console.error("error", error);
+          // If error response is not JSON, use default message
+        }
+
+        throw new ApiError(response.status, errorMessage, errorData);
+      }
+
+      const data: ApiResponse<T> = await response.json();
+      return data.data as T;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 
   // Generic request methods
   async get<T>(
     endpoint: string,
-    config?: Omit<RequestConfig, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ): Promise<T> {
     return this.makeRequest<T>(endpoint, {
       ...config,
@@ -265,8 +188,9 @@ class ApiClient {
   async post<T>(
     endpoint: string,
     body?: any,
-    config?: Omit<RequestConfig, "method">
+    config?: Omit<RequestConfig, "method">,
   ): Promise<T> {
+    console.log("post", endpoint, body);
     return this.makeRequest<T>(endpoint, {
       ...config,
       method: "POST",
@@ -277,7 +201,7 @@ class ApiClient {
   async put<T>(
     endpoint: string,
     body?: any,
-    config?: Omit<RequestConfig, "method">
+    config?: Omit<RequestConfig, "method">,
   ): Promise<T> {
     return this.makeRequest<T>(endpoint, {
       ...config,
@@ -289,7 +213,7 @@ class ApiClient {
   async patch<T>(
     endpoint: string,
     body?: any,
-    config?: Omit<RequestConfig, "method">
+    config?: Omit<RequestConfig, "method">,
   ): Promise<T> {
     return this.makeRequest<T>(endpoint, {
       ...config,
@@ -300,7 +224,7 @@ class ApiClient {
 
   async delete<T>(
     endpoint: string,
-    config?: Omit<RequestConfig, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ): Promise<T> {
     return this.makeRequest<T>(endpoint, {
       ...config,
@@ -313,7 +237,7 @@ class ApiClient {
     endpoint: string,
     page: number = 1,
     limit: number = 10,
-    config?: Omit<RequestConfig, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ): Promise<PaginatedResponse<T>> {
     return this.makeRequest<PaginatedResponse<T>>(endpoint, {
       ...config,
@@ -341,7 +265,16 @@ export const endpoints = {
     stats: "/user/stats",
     search: "/user/search",
     profile: "/user/profile",
+    // Teacher-specific endpoints
     teachers: "/user/teachers",
+    teachersByDepartment: (department: string) =>
+      `/user/teachers/department/${department}`,
+    teacherByEmployeeId: (employeeId: string) =>
+      `/user/teachers/employee/${employeeId}`,
+    teacherAssignments: (teacherId: string) =>
+      `/user/teachers/${teacherId}/assignments`,
+    assignTeacherToClass: "/user/teachers/assign",
+    removeTeacherFromClass: "/user/teachers/remove",
     byRole: (role: string) => `/user/role/${role}`,
     byEmail: (email: string) => `/user/email/${email}`,
     get: (id: string) => `/user/${id}`,
@@ -454,6 +387,8 @@ export const usersApi = {
     limit?: number;
     search?: string;
     role?: string;
+    department?: string;
+    isActive?: boolean;
   }) =>
     api.getPaginated<User>(endpoints.users.list, params?.page, params?.limit, {
       params,
@@ -470,7 +405,40 @@ export const usersApi = {
 
   profile: () => api.get<User>(endpoints.users.profile),
 
-  teachers: () => api.get<User[]>(endpoints.users.teachers),
+  // Teacher-specific endpoints
+  teachers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    department?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<Teacher>(
+      endpoints.users.teachers,
+      params?.page,
+      params?.limit,
+      {
+        params,
+      },
+    ),
+
+  teachersByDepartment: (department: string) =>
+    api.get<Teacher[]>(endpoints.users.teachersByDepartment(department)),
+
+  teacherByEmployeeId: (employeeId: string) =>
+    api.get<Teacher>(endpoints.users.teacherByEmployeeId(employeeId)),
+
+  teacherAssignments: (teacherId: string) =>
+    api.get<TeacherClass[]>(endpoints.users.teacherAssignments(teacherId)),
+
+  assignTeacherToClass: (assignmentData: AssignTeacherToClassRequest) =>
+    api.post<TeacherClass>(
+      endpoints.users.assignTeacherToClass,
+      assignmentData,
+    ),
+
+  removeTeacherFromClass: (assignmentData: RemoveTeacherFromClassRequest) =>
+    api.post<void>(endpoints.users.removeTeacherFromClass, assignmentData),
 
   byRole: (role: string) => api.get<User[]>(endpoints.users.byRole(role)),
 
@@ -481,8 +449,14 @@ export const usersApi = {
   create: (userData: CreateUserRequest) =>
     api.post<User>(endpoints.users.create, userData),
 
+  createTeacher: (teacherData: CreateTeacherRequest) =>
+    api.post<Teacher>(endpoints.users.create, teacherData),
+
   update: (id: string, userData: UpdateUserRequest) =>
     api.put<User>(endpoints.users.update(id), userData),
+
+  updateTeacher: (id: string, teacherData: UpdateTeacherRequest) =>
+    api.put<Teacher>(endpoints.users.update(id), teacherData),
 
   updatePassword: (id: string, passwordData: UpdatePasswordRequest) =>
     api.put<void>(endpoints.users.updatePassword(id), passwordData),
@@ -504,7 +478,7 @@ export const subjectsApi = {
       endpoints.subjects.list,
       params?.page,
       params?.limit,
-      { params }
+      { params },
     ),
 
   active: () => api.get<Subject[]>(endpoints.subjects.active),
@@ -540,7 +514,7 @@ export const teachersApi = {
       endpoints.teachers.list,
       params?.page,
       params?.limit,
-      { params }
+      { params },
     ),
 
   get: (id: string) => api.get<TeacherWithUser>(endpoints.teachers.get(id)),
@@ -584,7 +558,7 @@ export const classesApi = {
       endpoints.classes.list,
       params?.page,
       params?.limit,
-      { params }
+      { params },
     ),
 
   active: () => api.get<Class[]>(endpoints.classes.active),
@@ -631,7 +605,7 @@ export const studentsApi = {
       endpoints.students.list,
       params?.page,
       params?.limit,
-      { params }
+      { params },
     ),
 
   active: () => api.get<StudentWithClass[]>(endpoints.students.active),
@@ -653,7 +627,7 @@ export const studentsApi = {
       startDate?: string;
       endDate?: string;
       classId?: string;
-    }
+    },
   ) =>
     api.get<StudentAttendance[]>(endpoints.students.attendance(studentId), {
       params,
@@ -680,7 +654,7 @@ export const attendanceApi = {
         endpoints.attendance.teacher.list,
         params?.page,
         params?.limit,
-        { params }
+        { params },
       ),
 
     get: (id: string) =>
@@ -688,7 +662,7 @@ export const attendanceApi = {
 
     byTeacher: (teacherId: string) =>
       api.get<TeacherAttendance[]>(
-        endpoints.attendance.teacher.byTeacher(teacherId)
+        endpoints.attendance.teacher.byTeacher(teacherId),
       ),
 
     byDate: (date: string) =>
@@ -697,13 +671,13 @@ export const attendanceApi = {
     create: (attendanceData: CreateTeacherAttendanceRequest) =>
       api.post<TeacherAttendance>(
         endpoints.attendance.teacher.create,
-        attendanceData
+        attendanceData,
       ),
 
     update: (id: string, attendanceData: UpdateTeacherAttendanceRequest) =>
       api.put<TeacherAttendance>(
         endpoints.attendance.teacher.update(id),
-        attendanceData
+        attendanceData,
       ),
 
     delete: (id: string) =>
@@ -721,7 +695,7 @@ export const attendanceApi = {
         endpoints.attendance.student.list,
         params?.page,
         params?.limit,
-        { params }
+        { params },
       ),
 
     get: (id: string) =>
@@ -729,12 +703,12 @@ export const attendanceApi = {
 
     byStudent: (studentId: string) =>
       api.get<StudentAttendance[]>(
-        endpoints.attendance.student.byStudent(studentId)
+        endpoints.attendance.student.byStudent(studentId),
       ),
 
     byClass: (classId: string) =>
       api.get<StudentAttendance[]>(
-        endpoints.attendance.student.byClass(classId)
+        endpoints.attendance.student.byClass(classId),
       ),
 
     byDate: (date: string) =>
@@ -743,13 +717,13 @@ export const attendanceApi = {
     create: (attendanceData: CreateStudentAttendanceRequest) =>
       api.post<StudentAttendance>(
         endpoints.attendance.student.create,
-        attendanceData
+        attendanceData,
       ),
 
     update: (id: string, attendanceData: UpdateStudentAttendanceRequest) =>
       api.put<StudentAttendance>(
         endpoints.attendance.student.update(id),
-        attendanceData
+        attendanceData,
       ),
 
     delete: (id: string) =>
@@ -763,7 +737,7 @@ export const reportsApi = {
 
   teacher: (
     teacherId: string,
-    params?: { startDate?: string; endDate?: string }
+    params?: { startDate?: string; endDate?: string },
   ) =>
     api.get<TeacherAttendance[]>(endpoints.reports.teacher(teacherId), {
       params,

@@ -6,8 +6,6 @@ import { Subject } from "./subject";
 export enum AttendanceStatus {
   PRESENT = "present",
   ABSENT = "absent",
-  LATE = "late",
-  HALF_DAY = "half_day",
 }
 
 export interface TeacherAttendance {

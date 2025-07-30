@@ -4,12 +4,6 @@
 node_modules/
 .env
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
 # Native
 .kotlin/
 *.orig.*
@@ -53,6 +47,7 @@ ios/.DS_Store
 # Android
 android/.gradle/
 android/app/build/
+android/app/.cxx/
 android/build/
 android/.idea/
 android/local.properties
@@ -84,3 +79,6 @@ android/ndk/
 
 # Others
 **/captures/
+
+# build
+build/

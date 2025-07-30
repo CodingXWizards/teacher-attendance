@@ -8,27 +8,31 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useApi } from "@/hooks/useApi";
 import { TeachersService } from "@/services";
-import { 
-  Plus, 
-  Trash2, 
-  User, 
+import {
+  Plus,
+  Trash2,
+  User,
   Users,
-  Mail, 
+  Mail,
   Phone,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react-native";
-import { TeacherWithUser, CreateTeacherRequest } from "@/types";
+import { Teacher, CreateTeacherRequest } from "@/types";
 
 export default function Teachers() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTeacher, setNewTeacher] = useState<CreateTeacherRequest>({
-    userId: "",
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
     employeeId: "",
     department: "",
     phone: "",
@@ -44,7 +48,7 @@ export default function Teachers() {
     refreshing,
     refresh,
   } = useApi(() => TeachersService.getTeachers(), {
-    onError: (error) => {
+    onError: error => {
       Alert.alert("Error", error);
     },
   });
@@ -52,15 +56,25 @@ export default function Teachers() {
   const teachers = teachersResponse?.data || [];
 
   const addTeacher = async () => {
-    if (!newTeacher.employeeId.trim() || !newTeacher.department.trim()) {
-      Alert.alert("Error", "Employee ID and department are required");
+    if (
+      !newTeacher.email.trim() ||
+      !newTeacher.password.trim() ||
+      !newTeacher.firstName.trim() ||
+      !newTeacher.lastName.trim() ||
+      !newTeacher.employeeId.trim() ||
+      !newTeacher.department.trim()
+    ) {
+      Alert.alert("Error", "All fields are required");
       return;
     }
 
     try {
       await TeachersService.createTeacher(newTeacher);
       setNewTeacher({
-        userId: "",
+        email: "",
+        password: "",
+        firstName: "",
+        lastName: "",
         employeeId: "",
         department: "",
         phone: "",
@@ -97,46 +111,38 @@ export default function Teachers() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  const renderTeacher = ({ item }: { item: TeacherWithUser }) => (
-    <View className="bg-card border border-border rounded-xl p-4 mb-3">
-      <View className="mb-3">
-        <Text className="text-lg font-semibold text-foreground mb-1">
-          {item.user?.firstName} {item.user?.lastName}
+  const renderTeacher = ({ item }: { item: Teacher }) => (
+    <View style={styles.teacherCard}>
+      <View style={styles.teacherInfo}>
+        <Text style={styles.teacherName}>
+          {item.firstName} {item.lastName}
         </Text>
-        <Text className="text-sm text-primary mb-1">
-          Employee ID: {item.employeeId}
-        </Text>
-        <Text className="text-sm text-muted-foreground mb-1">
-          Department: {item.department}
-        </Text>
+        <Text style={styles.employeeId}>Employee ID: {item.employeeId}</Text>
+        <Text style={styles.teacherDetail}>Department: {item.department}</Text>
         {item.phone && (
-          <Text className="text-sm text-muted-foreground mb-1">
-            Phone: {item.phone}
-          </Text>
+          <Text style={styles.teacherDetail}>Phone: {item.phone}</Text>
         )}
-        {item.user?.email && (
-          <Text className="text-sm text-muted-foreground mb-1">
-            Email: {item.user.email}
-          </Text>
+        {item.email && (
+          <Text style={styles.teacherDetail}>Email: {item.email}</Text>
         )}
-        <Text className="text-xs text-muted-foreground">
+        <Text style={styles.hireDate}>
           Hired: {new Date(item.hireDate).toLocaleDateString()}
         </Text>
       </View>
 
-      <View className="flex-row gap-2">
-        <TouchableOpacity className="flex-1 bg-amber-500 py-2 px-3 rounded-lg items-center">
-          <Text className="text-white font-medium text-sm">Edit</Text>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.editButton}>
+          <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className="flex-1 bg-red-500 py-2 px-3 rounded-lg items-center"
+          style={styles.deleteButton}
           onPress={() => deleteTeacher(item.id)}
         >
-          <Text className="text-white font-medium text-sm">Delete</Text>
+          <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -144,64 +150,51 @@ export default function Teachers() {
 
   if (loading && !refreshing) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text className="text-muted-foreground mt-4">Loading teachers...</Text>
+        <Text style={styles.loadingText}>Loading teachers...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 bg-background justify-center items-center px-5">
-        <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-4">
+      <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
           <AlertCircle size={32} color="#ef4444" />
         </View>
-        <Text className="text-foreground text-lg font-semibold mt-4 mb-2">
-          Something went wrong
-        </Text>
-        <Text className="text-muted-foreground text-center mb-4">{error}</Text>
-        <TouchableOpacity
-          className="px-6 py-3 bg-primary rounded-lg"
-          onPress={refresh}
-        >
-          <Text className="text-white font-medium">Try Again</Text>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
-        <View className="px-5 py-4 border-b border-border">
-          <Text className="text-2xl font-bold text-foreground">
-            Manage Teachers
-          </Text>
-          <Text className="text-base text-muted-foreground mt-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Manage Teachers</Text>
+          <Text style={styles.subtitle}>
             {teachers.length} teachers registered
           </Text>
         </View>
 
         {teachers.length === 0 ? (
-          <View className="flex-1 justify-center items-center px-5">
-            <Users
-              size={48}
-              className="text-muted-foreground"
-            />
-            <Text className="text-foreground text-lg font-semibold mt-4 mb-2">
-              No teachers found
-            </Text>
-            <Text className="text-muted-foreground text-center">
-              Add teachers to get started
-            </Text>
+          <View style={styles.emptyContainer}>
+            <Users size={48} color="#6b7280" />
+            <Text style={styles.emptyTitle}>No teachers found</Text>
+            <Text style={styles.emptyText}>Add teachers to get started</Text>
           </View>
         ) : (
           <FlatList
             data={teachers}
             renderItem={renderTeacher}
-            keyExtractor={(item) => item.id}
-            className="flex-1 px-5 pt-4"
+            keyExtractor={item => item.id}
+            style={styles.teacherList}
+            contentContainerStyle={styles.teacherListContent}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={refresh} />
             }
@@ -209,12 +202,10 @@ export default function Teachers() {
         )}
 
         <TouchableOpacity
-          className="mx-5 mb-5 bg-primary py-4 px-6 rounded-xl items-center"
+          style={styles.addButton}
           onPress={() => setShowAddModal(true)}
         >
-          <Text className="text-white text-lg font-semibold">
-            + Add New Teacher
-          </Text>
+          <Text style={styles.addButtonText}>+ Add New Teacher</Text>
         </TouchableOpacity>
 
         {/* Add Teacher Modal */}
@@ -224,78 +215,119 @@ export default function Teachers() {
           transparent={true}
           onRequestClose={() => setShowAddModal(false)}
         >
-          <View className="flex-1 bg-black/50 justify-center items-center">
-            <View className="bg-card border border-border rounded-xl p-6 w-11/12 max-w-md">
-              <Text className="text-xl font-bold text-foreground mb-6 text-center">
-                Add New Teacher
-              </Text>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Teacher</Text>
 
               <TextInput
-                className="border border-border rounded-lg p-3 mb-4 text-foreground"
+                style={styles.modalInput}
+                placeholder="Email"
+                placeholderTextColor="#6b7280"
+                value={newTeacher.email}
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, email: text }))
+                }
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Password"
+                placeholderTextColor="#6b7280"
+                value={newTeacher.password}
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, password: text }))
+                }
+                secureTextEntry
+              />
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="First Name"
+                placeholderTextColor="#6b7280"
+                value={newTeacher.firstName}
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, firstName: text }))
+                }
+              />
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Last Name"
+                placeholderTextColor="#6b7280"
+                value={newTeacher.lastName}
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, lastName: text }))
+                }
+              />
+
+              <TextInput
+                style={styles.modalInput}
                 placeholder="Employee ID"
                 placeholderTextColor="#6b7280"
                 value={newTeacher.employeeId}
-                onChangeText={(text) =>
-                  setNewTeacher((prev) => ({ ...prev, employeeId: text }))
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, employeeId: text }))
                 }
               />
 
               <TextInput
-                className="border border-border rounded-lg p-3 mb-4 text-foreground"
+                style={styles.modalInput}
                 placeholder="Department"
                 placeholderTextColor="#6b7280"
                 value={newTeacher.department}
-                onChangeText={(text) =>
-                  setNewTeacher((prev) => ({ ...prev, department: text }))
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, department: text }))
                 }
               />
 
               <TextInput
-                className="border border-border rounded-lg p-3 mb-4 text-foreground"
+                style={styles.modalInput}
                 placeholder="Phone"
                 placeholderTextColor="#6b7280"
                 value={newTeacher.phone}
-                onChangeText={(text) =>
-                  setNewTeacher((prev) => ({ ...prev, phone: text }))
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, phone: text }))
                 }
                 keyboardType="phone-pad"
               />
 
               <TextInput
-                className="border border-border rounded-lg p-3 mb-4 text-foreground"
+                style={styles.modalInput}
                 placeholder="Address"
                 placeholderTextColor="#6b7280"
                 value={newTeacher.address}
-                onChangeText={(text) =>
-                  setNewTeacher((prev) => ({ ...prev, address: text }))
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, address: text }))
                 }
                 multiline
                 numberOfLines={3}
               />
 
               <TextInput
-                className="border border-border rounded-lg p-3 mb-6 text-foreground"
+                style={styles.modalInput}
                 placeholder="Hire Date (YYYY-MM-DD)"
                 placeholderTextColor="#6b7280"
                 value={newTeacher.hireDate}
-                onChangeText={(text) =>
-                  setNewTeacher((prev) => ({ ...prev, hireDate: text }))
+                onChangeText={text =>
+                  setNewTeacher(prev => ({ ...prev, hireDate: text }))
                 }
               />
 
-              <View className="flex-row gap-3">
+              <View style={styles.modalButtons}>
                 <TouchableOpacity
-                  className="flex-1 bg-red-500 py-3 rounded-lg items-center"
+                  style={styles.cancelButton}
                   onPress={() => setShowAddModal(false)}
                 >
-                  <Text className="text-white font-semibold">Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="flex-1 bg-primary py-3 rounded-lg items-center"
+                  style={styles.saveButton}
                   onPress={addTeacher}
                 >
-                  <Text className="text-white font-semibold">Save</Text>
+                  <Text style={styles.saveButtonText}>Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -305,3 +337,233 @@ export default function Teachers() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#6b7280",
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#fef2f2",
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  errorTitle: {
+    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  teacherList: {
+    flex: 1,
+  },
+  teacherListContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  teacherCard: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  teacherInfo: {
+    marginBottom: 12,
+  },
+  teacherName: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  employeeId: {
+    fontSize: 14,
+    color: "#8b5cf6",
+    marginBottom: 4,
+  },
+  teacherDetail: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  hireDate: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: "#f59e0b",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  editButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: "#ef4444",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  addButton: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: "#8b5cf6",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 24,
+    width: "92%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    color: "#1f2937",
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#ef4444",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#8b5cf6",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+});

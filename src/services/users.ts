@@ -8,15 +8,21 @@ import {
   UpdateUserRequest,
   ChangePasswordRequest,
   UpdatePasswordRequest,
+  Teacher,
+  TeacherListParams,
+  CreateTeacherRequest,
+  UpdateTeacherRequest,
+  TeacherClass,
 } from "@/types";
 import { usersApi, handleApiError } from "@/lib/api";
+import { API_BASE_URL } from "../constants/api";
 
 class UsersService {
   /**
    * Get all users with pagination and filtering
    */
   static async getUsers(
-    params?: UserListParams
+    params?: UserListParams,
   ): Promise<PaginatedResponse<User>> {
     try {
       const response = await usersApi.list(params);
@@ -75,12 +81,89 @@ class UsersService {
   }
 
   /**
-   * Get users with teacher profiles
+   * Get all teachers with pagination and filtering
    */
-  static async getTeachers(): Promise<User[]> {
+  static async getTeachers(
+    params?: TeacherListParams,
+  ): Promise<PaginatedResponse<Teacher>> {
     try {
-      const response = await usersApi.teachers();
+      const response = await usersApi.teachers(params);
       return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Get teachers by department
+   */
+  static async getTeachersByDepartment(department: string): Promise<Teacher[]> {
+    try {
+      const response = await usersApi.teachersByDepartment(department);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Get teacher by employee ID
+   */
+  static async getTeacherByEmployeeId(employeeId: string): Promise<Teacher> {
+    try {
+      const response = await usersApi.teacherByEmployeeId(employeeId);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Get teacher assignments
+   */
+  static async getTeacherAssignments(
+    teacherId: string,
+  ): Promise<TeacherClass[]> {
+    try {
+      const response = await usersApi.teacherAssignments(teacherId);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Assign teacher to class
+   */
+  static async assignTeacherToClass(
+    teacherId: string,
+    classId: string,
+    isPrimaryTeacher: boolean = false,
+  ): Promise<any> {
+    try {
+      const response = await usersApi.assignTeacherToClass({
+        teacherId,
+        classId,
+        isPrimaryTeacher,
+      });
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Remove teacher from class
+   */
+  static async removeTeacherFromClass(
+    teacherId: string,
+    classId: string,
+  ): Promise<void> {
+    try {
+      await usersApi.removeTeacherFromClass({
+        teacherId,
+        classId,
+      });
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -135,11 +218,25 @@ class UsersService {
   }
 
   /**
+   * Create new teacher
+   */
+  static async createTeacher(
+    teacherData: CreateTeacherRequest,
+  ): Promise<Teacher> {
+    try {
+      const response = await usersApi.createTeacher(teacherData);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
    * Update user
    */
   static async updateUser(
     id: string,
-    userData: UpdateUserRequest
+    userData: UpdateUserRequest,
   ): Promise<User> {
     try {
       const response = await usersApi.update(id, userData);
@@ -150,11 +247,26 @@ class UsersService {
   }
 
   /**
-   * Update user password (admin only)
+   * Update teacher
+   */
+  static async updateTeacher(
+    id: string,
+    teacherData: UpdateTeacherRequest,
+  ): Promise<Teacher> {
+    try {
+      const response = await usersApi.updateTeacher(id, teacherData);
+      return response;
+    } catch (error) {
+      throw new Error(handleApiError(error));
+    }
+  }
+
+  /**
+   * Update user password
    */
   static async updatePassword(
     id: string,
-    passwordData: UpdatePasswordRequest
+    passwordData: UpdatePasswordRequest,
   ): Promise<void> {
     try {
       await usersApi.updatePassword(id, passwordData);
@@ -164,11 +276,11 @@ class UsersService {
   }
 
   /**
-   * Change user password (with current password verification)
+   * Change user password
    */
   static async changePassword(
     id: string,
-    passwordData: ChangePasswordRequest
+    passwordData: ChangePasswordRequest,
   ): Promise<void> {
     try {
       await usersApi.changePassword(id, passwordData);

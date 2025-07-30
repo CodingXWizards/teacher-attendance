@@ -9,17 +9,18 @@ import {
   AssignTeacherToClassRequest,
   RemoveTeacherFromClassRequest,
 } from "@/types";
-import { teachersApi, handleApiError } from "@/lib/api";
+import UsersService from "./users";
+import { handleApiError } from "@/lib/api";
 
 class TeachersService {
   /**
    * Get all teachers with pagination and filtering
    */
   static async getTeachers(
-    params?: TeacherListParams
-  ): Promise<PaginatedResponse<TeacherWithUser>> {
+    params?: TeacherListParams,
+  ): Promise<PaginatedResponse<Teacher>> {
     try {
-      const response = await teachersApi.list(params);
+      const response = await UsersService.getTeachers(params);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -29,10 +30,10 @@ class TeachersService {
   /**
    * Get teacher by ID
    */
-  static async getTeacherById(id: string): Promise<TeacherWithUser> {
+  static async getTeacherById(id: string): Promise<Teacher> {
     try {
-      const response = await teachersApi.get(id);
-      return response;
+      const response = await UsersService.getUserById(id);
+      return response as Teacher;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -41,11 +42,9 @@ class TeachersService {
   /**
    * Get teacher by employee ID
    */
-  static async getTeacherByEmployeeId(
-    employeeId: string
-  ): Promise<TeacherWithUser> {
+  static async getTeacherByEmployeeId(employeeId: string): Promise<Teacher> {
     try {
-      const response = await teachersApi.byEmployeeId(employeeId);
+      const response = await UsersService.getTeacherByEmployeeId(employeeId);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -55,11 +54,9 @@ class TeachersService {
   /**
    * Get teachers by department
    */
-  static async getTeachersByDepartment(
-    department: string
-  ): Promise<TeacherWithUser[]> {
+  static async getTeachersByDepartment(department: string): Promise<Teacher[]> {
     try {
-      const response = await teachersApi.byDepartment(department);
+      const response = await UsersService.getTeachersByDepartment(department);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -67,13 +64,13 @@ class TeachersService {
   }
 
   /**
-   * Get teacher's assignments (subjects and classes)
+   * Get teacher's assignments (classes)
    */
   static async getTeacherAssignments(
-    teacherId: string
+    teacherId: string,
   ): Promise<TeacherClass[]> {
     try {
-      const response = await teachersApi.assignments(teacherId);
+      const response = await UsersService.getTeacherAssignments(teacherId);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -83,10 +80,10 @@ class TeachersService {
   /**
    * Get current teacher profile
    */
-  static async getTeacherProfile(): Promise<TeacherWithUser> {
+  static async getTeacherProfile(): Promise<Teacher> {
     try {
-      const response = await teachersApi.profile();
-      return response;
+      const response = await UsersService.getProfile();
+      return response as Teacher;
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -96,10 +93,10 @@ class TeachersService {
    * Create new teacher
    */
   static async createTeacher(
-    teacherData: CreateTeacherRequest
+    teacherData: CreateTeacherRequest,
   ): Promise<Teacher> {
     try {
-      const response = await teachersApi.create(teacherData);
+      const response = await UsersService.createTeacher(teacherData);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -111,10 +108,10 @@ class TeachersService {
    */
   static async updateTeacher(
     id: string,
-    teacherData: UpdateTeacherRequest
+    teacherData: UpdateTeacherRequest,
   ): Promise<Teacher> {
     try {
-      const response = await teachersApi.update(id, teacherData);
+      const response = await UsersService.updateTeacher(id, teacherData);
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -126,7 +123,7 @@ class TeachersService {
    */
   static async deleteTeacher(id: string): Promise<void> {
     try {
-      await teachersApi.delete(id);
+      await UsersService.deleteUser(id);
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -136,10 +133,14 @@ class TeachersService {
    * Assign teacher to class
    */
   static async assignToClass(
-    assignmentData: AssignTeacherToClassRequest
+    assignmentData: AssignTeacherToClassRequest,
   ): Promise<TeacherClass> {
     try {
-      const response = await teachersApi.assignToClass(assignmentData);
+      const response = await UsersService.assignTeacherToClass(
+        assignmentData.teacherId,
+        assignmentData.classId,
+        assignmentData.isPrimaryTeacher,
+      );
       return response;
     } catch (error) {
       throw new Error(handleApiError(error));
@@ -147,13 +148,16 @@ class TeachersService {
   }
 
   /**
-   * Remove teacher from class assignment
+   * Remove teacher from class
    */
   static async removeFromClass(
-    assignmentData: RemoveTeacherFromClassRequest
+    assignmentData: RemoveTeacherFromClassRequest,
   ): Promise<void> {
     try {
-      await teachersApi.removeFromClass(assignmentData);
+      await UsersService.removeTeacherFromClass(
+        assignmentData.teacherId,
+        assignmentData.classId,
+      );
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -162,7 +166,7 @@ class TeachersService {
   /**
    * Search teachers by name or employee ID
    */
-  static async searchTeachers(searchTerm: string): Promise<TeacherWithUser[]> {
+  static async searchTeachers(searchTerm: string): Promise<Teacher[]> {
     try {
       const response = await this.getTeachers({ search: searchTerm });
       return response.data;
@@ -174,11 +178,8 @@ class TeachersService {
   /**
    * Get teachers for a specific class
    */
-  static async getTeachersForClass(
-    classId: string
-  ): Promise<TeacherClass[]> {
+  static async getTeachersForClass(classId: string): Promise<TeacherClass[]> {
     try {
-      // This would need to be implemented in the backend
       // For now, we'll get all teachers and filter by assignments
       const teachers = await this.getTeachers();
       const classTeachers: TeacherClass[] = [];
@@ -186,7 +187,7 @@ class TeachersService {
       for (const teacher of teachers.data) {
         const assignments = await this.getTeacherAssignments(teacher.id);
         const classAssignment = assignments.find(
-          (assignment) => assignment.classId === classId
+          assignment => assignment.classId === classId,
         );
         if (classAssignment) {
           classTeachers.push(classAssignment);
@@ -202,7 +203,7 @@ class TeachersService {
   /**
    * Get active teachers only
    */
-  static async getActiveTeachers(): Promise<TeacherWithUser[]> {
+  static async getActiveTeachers(): Promise<Teacher[]> {
     try {
       const response = await this.getTeachers({ isActive: true });
       return response.data;

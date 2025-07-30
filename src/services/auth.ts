@@ -176,7 +176,7 @@ class AuthService {
    */
   private static async storeAuthData(
     tokens: AuthTokens,
-    user: User
+    user: User,
   ): Promise<void> {
     await Promise.all([this.storeTokens(tokens), this.storeUser(user)]);
   }

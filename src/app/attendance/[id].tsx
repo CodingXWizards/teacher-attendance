@@ -5,17 +5,18 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  MinusCircle, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  MinusCircle,
   HelpCircle,
   Calendar,
   TrendingUp,
   ArrowLeftRight,
-  Users
+  Users,
 } from "lucide-react-native";
 import React, { useState, useEffect } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -76,7 +77,7 @@ export default function AttendancePage() {
   useEffect(() => {
     if (classData?.students) {
       const studentsWithAttendance: StudentWithAttendance[] =
-        classData.students.map((student) => ({
+        classData.students.map(student => ({
           ...student,
           attendanceStatus: AttendanceStatus.PRESENT, // Default to present
         }));
@@ -90,10 +91,7 @@ export default function AttendancePage() {
         return "#10b981";
       case AttendanceStatus.ABSENT:
         return "#ef4444";
-      case AttendanceStatus.LATE:
-        return "#f59e0b";
-      case AttendanceStatus.HALF_DAY:
-        return "#8b5cf6";
+
       default:
         return "#94a3b8";
     }
@@ -105,10 +103,7 @@ export default function AttendancePage() {
         return CheckCircle;
       case AttendanceStatus.ABSENT:
         return XCircle;
-      case AttendanceStatus.LATE:
-        return Clock;
-      case AttendanceStatus.HALF_DAY:
-        return MinusCircle;
+
       default:
         return HelpCircle;
     }
@@ -120,23 +115,18 @@ export default function AttendancePage() {
         return "Present";
       case AttendanceStatus.ABSENT:
         return "Absent";
-      case AttendanceStatus.LATE:
-        return "Late";
-      case AttendanceStatus.HALF_DAY:
-        return "Half Day";
+
       default:
         return "Unknown";
     }
   };
 
   const toggleStatus = (studentId: string) => {
-    setStudents((prevStudents) =>
-      prevStudents.map((student) => {
+    setStudents(prevStudents =>
+      prevStudents.map(student => {
         if (student.id === studentId) {
           const statusOrder = [
             AttendanceStatus.PRESENT,
-            AttendanceStatus.LATE,
-            AttendanceStatus.HALF_DAY,
             AttendanceStatus.ABSENT,
           ];
           const currentIndex = statusOrder.indexOf(student.attendanceStatus);
@@ -144,29 +134,21 @@ export default function AttendancePage() {
           return { ...student, attendanceStatus: statusOrder[nextIndex] };
         }
         return student;
-      })
+      }),
     );
   };
 
   const getAttendanceStats = () => {
     const present = students.filter(
-      (s) => s.attendanceStatus === AttendanceStatus.PRESENT
+      s => s.attendanceStatus === AttendanceStatus.PRESENT,
     ).length;
     const absent = students.filter(
-      (s) => s.attendanceStatus === AttendanceStatus.ABSENT
-    ).length;
-    const late = students.filter(
-      (s) => s.attendanceStatus === AttendanceStatus.LATE
-    ).length;
-    const halfDay = students.filter(
-      (s) => s.attendanceStatus === AttendanceStatus.HALF_DAY
+      s => s.attendanceStatus === AttendanceStatus.ABSENT,
     ).length;
     const total = students.length;
-    const attendanceRate = (((present + late + halfDay) / total) * 100).toFixed(
-      1
-    );
+    const attendanceRate = ((present / total) * 100).toFixed(1);
 
-    return { present, absent, late, halfDay, total, attendanceRate };
+    return { present, absent, total, attendanceRate };
   };
 
   const handleSubmit = async () => {
@@ -178,7 +160,7 @@ export default function AttendancePage() {
       const today = new Date().toISOString().split("T")[0];
 
       // Create attendance records for all students
-      const attendanceData = students.map((student) => ({
+      const attendanceData = students.map(student => ({
         studentId: student.id,
         classId: classData.id,
         date: today,
@@ -209,11 +191,9 @@ export default function AttendancePage() {
   // Loading state
   if (classLoading) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text className="text-lg text-foreground mt-4">
-          Loading class details...
-        </Text>
+        <Text style={styles.loadingText}>Loading class details...</Text>
       </View>
     );
   }
@@ -221,26 +201,24 @@ export default function AttendancePage() {
   // Error state
   if (classError || !classData) {
     return (
-      <View className="flex-1 bg-background justify-center items-center px-5">
-        <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-4">
+      <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
           <XCircle size={32} color="#ef4444" />
         </View>
-        <Text className="text-lg text-foreground mt-4 text-center">
-          {classError || "Class not found"}
-        </Text>
+        <Text style={styles.errorText}>{classError || "Class not found"}</Text>
         <TouchableOpacity
-          className="mt-4 px-6 py-3 bg-primary rounded-xl"
+          style={styles.goBackButton}
           onPress={() => navigation.goBack()}
         >
-          <Text className="text-white font-medium">Go Back</Text>
+          <Text style={styles.goBackButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
         <Appbar
           title={classData.grade}
           subtitle="Take Attendance"
@@ -249,139 +227,101 @@ export default function AttendancePage() {
               onPress={() =>
                 Alert.alert(
                   "Date",
-                  "Today's date: " + new Date().toLocaleDateString()
+                  "Today's date: " + new Date().toLocaleDateString(),
                 )
               }
             >
-              <Calendar size={20} className="text-foreground" />
+              <Calendar size={20} color="#1f2937" />
             </TouchableOpacity>
           }
         />
         <ScrollView
-          className="flex-1 px-4 py-4"
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Attendance Stats */}
-          <View className="p-5 rounded-xl bg-card border border-border mb-6">
-            <Text className="text-lg font-bold text-foreground mb-4 text-center">
-              Today's Attendance
-            </Text>
-            <View className="flex-row justify-around">
-              <View className="items-center gap-2">
-                <View className="w-10 h-10 rounded-full bg-green-100 justify-center items-center">
+          <View style={styles.statsCard}>
+            <Text style={styles.statsTitle}>Today's Attendance</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
                   <CheckCircle size={20} color="#10b981" />
                 </View>
-                <Text className="text-xl font-bold text-foreground">
-                  {stats.present}
-                </Text>
-                <Text className="text-xs text-muted-foreground">Present</Text>
+                <Text style={styles.statNumber}>{stats.present}</Text>
+                <Text style={styles.statLabel}>Present</Text>
               </View>
-              <View className="items-center gap-2">
-                <View className="w-10 h-10 rounded-full bg-yellow-100 justify-center items-center">
-                  <Clock size={20} color="#f59e0b" />
-                </View>
-                <Text className="text-xl font-bold text-foreground">
-                  {stats.late}
-                </Text>
-                <Text className="text-xs text-muted-foreground">Late</Text>
-              </View>
-              <View className="items-center gap-2">
-                <View className="w-10 h-10 rounded-full bg-purple-100 justify-center items-center">
-                  <MinusCircle size={20} color="#8b5cf6" />
-                </View>
-                <Text className="text-xl font-bold text-foreground">
-                  {stats.halfDay}
-                </Text>
-                <Text className="text-xs text-muted-foreground">Half Day</Text>
-              </View>
-              <View className="items-center gap-2">
-                <View className="w-10 h-10 rounded-full bg-red-100 justify-center items-center">
+
+              <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
                   <XCircle size={20} color="#ef4444" />
                 </View>
-                <Text className="text-xl font-bold text-foreground">
-                  {stats.absent}
-                </Text>
-                <Text className="text-xs text-muted-foreground">Absent</Text>
+                <Text style={styles.statNumber}>{stats.absent}</Text>
+                <Text style={styles.statLabel}>Absent</Text>
               </View>
             </View>
-            <View className="mt-4 pt-4 border-t border-border">
-              <View className="items-center">
-                <View
-                  className="w-12 h-12 rounded-full justify-center items-center"
-                  style={{ backgroundColor: "#8b5cf6" + "20" }}
-                >
-                  <TrendingUp size={24} color="#8b5cf6" />
-                </View>
-                <Text className="text-2xl font-bold text-foreground mt-2">
-                  {stats.attendanceRate}%
-                </Text>
-                <Text className="text-sm text-muted-foreground">
-                  Attendance Rate
-                </Text>
+            <View style={styles.attendanceRateContainer}>
+              <View style={styles.attendanceRateIconContainer}>
+                <TrendingUp size={24} color="#8b5cf6" />
               </View>
+              <Text style={styles.attendanceRate}>{stats.attendanceRate}%</Text>
+              <Text style={styles.attendanceRateLabel}>Attendance Rate</Text>
             </View>
           </View>
 
           {/* Students List */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold text-foreground">
-                Students
-              </Text>
-              <Text className="text-sm text-muted-foreground">
-                {stats.total} students
-              </Text>
+          <View style={styles.studentsSection}>
+            <View style={styles.studentsHeader}>
+              <Text style={styles.studentsTitle}>Students</Text>
+              <Text style={styles.studentsCount}>{stats.total} students</Text>
             </View>
 
             {studentsLoading && (
-              <View className="py-4 items-center">
+              <View style={styles.loadingStudentsContainer}>
                 <ActivityIndicator size="small" color="#8b5cf6" />
-                <Text className="text-sm text-muted-foreground mt-2">
+                <Text style={styles.loadingStudentsText}>
                   Loading students...
                 </Text>
               </View>
             )}
 
-            <View className="gap-3">
-              {students.map((student) => {
+            <View style={styles.studentsList}>
+              {students.map(student => {
                 const StatusIcon = getStatusIcon(student.attendanceStatus);
                 return (
                   <TouchableOpacity
                     key={student.id}
-                    className="flex-row p-4 rounded-xl bg-card border border-border gap-4 items-center"
+                    style={styles.studentCard}
                     onPress={() => toggleStatus(student.id)}
                   >
-                    <View className="flex-1">
-                      <Text className="text-base font-semibold text-foreground mb-1">
+                    <View style={styles.studentInfo}>
+                      <Text style={styles.studentName}>
                         {student.firstName} {student.lastName}
                       </Text>
-                      <Text className="text-sm text-muted-foreground">
+                      <Text style={styles.studentId}>
                         ID: {student.studentId}
                       </Text>
                     </View>
-                    <View className="flex-row items-center gap-3">
-                      <View className="flex-row items-center gap-2">
+                    <View style={styles.studentStatus}>
+                      <View style={styles.statusInfo}>
                         <StatusIcon
                           size={24}
                           color={getStatusColor(student.attendanceStatus)}
                         />
                         <Text
-                          className="text-sm font-medium"
-                          style={{
-                            color: getStatusColor(student.attendanceStatus),
-                          }}
+                          style={[
+                            styles.statusText,
+                            { color: getStatusColor(student.attendanceStatus) },
+                          ]}
                         >
                           {getStatusText(student.attendanceStatus)}
                         </Text>
                       </View>
                       <TouchableOpacity
-                        className="w-8 h-8 rounded-full border border-border justify-center items-center"
+                        style={styles.toggleButton}
                         onPress={() => toggleStatus(student.id)}
                       >
-                        <ArrowLeftRight
-                          size={16}
-                          className="text-muted-foreground"
-                        />
+                        <ArrowLeftRight size={16} color="#6b7280" />
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -390,12 +330,9 @@ export default function AttendancePage() {
             </View>
 
             {students.length === 0 && !studentsLoading && (
-              <View className="py-8 items-center">
-                <Users
-                  size={48}
-                  className="text-muted-foreground"
-                />
-                <Text className="text-base text-muted-foreground mt-2 text-center">
+              <View style={styles.emptyStudentsContainer}>
+                <Users size={48} color="#6b7280" />
+                <Text style={styles.emptyStudentsText}>
                   No students in this class
                 </Text>
               </View>
@@ -403,27 +340,21 @@ export default function AttendancePage() {
           </View>
 
           {/* Submit Button */}
-          <View className="mb-5">
+          <View style={styles.submitSection}>
             <TouchableOpacity
-              className={`flex-row items-center justify-center py-4 px-6 rounded-xl gap-2 ${
-                isSubmitting ? "bg-muted-foreground" : ""
-              }`}
-              style={{
-                backgroundColor: isSubmitting ? undefined : "#8b5cf6",
-              }}
+              style={[
+                styles.submitButton,
+                isSubmitting && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={isSubmitting || students.length === 0}
             >
               {isSubmitting ? (
-                <Text className="text-base font-semibold text-white">
-                  Submitting...
-                </Text>
+                <Text style={styles.submitButtonText}>Submitting...</Text>
               ) : (
                 <>
                   <CheckCircle size={24} color="white" />
-                  <Text className="text-base font-semibold text-white">
-                    Submit Attendance
-                  </Text>
+                  <Text style={styles.submitButtonText}>Submit Attendance</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -433,3 +364,236 @@ export default function AttendancePage() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#1f2937",
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorIconContainer: {
+    width: 64,
+    height: 64,
+    backgroundColor: "#fef2f2",
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#1f2937",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  goBackButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#8b5cf6",
+    borderRadius: 12,
+  },
+  goBackButtonText: {
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  statsCard: {
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginBottom: 24,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  statsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  statItem: {
+    alignItems: "center",
+    gap: 8,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0fdf4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  attendanceRateContainer: {
+    alignItems: "center",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  attendanceRateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#8b5cf620",
+  },
+  attendanceRate: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginTop: 8,
+  },
+  attendanceRateLabel: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  studentsSection: {
+    marginBottom: 24,
+  },
+  studentsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  studentsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  studentsCount: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  loadingStudentsContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  loadingStudentsText: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 8,
+  },
+  studentsList: {
+    gap: 12,
+  },
+  studentCard: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    gap: 16,
+    alignItems: "center",
+  },
+  studentInfo: {
+    flex: 1,
+  },
+  studentName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  studentId: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  studentStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  statusInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  toggleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyStudentsContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  emptyStudentsText: {
+    fontSize: 16,
+    color: "#6b7280",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  submitSection: {
+    marginBottom: 20,
+  },
+  submitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: "#8b5cf6",
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#9ca3af",
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+});
