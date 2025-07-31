@@ -32,9 +32,9 @@ const LoginScreen = () => {
     setIsLoading(true);
     try {
       const response = await AuthService.login({ email, password });
-      console.log(response);
       setUser(response.user);
-      navigation.navigate("Dashboard" as never);
+      // Navigate to data sync screen instead of directly to dashboard
+      navigation.navigate("DataSync", { user: response.user } as never);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";

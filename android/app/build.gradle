@@ -2,6 +2,13 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// Fix for WatermelonDB dependency issue
+gradle.projectsEvaluated {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -110,10 +117,24 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation project(':nozbe_watermelondb')
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+afterEvaluate {
+    // Fix WatermelonDB task dependencies
+    def watermelondbProject = project(':nozbe_watermelondb')
+    if (watermelondbProject) {
+        def packageDebugResourcesTask = watermelondbProject.tasks.findByName('packageDebugResources')
+        def generateDebugResValuesTask = watermelondbProject.tasks.findByName('generateDebugResValues')
+        
+        if (packageDebugResourcesTask && generateDebugResValuesTask) {
+            packageDebugResourcesTask.dependsOn generateDebugResValuesTask
+        }
     }
 }

@@ -1,226 +1,191 @@
-import {
-  ClassesService,
-  StudentsService,
-  TeachersService,
-  SubjectsService,
-} from "@/services";
-import {
+import type {
+  Student,
   DashboardStats,
-  ClassWithDetails,
   TeacherDashboardData,
+  ClassWithDetails,
+  ClassSummary,
 } from "@/types";
+
+import { DatabaseService } from "./databaseService";
 
 class DashboardService {
   /**
-   * Get dashboard statistics
-   */
-  static async getDashboardStats(): Promise<DashboardStats> {
-    try {
-      const [classes, students, teachers, subjects] = await Promise.all([
-        ClassesService.getActiveClasses(),
-        StudentsService.getActiveStudents(),
-        TeachersService.getActiveTeachers(),
-        SubjectsService.getActiveSubjects(),
-      ]);
-
-      // Calculate today's sessions (for now, just count classes)
-      // In the future, this could be based on actual attendance records
-      const todaySessions = classes.length;
-
-      return {
-        totalClasses: classes.length,
-        totalStudents: students.length,
-        totalTeachers: teachers.length,
-        totalSubjects: subjects.length,
-        todaySessions,
-      };
-    } catch (error) {
-      throw new Error(`Failed to get dashboard stats: ${error}`);
-    }
-  }
-
-  /**
-   * Get teacher-specific dashboard stats (only data teacher has access to)
+   * Get teacher dashboard stats from local database
    */
   static async getTeacherStats(teacherId: string): Promise<DashboardStats> {
     try {
-      const assignments = await TeachersService.getTeacherAssignments(
-        teacherId,
-      );
-
-      // For teachers, we can only show what they have access to
-      const todaySessions = assignments.length;
-
-      // Count unique classes the teacher teaches
-      const uniqueClasses = new Set(assignments.map(a => a.classId)).size;
-
-      // Calculate total students from all assigned classes
-      let totalStudents = 0;
-      for (const assignment of assignments) {
-        try {
-          const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId,
-          );
-          totalStudents += classDetails.students?.length || 0;
-        } catch (error) {
-          console.warn(
-            `Failed to get student count for class ${assignment.classId}:`,
-            error,
-          );
-        }
-      }
+      const stats = await DatabaseService.getTeacherStats(teacherId);
 
       return {
-        totalClasses: assignments.length,
-        totalStudents,
-        totalTeachers: 1, // Teacher only sees themselves
-        totalSubjects: uniqueClasses, // Now represents unique classes
-        todaySessions,
+        totalClasses: stats.totalClasses,
+        totalStudents: stats.totalStudents,
+        totalTeachers: 1, // Just the current teacher
+        totalSubjects: 0,
+        todaySessions: 0,
+        attendanceThisMonth: stats.attendanceThisMonth,
       };
     } catch (error) {
-      throw new Error(`Failed to get teacher stats: ${error}`);
+      console.error("Error getting teacher stats:", error);
+      throw new Error("Failed to get teacher stats");
     }
   }
 
   /**
-   * Get teacher dashboard data (assignments with class details)
+   * Get teacher dashboard data from local database
    */
   static async getTeacherDashboard(
     teacherId: string,
   ): Promise<TeacherDashboardData> {
     try {
-      const [assignments, stats] = await Promise.all([
-        TeachersService.getTeacherAssignments(teacherId),
+      const [stats, classes] = await Promise.all([
         this.getTeacherStats(teacherId),
+        DatabaseService.getTeacherClasses(teacherId),
       ]);
-
-      // Get class details for each assignment
-      const classesWithDetails: ClassWithDetails[] = [];
-
-      for (const assignment of assignments) {
-        try {
-          const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId,
-          );
-          classesWithDetails.push(classDetails);
-        } catch (error) {
-          console.warn(
-            `Failed to get details for class ${assignment.classId}:`,
-            error,
-          );
-        }
-      }
-
       return {
-        classes: classesWithDetails,
-        assignments,
         stats,
+        classes: classes.map(cls => ({
+          id: cls.classId,
+          name: cls.name,
+          grade: cls.grade,
+          section: cls.section,
+          description: cls.description || "",
+          academicYear: cls.academicYear,
+          isActive: cls.isActive,
+          createdAt: "",
+          updatedAt: "",
+          students: [], // Will be populated when needed
+        })),
+        assignments: [], // Will be populated when needed
       };
     } catch (error) {
-      throw new Error(`Failed to get teacher dashboard: ${error}`);
+      console.error("Error getting teacher dashboard:", error);
+      throw new Error("Failed to get teacher dashboard");
     }
   }
 
   /**
-   * Get classes for a teacher with student counts
+   * Get teacher's classes with details from local database
    */
   static async getTeacherClasses(
     teacherId: string,
   ): Promise<ClassWithDetails[]> {
     try {
-      const assignments = await TeachersService.getTeacherAssignments(
-        teacherId,
-      );
-      const classesWithDetails: ClassWithDetails[] = [];
+      const classes = await DatabaseService.getTeacherClasses(teacherId);
 
-      for (const assignment of assignments) {
-        try {
-          const classDetails = await ClassesService.getClassWithDetails(
-            assignment.classId,
-          );
-          classesWithDetails.push(classDetails);
-        } catch (error) {
-          console.warn(
-            `Failed to get details for class ${assignment.classId}:`,
-            error,
-          );
-        }
-      }
+      // Get students for each class
+      const classesWithDetails = await Promise.all(
+        classes.map(async cls => {
+          const students = await DatabaseService.getClassStudents(cls.id);
+          const mappedStudents = students.map(student => ({
+            id: student.id,
+            studentId: student.studentId,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            phone: student.phone,
+            address: student.address,
+            dateOfBirth: student.dateOfBirth,
+            gender: student.gender,
+            classId: student.class?.id || "",
+            isActive: student.isActive,
+            createdAt: student.createdAt.toString(),
+            updatedAt: student.updatedAt.toString(),
+          }));
+          return {
+            id: cls.id,
+            name: cls.name,
+            grade: cls.grade,
+            section: cls.section,
+            description: cls.description || "",
+            academicYear: cls.academicYear,
+            isActive: cls.isActive,
+            createdAt: cls.createdAt.toString(),
+            updatedAt: cls.updatedAt.toString(),
+            students: mappedStudents,
+          };
+        }),
+      );
 
       return classesWithDetails;
     } catch (error) {
-      throw new Error(`Failed to get teacher classes: ${error}`);
+      console.error("Error getting teacher classes with details:", error);
+      throw new Error("Failed to get teacher classes with details");
     }
   }
 
   /**
-   * Get class summary for dashboard cards
+   * Get class summary from local database
    */
   static async getClassSummary(classId: string) {
     try {
-      const [classData, students, teachers] = await Promise.all([
-        ClassesService.getClassById(classId),
-        ClassesService.getClassStudents(classId),
-        ClassesService.getClassTeachers(classId),
-      ]);
+      const stats = await DatabaseService.getClassStats(classId);
 
       return {
-        id: classData.id,
-        name: classData.name,
-        grade: classData.grade,
-        section: classData.section,
-        academicYear: classData.academicYear,
-        studentCount: students.length,
-        teacherCount: teachers.length,
-        // Generate a color based on class name for consistency
-        color: this.generateColorFromString(classData.name),
+        id: classId,
+        name: "", // Would need to get from class data
+        studentCount: stats.totalStudents,
+        presentToday: stats.presentToday,
+        absentToday: stats.absentToday,
+        attendanceRate:
+          stats.totalStudents > 0
+            ? (stats.presentToday / stats.totalStudents) * 100
+            : 0,
+        color: "#3B82F6", // Default color
       };
     } catch (error) {
-      throw new Error(`Failed to get class summary: ${error}`);
+      console.error("Error getting class summary:", error);
+      throw new Error("Failed to get class summary");
     }
   }
 
   /**
-   * Get all classes with summaries for dashboard
+   * Get all class summaries for teacher from local database
    */
-  static async getAllClassSummaries() {
+  static async getAllClassSummaries(
+    teacherId: string,
+  ): Promise<ClassSummary[]> {
     try {
-      const classes = await ClassesService.getActiveClasses();
-      const summaries = [];
+      const classes = await DatabaseService.getTeacherClasses(teacherId);
+      const summaries = await Promise.all(
+        classes.map(async cls => {
+          const stats = await DatabaseService.getClassStats(cls.id);
 
-      for (const classData of classes) {
-        try {
-          const summary = await this.getClassSummary(classData.id);
-          summaries.push(summary);
-        } catch (error) {
-          console.warn(
-            `Failed to get summary for class ${classData.id}:`,
-            error,
-          );
-        }
-      }
-
+          return {
+            id: cls.id,
+            name: cls.name,
+            studentCount: stats.totalStudents,
+            presentToday: stats.presentToday,
+            absentToday: stats.absentToday,
+            attendanceRate:
+              stats.totalStudents > 0
+                ? (stats.presentToday / stats.totalStudents) * 100
+                : 0,
+            color: this.generateColorFromString(cls.name),
+          };
+        }),
+      );
       return summaries;
     } catch (error) {
-      throw new Error(`Failed to get class summaries: ${error}`);
+      console.error("Error getting all class summaries:", error);
+      throw new Error("Failed to get all class summaries");
     }
   }
 
   /**
-   * Generate a consistent color from a string
+   * Generate color from string (for class colors)
    */
   private static generateColorFromString(str: string): string {
     const colors = [
-      "#8b5cf6", // Purple
-      "#06b6d4", // Cyan
-      "#10b981", // Emerald
-      "#f59e0b", // Amber
-      "#ef4444", // Red
-      "#3b82f6", // Blue
-      "#84cc16", // Lime
-      "#f97316", // Orange
-      "#8b5cf6", // Violet
-      "#06b6d4", // Sky
+      "#3B82F6", // Blue
+      "#EF4444", // Red
+      "#10B981", // Green
+      "#F59E0B", // Yellow
+      "#8B5CF6", // Purple
+      "#F97316", // Orange
+      "#06B6D4", // Cyan
+      "#84CC16", // Lime
+      "#EC4899", // Pink
+      "#6366F1", // Indigo
     ];
 
     let hash = 0;
@@ -231,46 +196,6 @@ class DashboardService {
     }
 
     return colors[Math.abs(hash) % colors.length];
-  }
-
-  /**
-   * Get recent activity (placeholder for future implementation)
-   */
-  static async getRecentActivity() {
-    try {
-      // This would typically fetch recent attendance records, updates, etc.
-      // For now, return empty array
-      return [];
-    } catch (error) {
-      throw new Error(`Failed to get recent activity: ${error}`);
-    }
-  }
-
-  /**
-   * Get quick stats for admin dashboard
-   */
-  static async getAdminQuickStats() {
-    try {
-      const [classes, students, teachers, subjects] = await Promise.all([
-        ClassesService.getActiveClasses(),
-        StudentsService.getActiveStudents(),
-        TeachersService.getActiveTeachers(),
-        SubjectsService.getActiveSubjects(),
-      ]);
-
-      return {
-        totalClasses: classes.length,
-        totalStudents: students.length,
-        totalTeachers: teachers.length,
-        totalSubjects: subjects.length,
-        activeClasses: classes.filter(c => c.isActive).length,
-        activeStudents: students.filter(s => s.isActive).length,
-        activeTeachers: teachers.filter(t => t.isActive).length,
-        activeSubjects: subjects.filter(s => s.isActive).length,
-      };
-    } catch (error) {
-      throw new Error(`Failed to get admin quick stats: ${error}`);
-    }
   }
 }
 

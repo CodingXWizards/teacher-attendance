@@ -25,19 +25,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Appbar } from "@/components/appbar";
 import { useUserStore } from "@/stores/userStore";
 import DashboardService from "@/services/dashboard";
-import { ClassWithDetails, TeacherClass } from "@/types";
+import { ClassSummary, ClassWithDetails, TeacherClass } from "@/types";
 
 // Interface for class summary from dashboard service
-interface ClassSummary {
-  id: string;
-  name: string;
-  grade: string;
-  section: string;
-  academicYear: string;
-  studentCount: number;
-  teacherCount: number;
-  color: string;
-}
 
 export default function Home() {
   const { user } = useUserStore();
@@ -46,7 +36,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [classes, setClasses] = useState<ClassWithDetails[]>([]);
   const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
-  const [assignments, setAssignments] = useState<TeacherClass[]>([]);
+
   const [error, setError] = useState<string | null>(null);
 
   if (!user) {
@@ -91,11 +81,12 @@ export default function Home() {
           user.id,
         );
         setClasses(teacherDashboard.classes);
-        setAssignments(teacherDashboard.assignments);
+        const allClassSummaries = await DashboardService.getAllClassSummaries(
+          user.id,
+        );
+        setClassSummaries(allClassSummaries);
       } else {
         // Load admin/principal data
-        const allClassSummaries = await DashboardService.getAllClassSummaries();
-        setClassSummaries(allClassSummaries);
       }
     } catch (error) {
       const errorMessage =
@@ -178,7 +169,7 @@ export default function Home() {
               <>
                 <View style={styles.statCard}>
                   <BookOpen size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>{assignments.length}</Text>
+                  <Text style={styles.statNumber}>{classes.length}</Text>
                   <Text style={styles.statLabel}>Assigned Classes</Text>
                 </View>
                 <View style={styles.statCard}>
@@ -219,11 +210,11 @@ export default function Home() {
                   <BookOpen size={24} color="#8b5cf6" />
                   <Text style={styles.statNumber}>
                     {classSummaries.reduce(
-                      (total, cls) => total + cls.teacherCount,
+                      (total, cls) => total + cls.presentToday,
                       0,
                     )}
                   </Text>
-                  <Text style={styles.statLabel}>Active Teachers</Text>
+                  <Text style={styles.statLabel}>Present Today</Text>
                 </View>
               </>
             )}
@@ -248,8 +239,8 @@ export default function Home() {
             </View>
 
             {user.role === "teacher" ? (
-              // Show assignments for teacher
-              assignments.length === 0 ? (
+              // Show classes for teacher
+              classes.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Book size={48} color="#6b7280" />
                   <Text style={styles.emptyText}>
@@ -258,20 +249,17 @@ export default function Home() {
                 </View>
               ) : (
                 <View style={styles.classesList}>
-                  {assignments.map(assignment => {
-                    const color = generateColorFromString(
-                      assignment.class?.name || "",
-                    );
-                    const studentCount = 0; // Will be populated when we have ClassWithDetails
-
+                  {classes.map(cls => {
+                    const color = generateColorFromString(cls.name);
+                    const studentCount = cls.students?.length || 0;
                     return (
                       <TouchableOpacity
-                        key={assignment.id}
+                        key={cls.id}
                         style={styles.classCard}
                         onPress={() =>
                           navigation.navigate(
                             "ClassDetails" as never,
-                            { id: assignment.classId } as never,
+                            { id: cls.id } as never,
                           )
                         }
                       >
@@ -284,15 +272,12 @@ export default function Home() {
                           <Book size={24} color={color} />
                         </View>
                         <View style={styles.classInfo}>
-                          <Text style={styles.className}>
-                            {assignment.class?.name}
-                          </Text>
+                          <Text style={styles.className}>{cls.name}</Text>
                           <Text style={styles.classDetails}>
-                            Grade {assignment.class?.grade} -{" "}
-                            {assignment.class?.section}
+                            Grade {cls.grade} - {cls.section}
                           </Text>
                           <Text style={styles.academicYear}>
-                            Academic Year: {assignment.class?.academicYear}
+                            Academic Year: {cls.academicYear}
                           </Text>
                           <View style={styles.classFooter}>
                             <View style={styles.studentCount}>
@@ -309,7 +294,7 @@ export default function Home() {
                               onPress={() =>
                                 navigation.navigate(
                                   "ClassDetails" as never,
-                                  { id: assignment.classId } as never,
+                                  { id: cls.id } as never,
                                 )
                               }
                             >
@@ -336,6 +321,9 @@ export default function Home() {
               <View style={styles.classesList}>
                 {classSummaries.map(classItem => {
                   const color = classItem.color;
+                  const classDetails = classes.find(
+                    cls => cls.id === classItem.id,
+                  );
 
                   return (
                     <TouchableOpacity
@@ -344,7 +332,7 @@ export default function Home() {
                       onPress={() =>
                         navigation.navigate(
                           "ClassDetails" as never,
-                          { id: classItem.id } as never,
+                          { id: classItem.classId } as never,
                         )
                       }
                     >
@@ -359,10 +347,10 @@ export default function Home() {
                       <View style={styles.classInfo}>
                         <Text style={styles.className}>{classItem.name}</Text>
                         <Text style={styles.classDetails}>
-                          Grade {classItem.grade} - {classItem.section}
+                          Grade {classDetails?.grade} - {classDetails?.section}
                         </Text>
                         <Text style={styles.academicYear}>
-                          Academic Year: {classItem.academicYear}
+                          Academic Year: {classDetails?.academicYear}
                         </Text>
                         <View style={styles.classFooter}>
                           <View style={styles.studentCount}>
@@ -405,25 +393,16 @@ export default function Home() {
                 onPress={() => navigation.navigate("Attendance" as never)}
               >
                 <Calendar size={24} color="#8b5cf6" />
-                <Text style={styles.quickActionText}>Take Attendance</Text>
+                <Text style={styles.quickActionText}>My Attendance</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickActionCard}
-                onPress={() => navigation.navigate("History" as never)}
-              >
-                <BarChart3 size={24} color="#8b5cf6" />
-                <Text style={styles.quickActionText}>View History</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => navigation.navigate("Teachers" as never)}
-              >
-                <Users size={24} color="#8b5cf6" />
-                <Text style={styles.quickActionText}>Manage Teachers</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => navigation.navigate("Reports" as never)}
+                onPress={() =>
+                  Alert.alert(
+                    "Generate Reports",
+                    "Generate reports not implemented yet",
+                  )
+                }
               >
                 <BarChart3 size={24} color="#8b5cf6" />
                 <Text style={styles.quickActionText}>Generate Reports</Text>
@@ -542,12 +521,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#1f2937",
+    marginBottom: 8,
   },
   addButton: {
     width: 40,

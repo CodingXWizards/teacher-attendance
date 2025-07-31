@@ -16,8 +16,15 @@ import {
   Edit,
   BarChart3,
   MoreVertical,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from "lucide-react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 
@@ -26,6 +33,7 @@ import ClassesService from "@/services/classes";
 import { ClassWithDetails, Student } from "@/types";
 import { AttendanceStatus } from "@/types/attendance";
 import AttendanceService from "@/services/attendance";
+import { DatabaseService } from "@/services/databaseService";
 
 // Extended student interface with attendance info
 interface StudentWithAttendance extends Student {
@@ -33,6 +41,7 @@ interface StudentWithAttendance extends Student {
     status: AttendanceStatus;
     lastPresent?: string;
     attendancePercentage: number;
+    attendanceTaken: boolean;
   };
 }
 
@@ -42,7 +51,7 @@ export default function ClassDetail() {
   const { id } = route.params as { id: string };
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "present" | "absent"
+    "all" | "present" | "absent" | "not-taken"
   >("all");
 
   // State for class data
@@ -81,31 +90,38 @@ export default function ClassDetail() {
   }, [id]);
 
   // Fetch attendance data when class data is loaded
-  useEffect(() => {
-    const fetchAttendanceData = async () => {
-      if (!classData) return;
+  const fetchAttendanceData = useCallback(async () => {
+    if (!classData) return;
 
-      try {
-        setAttendanceLoading(true);
-        setAttendanceError(null);
-        const today = new Date().toISOString().split("T")[0];
-        const data = await AttendanceService.getStudentAttendanceByClassAndDate(
-          id,
-          today,
-        );
-        setTodayAttendance(data);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to load attendance";
-        setAttendanceError(errorMessage);
-        console.warn("Failed to load today's attendance:", errorMessage);
-      } finally {
-        setAttendanceLoading(false);
-      }
-    };
-
-    fetchAttendanceData();
+    try {
+      setAttendanceLoading(true);
+      setAttendanceError(null);
+      const data = await DatabaseService.getTodayAttendanceForClass(id);
+      console.log("data", data);
+      setTodayAttendance(data);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load attendance";
+      setAttendanceError(errorMessage);
+      console.warn("Failed to load today's attendance:", errorMessage);
+    } finally {
+      setAttendanceLoading(false);
+    }
   }, [classData, id]);
+
+  useEffect(() => {
+    fetchAttendanceData();
+  }, [fetchAttendanceData]);
+
+  // Refresh attendance data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh attendance data, not class data
+      if (classData) {
+        fetchAttendanceData();
+      }
+    }, [fetchAttendanceData, classData]),
+  );
 
   // Refresh functions
   const refreshClass = useCallback(async () => {
@@ -130,11 +146,7 @@ export default function ClassDetail() {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const today = new Date().toISOString().split("T")[0];
-      const data = await AttendanceService.getStudentAttendanceByClassAndDate(
-        id,
-        today,
-      );
+      const data = await DatabaseService.getTodayAttendanceForClass(id);
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
@@ -177,6 +189,7 @@ export default function ClassDetail() {
                   .toISOString()
                   .split("T")[0],
           attendancePercentage,
+          attendanceTaken: !!todayRecord,
         },
       } as StudentWithAttendance;
     });
@@ -190,8 +203,14 @@ export default function ClassDetail() {
         student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.studentId.includes(searchQuery);
 
-      const matchesFilter =
-        filterStatus === "all" || student.attendance?.status === filterStatus;
+      let matchesFilter = true;
+      if (filterStatus === "present") {
+        matchesFilter = student.attendance?.status === AttendanceStatus.PRESENT;
+      } else if (filterStatus === "absent") {
+        matchesFilter = student.attendance?.status === AttendanceStatus.ABSENT;
+      } else if (filterStatus === "not-taken") {
+        matchesFilter = !student.attendance?.attendanceTaken;
+      }
 
       return matchesSearch && matchesFilter;
     });
@@ -203,7 +222,6 @@ export default function ClassDetail() {
         return "#10b981";
       case AttendanceStatus.ABSENT:
         return "#ef4444";
-
       default:
         return "#94a3b8";
     }
@@ -212,12 +230,11 @@ export default function ClassDetail() {
   const getStatusIcon = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "✓";
+        return CheckCircle;
       case AttendanceStatus.ABSENT:
-        return "✗";
-
+        return XCircle;
       default:
-        return "?";
+        return Clock;
     }
   };
 
@@ -227,11 +244,28 @@ export default function ClassDetail() {
         return "Present";
       case AttendanceStatus.ABSENT:
         return "Absent";
-
       default:
-        return "Unknown";
+        return "Not Taken";
     }
   };
+
+  // Calculate attendance stats
+  const attendanceStats = useMemo(() => {
+    const total = studentsWithAttendance.length;
+    const present = studentsWithAttendance.filter(
+      s => s.attendance?.status === AttendanceStatus.PRESENT,
+    ).length;
+    const absent = studentsWithAttendance.filter(
+      s => s.attendance?.status === AttendanceStatus.ABSENT,
+    ).length;
+    const notTaken = studentsWithAttendance.filter(
+      s => !s.attendance?.attendanceTaken,
+    ).length;
+    const attendanceRate =
+      total > 0 ? ((present / total) * 100).toFixed(1) : "0.0";
+
+    return { total, present, absent, notTaken, attendanceRate };
+  }, [studentsWithAttendance]);
 
   // Loading state
   if (classLoading) {
@@ -288,6 +322,41 @@ export default function ClassDetail() {
             />
           }
         >
+          {/* Today's Attendance Summary */}
+          <View style={styles.attendanceSummaryCard}>
+            <Text style={styles.attendanceSummaryTitle}>
+              Today's Attendance
+            </Text>
+            <View style={styles.attendanceSummaryGrid}>
+              <View style={styles.attendanceSummaryItem}>
+                <CheckCircle size={20} color="#10b981" />
+                <Text style={styles.attendanceSummaryNumber}>
+                  {attendanceStats.present}
+                </Text>
+                <Text style={styles.attendanceSummaryLabel}>Present</Text>
+              </View>
+              <View style={styles.attendanceSummaryItem}>
+                <XCircle size={20} color="#ef4444" />
+                <Text style={styles.attendanceSummaryNumber}>
+                  {attendanceStats.absent}
+                </Text>
+                <Text style={styles.attendanceSummaryLabel}>Absent</Text>
+              </View>
+              <View style={styles.attendanceSummaryItem}>
+                <Clock size={20} color="#6b7280" />
+                <Text style={styles.attendanceSummaryNumber}>
+                  {attendanceStats.notTaken}
+                </Text>
+                <Text style={styles.attendanceSummaryLabel}>Not Taken</Text>
+              </View>
+            </View>
+            <View style={styles.attendanceRateContainer}>
+              <Text style={styles.attendanceRateText}>
+                {attendanceStats.attendanceRate}% Attendance Rate
+              </Text>
+            </View>
+          </View>
+
           {/* Search and Filter */}
           <View style={styles.searchSection}>
             <View style={styles.searchContainer}>
@@ -300,25 +369,30 @@ export default function ClassDetail() {
               />
             </View>
             <View style={styles.filterContainer}>
-              {(["all", "present", "absent"] as const).map(status => (
-                <TouchableOpacity
-                  key={status}
-                  style={[
-                    styles.filterButton,
-                    filterStatus === status && styles.filterButtonActive,
-                  ]}
-                  onPress={() => setFilterStatus(status)}
-                >
-                  <Text
+              {(["all", "present", "absent", "not-taken"] as const).map(
+                status => (
+                  <TouchableOpacity
+                    key={status}
                     style={[
-                      styles.filterButtonText,
-                      filterStatus === status && styles.filterButtonTextActive,
+                      styles.filterButton,
+                      filterStatus === status && styles.filterButtonActive,
                     ]}
+                    onPress={() => setFilterStatus(status)}
                   >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        filterStatus === status &&
+                          styles.filterButtonTextActive,
+                      ]}
+                    >
+                      {status === "not-taken"
+                        ? "Not Taken"
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
             </View>
           </View>
 
@@ -326,6 +400,9 @@ export default function ClassDetail() {
           <View style={styles.studentsSection}>
             <View style={styles.studentsHeader}>
               <Text style={styles.studentsTitle}>Students</Text>
+              <Text style={styles.studentsCount}>
+                {filteredStudents.length} students
+              </Text>
             </View>
 
             {attendanceLoading && (
@@ -338,67 +415,85 @@ export default function ClassDetail() {
             )}
 
             <View style={styles.studentsList}>
-              {filteredStudents.map(student => (
-                <TouchableOpacity
-                  key={student.id}
-                  style={styles.studentCard}
-                  onPress={() =>
-                    navigation.navigate("StudentDetails", {
-                      studentId: student.id,
-                    })
-                  }
-                >
-                  <View style={styles.studentInfo}>
-                    <View style={styles.studentHeader}>
-                      <Text style={styles.studentName}>
-                        {student.firstName} {student.lastName}
-                      </Text>
-                      {student.attendance && (
-                        <View style={styles.statusContainer}>
-                          <Text
-                            style={[
-                              styles.statusText,
-                              {
-                                color: getStatusColor(
-                                  student.attendance.status,
-                                ),
-                              },
-                            ]}
-                          >
-                            {getStatusIcon(student.attendance.status)}{" "}
-                            {getStatusText(student.attendance.status)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.studentId}>
-                      ID: {student.studentId}
-                    </Text>
-                    <Text style={styles.studentEmail}>{student.email}</Text>
-                    <View style={styles.studentFooter}>
-                      {student.attendance && (
-                        <>
-                          <Text style={styles.attendanceInfo}>
-                            Attendance:{" "}
-                            {student.attendance.attendancePercentage}%
-                          </Text>
-                          <Text style={styles.lastPresentInfo}>
-                            Last present: {student.attendance.lastPresent}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                  </View>
+              {filteredStudents.map(student => {
+                const StatusIcon = getStatusIcon(
+                  student.attendance?.status || AttendanceStatus.ABSENT,
+                );
+                return (
                   <TouchableOpacity
-                    style={styles.editButton}
+                    key={student.id}
+                    style={[
+                      styles.studentCard,
+                      student.attendance?.attendanceTaken &&
+                        styles.studentCardAttendanceTaken,
+                    ]}
                     onPress={() =>
-                      Alert.alert("Edit", "Edit student not implemented yet")
+                      navigation.navigate(
+                        "StudentDetails" as any,
+                        {
+                          studentId: student.studentId,
+                        } as any,
+                      )
                     }
                   >
-                    <Edit size={16} color="#6b7280" />
+                    <View style={styles.studentInfo}>
+                      <View style={styles.studentHeader}>
+                        <Text style={styles.studentName}>
+                          {student.firstName} {student.lastName}
+                        </Text>
+                        {student.attendance && (
+                          <View style={styles.statusContainer}>
+                            <StatusIcon
+                              size={16}
+                              color={getStatusColor(student.attendance.status)}
+                            />
+                            <Text
+                              style={[
+                                styles.statusText,
+                                {
+                                  color: getStatusColor(
+                                    student.attendance.status,
+                                  ),
+                                },
+                              ]}
+                            >
+                              {getStatusText(student.attendance.status)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.studentEmail}>{student.email}</Text>
+                      <View style={styles.studentFooter}>
+                        {student.attendance && (
+                          <>
+                            <Text style={styles.attendanceInfo}>
+                              Attendance:{" "}
+                              {student.attendance.attendancePercentage}%
+                            </Text>
+                            {student.attendance.attendanceTaken ? (
+                              <Text style={styles.attendanceTakenText}>
+                                ✅ Recorded
+                              </Text>
+                            ) : (
+                              <Text style={styles.attendanceNotTakenText}>
+                                ⏰ Not taken
+                              </Text>
+                            )}
+                          </>
+                        )}
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() =>
+                        Alert.alert("Edit", "Edit student not implemented yet")
+                      }
+                    >
+                      <Edit size={16} color="#6b7280" />
+                    </TouchableOpacity>
                   </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
 
             {filteredStudents.length === 0 && !attendanceLoading && (
@@ -418,7 +513,7 @@ export default function ClassDetail() {
             <TouchableOpacity
               style={styles.takeAttendanceButton}
               onPress={() =>
-                navigation.navigate("TakeAttendance" as never, { id } as never)
+                navigation.navigate("TakeAttendance" as any, { id } as any)
               }
             >
               <Text style={styles.takeAttendanceIcon}>✓</Text>
@@ -426,7 +521,9 @@ export default function ClassDetail() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.viewReportsButton}
-              onPress={() => navigation.navigate("Reports" as never)}
+              onPress={() =>
+                navigation.navigate("Reports" as any, { classId: id } as any)
+              }
             >
               <BarChart3 size={24} color="#1f2937" />
               <Text style={styles.viewReportsText}>View Reports</Text>
@@ -559,6 +656,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1f2937",
   },
+  studentsCount: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
   loadingStudentsContainer: {
     paddingVertical: 16,
     alignItems: "center",
@@ -579,6 +680,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
     gap: 16,
+  },
+  studentCardAttendanceTaken: {
+    opacity: 0.7,
   },
   studentInfo: {
     flex: 1,
@@ -621,9 +725,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
   },
-  lastPresentInfo: {
+  attendanceTakenText: {
+    fontSize: 12,
+    color: "#10b981",
+    fontWeight: "500",
+  },
+  attendanceNotTakenText: {
     fontSize: 12,
     color: "#6b7280",
+    fontWeight: "500",
   },
   editButton: {
     width: 32,
@@ -683,6 +793,48 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   viewReportsText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1f2937",
+  },
+  attendanceSummaryCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  attendanceSummaryTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  attendanceSummaryGrid: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 12,
+  },
+  attendanceSummaryItem: {
+    alignItems: "center",
+  },
+  attendanceSummaryNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginTop: 4,
+  },
+  attendanceSummaryLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  attendanceRateContainer: {
+    alignItems: "center",
+  },
+  attendanceRateText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#1f2937",

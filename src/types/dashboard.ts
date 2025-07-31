@@ -7,6 +7,7 @@ export interface DashboardStats {
   totalTeachers: number;
   totalSubjects: number;
   todaySessions: number;
+  attendanceThisMonth: number;
 }
 
 export interface TeacherDashboardData {

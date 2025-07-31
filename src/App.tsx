@@ -1,11 +1,8 @@
-import React, { useEffect } from "react";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { StyleSheet } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
 
-import { AuthService } from "@/services";
-import { useUserStore } from "@/stores/userStore";
 import { DatabaseProvider } from "@/components/DatabaseProvider";
 
 // Import screens
@@ -28,7 +25,6 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
   },
 });
 

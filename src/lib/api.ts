@@ -273,6 +273,7 @@ export const endpoints = {
       `/user/teachers/employee/${employeeId}`,
     teacherAssignments: (teacherId: string) =>
       `/user/teachers/${teacherId}/assignments`,
+    teacherClasses: `/user/classes`,
     assignTeacherToClass: "/user/teachers/assign",
     removeTeacherFromClass: "/user/teachers/remove",
     byRole: (role: string) => `/user/role/${role}`,
@@ -430,6 +431,8 @@ export const usersApi = {
 
   teacherAssignments: (teacherId: string) =>
     api.get<TeacherClass[]>(endpoints.users.teacherAssignments(teacherId)),
+
+  teacherClasses: () => api.get<Class[]>(endpoints.users.teacherClasses),
 
   assignTeacherToClass: (assignmentData: AssignTeacherToClassRequest) =>
     api.post<TeacherClass>(

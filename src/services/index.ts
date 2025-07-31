@@ -1,17 +1,16 @@
 // Export all services
 export { default as AuthService } from "./auth";
 export { default as UsersService } from "./users";
-export { default as ReportsService } from "./reports";
 export { default as ClassesService } from "./classes";
-export { default as TeachersService } from "./teachers";
 export { default as StudentsService } from "./students";
 export { default as SubjectsService } from "./subjects";
 export { default as DashboardService } from "./dashboard";
 export { default as AttendanceService } from "./attendance";
+export { default as DataSyncService } from "./dataSyncService";
 
 // Export offline-first services
 export { syncService } from "./syncService";
-export { databaseService } from "./databaseService";
+export { DatabaseService } from "./databaseService";
 
 // Export types from the main types file
 export type {
@@ -25,10 +24,8 @@ export type {
   ClassStats,
   ApiResponse,
   SearchParams,
-  TeacherClass,
   DashboardStats,
   UserListParams,
-  TeacherWithUser,
   ClassListParams,
   ClassWithDetails,
   StudentWithClass,
@@ -52,13 +49,10 @@ export type {
   TeacherDashboardData,
   ChangePasswordRequest,
   UpdatePasswordRequest,
-  TeacherClassWithDetails,
   TeacherAttendanceListParams,
   StudentAttendanceListParams,
-  AssignTeacherToClassRequest,
   CreateTeacherAttendanceRequest,
   UpdateTeacherAttendanceRequest,
   CreateStudentAttendanceRequest,
   UpdateStudentAttendanceRequest,
-  RemoveTeacherFromClassRequest,
 } from "@/types";

@@ -1,302 +1,124 @@
-import {
+import { DatabaseService } from "./databaseService";
+import type {
   User,
-  UserStats,
-  SearchParams,
-  UserListParams,
-  PaginatedResponse,
-  CreateUserRequest,
-  UpdateUserRequest,
-  ChangePasswordRequest,
-  UpdatePasswordRequest,
   Teacher,
-  TeacherListParams,
-  CreateTeacherRequest,
+  UpdateUserRequest,
   UpdateTeacherRequest,
   TeacherClass,
 } from "@/types";
-import { usersApi, handleApiError } from "@/lib/api";
-import { API_BASE_URL } from "../constants/api";
 
 class UsersService {
   /**
-   * Get all users with pagination and filtering
+   * Get current user from local database
    */
-  static async getUsers(
-    params?: UserListParams,
-  ): Promise<PaginatedResponse<User>> {
+  static async getCurrentUser(userId: string): Promise<User | null> {
     try {
-      const response = await usersApi.list(params);
-      return response;
+      const user = await DatabaseService.getCurrentUser(userId);
+      if (!user) return null;
+
+      // Convert database type to API type
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role as any, // Convert to UserRole enum
+        employeeId: user.employeeId || "",
+        department: user.department || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        hireDate: user.hireDate || "",
+        isActive: user.isActive,
+        createdAt: user.createdAt.toString(),
+        updatedAt: user.updatedAt.toString(),
+      };
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting current user:", error);
+      throw new Error("Failed to get current user");
     }
   }
 
   /**
-   * Get all users (no pagination)
+   * Update current user in local database
    */
-  static async getAllUsers(): Promise<User[]> {
+  static async updateCurrentUser(
+    userId: string,
+    userData: UpdateUserRequest,
+  ): Promise<void> {
     try {
-      const response = await usersApi.all();
-      return response;
+      await DatabaseService.updateUser(userId, userData);
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error updating current user:", error);
+      throw new Error("Failed to update current user");
     }
   }
 
   /**
-   * Get user statistics
+   * Get teacher profile from local database
    */
-  static async getUserStats(): Promise<UserStats> {
+  static async getTeacherProfile(userId: string): Promise<Teacher | null> {
     try {
-      const response = await usersApi.stats();
-      return response;
+      const user = await DatabaseService.getCurrentUser(userId);
+      if (!user || user.role !== "teacher") {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role as any, // Convert to UserRole enum
+        employeeId: user.employeeId || "",
+        department: user.department || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        hireDate: user.hireDate || "",
+        isActive: user.isActive,
+        createdAt: user.createdAt.toString(),
+        updatedAt: user.updatedAt.toString(),
+      };
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting teacher profile:", error);
+      throw new Error("Failed to get teacher profile");
     }
   }
 
   /**
-   * Search users
+   * Update teacher profile in local database
    */
-  static async searchUsers(params: SearchParams): Promise<User[]> {
+  static async updateTeacherProfile(
+    userId: string,
+    teacherData: UpdateTeacherRequest,
+  ): Promise<void> {
     try {
-      const response = await usersApi.search(params);
-      return response;
+      await DatabaseService.updateUser(userId, teacherData);
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error updating teacher profile:", error);
+      throw new Error("Failed to update teacher profile");
     }
   }
 
   /**
-   * Get current user profile
-   */
-  static async getProfile(): Promise<User> {
-    try {
-      const response = await usersApi.profile();
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get all teachers with pagination and filtering
-   */
-  static async getTeachers(
-    params?: TeacherListParams,
-  ): Promise<PaginatedResponse<Teacher>> {
-    try {
-      const response = await usersApi.teachers(params);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get teachers by department
-   */
-  static async getTeachersByDepartment(department: string): Promise<Teacher[]> {
-    try {
-      const response = await usersApi.teachersByDepartment(department);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get teacher by employee ID
-   */
-  static async getTeacherByEmployeeId(employeeId: string): Promise<Teacher> {
-    try {
-      const response = await usersApi.teacherByEmployeeId(employeeId);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get teacher assignments
+   * Get teacher assignments from local database
    */
   static async getTeacherAssignments(
     teacherId: string,
   ): Promise<TeacherClass[]> {
     try {
-      const response = await usersApi.teacherAssignments(teacherId);
-      return response;
+      const assignments = await DatabaseService.getTeacherAssignment(teacherId);
+      return assignments.map(assignment => ({
+        id: assignment.id,
+        classId: assignment.classId,
+        teacherId: assignment.teacherId,
+        isPrimaryTeacher: assignment.isPrimaryTeacher,
+        isActive: assignment.isActive,
+        createdAt: assignment.createdAt.toString(),
+        updatedAt: assignment.updatedAt.toString(),
+      }));
     } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Assign teacher to class
-   */
-  static async assignTeacherToClass(
-    teacherId: string,
-    classId: string,
-    isPrimaryTeacher: boolean = false,
-  ): Promise<any> {
-    try {
-      const response = await usersApi.assignTeacherToClass({
-        teacherId,
-        classId,
-        isPrimaryTeacher,
-      });
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Remove teacher from class
-   */
-  static async removeTeacherFromClass(
-    teacherId: string,
-    classId: string,
-  ): Promise<void> {
-    try {
-      await usersApi.removeTeacherFromClass({
-        teacherId,
-        classId,
-      });
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get users by role
-   */
-  static async getUsersByRole(role: string): Promise<User[]> {
-    try {
-      const response = await usersApi.byRole(role);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get user by email
-   */
-  static async getUserByEmail(email: string): Promise<User> {
-    try {
-      const response = await usersApi.byEmail(email);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get user by ID
-   */
-  static async getUserById(id: string): Promise<User> {
-    try {
-      const response = await usersApi.get(id);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Create new user
-   */
-  static async createUser(userData: CreateUserRequest): Promise<User> {
-    try {
-      const response = await usersApi.create(userData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Create new teacher
-   */
-  static async createTeacher(
-    teacherData: CreateTeacherRequest,
-  ): Promise<Teacher> {
-    try {
-      const response = await usersApi.createTeacher(teacherData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Update user
-   */
-  static async updateUser(
-    id: string,
-    userData: UpdateUserRequest,
-  ): Promise<User> {
-    try {
-      const response = await usersApi.update(id, userData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Update teacher
-   */
-  static async updateTeacher(
-    id: string,
-    teacherData: UpdateTeacherRequest,
-  ): Promise<Teacher> {
-    try {
-      const response = await usersApi.updateTeacher(id, teacherData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Update user password
-   */
-  static async updatePassword(
-    id: string,
-    passwordData: UpdatePasswordRequest,
-  ): Promise<void> {
-    try {
-      await usersApi.updatePassword(id, passwordData);
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Change user password
-   */
-  static async changePassword(
-    id: string,
-    passwordData: ChangePasswordRequest,
-  ): Promise<void> {
-    try {
-      await usersApi.changePassword(id, passwordData);
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Delete user
-   */
-  static async deleteUser(id: string): Promise<void> {
-    try {
-      await usersApi.delete(id);
-    } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting teacher assignments:", error);
+      throw new Error("Failed to get teacher assignments");
     }
   }
 }
