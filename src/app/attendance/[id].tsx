@@ -27,10 +27,13 @@ import { ClassWithDetails, Student } from "@/types";
 import AttendanceService from "@/services/attendance";
 import { AttendanceStatus } from "@/types/attendance";
 import { Appbar } from "@/components/appbar";
+import { DatabaseService } from "@/services/databaseService";
+import { useUserStore } from "../../stores/userStore";
 
 // Extended student interface with attendance info
 interface StudentWithAttendance extends Student {
   attendanceStatus: AttendanceStatus;
+  attendanceTaken: boolean;
 }
 
 export default function AttendancePage() {
@@ -40,6 +43,7 @@ export default function AttendancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State for class data
+  const { user } = useUserStore();
   const [classData, setClassData] = useState<ClassWithDetails | null>(null);
   const [classLoading, setClassLoading] = useState(true);
   const [classError, setClassError] = useState<string | null>(null);
@@ -73,17 +77,53 @@ export default function AttendancePage() {
     }
   }, [id]);
 
-  // Initialize students with default attendance status when class data loads
+  // Initialize students with today's attendance status when class data loads
   useEffect(() => {
+    const initializeStudentsWithAttendance = async () => {
+      if (classData?.students) {
+        setStudentsLoading(true);
+        try {
+          // Fetch today's attendance for this class
+          const todayAttendance =
+            await DatabaseService.getTodayAttendanceForClass(id);
+          console.log("todayAttendance", todayAttendance);
+          const studentsWithAttendance: StudentWithAttendance[] =
+            classData.students.map(student => {
+              // Find today's attendance for this student
+              const studentAttendance = todayAttendance.find(
+                attendance => attendance.studentId === student.id,
+              );
+
+              return {
+                ...student,
+                attendanceStatus: studentAttendance
+                  ? (studentAttendance.status as AttendanceStatus)
+                  : AttendanceStatus.PRESENT, // Default to present if no attendance taken
+                attendanceTaken: !!studentAttendance,
+              };
+            });
+
+          setStudents(studentsWithAttendance);
+        } catch (error) {
+          console.error("Error fetching today's attendance:", error);
+          // Fallback: initialize with default values
+          const studentsWithAttendance: StudentWithAttendance[] =
+            classData.students.map(student => ({
+              ...student,
+              attendanceStatus: AttendanceStatus.PRESENT,
+              attendanceTaken: false,
+            }));
+          setStudents(studentsWithAttendance);
+        } finally {
+          setStudentsLoading(false);
+        }
+      }
+    };
+
     if (classData?.students) {
-      const studentsWithAttendance: StudentWithAttendance[] =
-        classData.students.map(student => ({
-          ...student,
-          attendanceStatus: AttendanceStatus.PRESENT, // Default to present
-        }));
-      setStudents(studentsWithAttendance);
+      initializeStudentsWithAttendance();
     }
-  }, [classData]);
+  }, [classData, id]);
 
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
@@ -91,7 +131,6 @@ export default function AttendancePage() {
         return "#10b981";
       case AttendanceStatus.ABSENT:
         return "#ef4444";
-
       default:
         return "#94a3b8";
     }
@@ -103,7 +142,6 @@ export default function AttendancePage() {
         return CheckCircle;
       case AttendanceStatus.ABSENT:
         return XCircle;
-
       default:
         return HelpCircle;
     }
@@ -115,7 +153,6 @@ export default function AttendancePage() {
         return "Present";
       case AttendanceStatus.ABSENT:
         return "Absent";
-
       default:
         return "Unknown";
     }
@@ -131,7 +168,11 @@ export default function AttendancePage() {
           ];
           const currentIndex = statusOrder.indexOf(student.attendanceStatus);
           const nextIndex = (currentIndex + 1) % statusOrder.length;
-          return { ...student, attendanceStatus: statusOrder[nextIndex] };
+          return {
+            ...student,
+            attendanceStatus: statusOrder[nextIndex],
+            attendanceTaken: false, // Mark as not taken since we're changing it
+          };
         }
         return student;
       }),
@@ -146,9 +187,11 @@ export default function AttendancePage() {
       s => s.attendanceStatus === AttendanceStatus.ABSENT,
     ).length;
     const total = students.length;
-    const attendanceRate = ((present / total) * 100).toFixed(1);
+    const attendanceRate =
+      total > 0 ? ((present / total) * 100).toFixed(1) : "0.0";
+    const attendanceTaken = students.filter(s => s.attendanceTaken).length;
 
-    return { present, absent, total, attendanceRate };
+    return { present, absent, total, attendanceRate, attendanceTaken };
   };
 
   const handleSubmit = async () => {
@@ -156,20 +199,37 @@ export default function AttendancePage() {
 
     setIsSubmitting(true);
 
+    if (!user) {
+      Alert.alert("Error", "User not found");
+      return;
+    }
+
     try {
       const today = new Date().toISOString().split("T")[0];
 
-      // Create attendance records for all students
+      // Create or update attendance records for all students
+      console.log("students", students);
+      console.log("classData", id);
       const attendanceData = students.map(student => ({
         studentId: student.id,
-        classId: classData.id,
+        classId: id,
         date: today,
         status: student.attendanceStatus,
         notes: "",
-        markedBy: "current-user-id", // This should come from auth context
+        markedBy: user.id, // This should come from auth context
       }));
 
-      await AttendanceService.bulkCreateStudentAttendance(attendanceData);
+      await AttendanceService.bulkCreateOrUpdateStudentAttendance(
+        attendanceData,
+      );
+
+      // Update students to mark attendance as taken
+      setStudents(prevStudents =>
+        prevStudents.map(student => ({
+          ...student,
+          attendanceTaken: true,
+        })),
+      );
 
       Alert.alert("Success!", "Attendance has been recorded successfully.", [
         {
@@ -267,6 +327,17 @@ export default function AttendancePage() {
               <Text style={styles.attendanceRate}>{stats.attendanceRate}%</Text>
               <Text style={styles.attendanceRateLabel}>Attendance Rate</Text>
             </View>
+
+            {/* Attendance Status Indicator */}
+            <View style={styles.attendanceStatusContainer}>
+              <Text style={styles.attendanceStatusText}>
+                {stats.attendanceTaken === stats.total
+                  ? "✅ Attendance completed for today"
+                  : stats.attendanceTaken > 0
+                  ? `⚠️ Partial attendance taken (${stats.attendanceTaken}/${stats.total})`
+                  : "⏰ Attendance not taken yet"}
+              </Text>
+            </View>
           </View>
 
           {/* Students List */}
@@ -291,7 +362,11 @@ export default function AttendancePage() {
                 return (
                   <TouchableOpacity
                     key={student.id}
-                    style={styles.studentCard}
+                    style={[
+                      styles.studentCard,
+                      student.attendanceTaken &&
+                        styles.studentCardAttendanceTaken,
+                    ]}
                     onPress={() => toggleStatus(student.id)}
                   >
                     <View style={styles.studentInfo}>
@@ -301,6 +376,11 @@ export default function AttendancePage() {
                       <Text style={styles.studentId}>
                         ID: {student.studentId}
                       </Text>
+                      {student.attendanceTaken && (
+                        <Text style={styles.attendanceTakenText}>
+                          ✅ Attendance recorded
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.studentStatus}>
                       <View style={styles.statusInfo}>
@@ -350,11 +430,15 @@ export default function AttendancePage() {
               disabled={isSubmitting || students.length === 0}
             >
               {isSubmitting ? (
-                <Text style={styles.submitButtonText}>Submitting...</Text>
+                <Text style={styles.submitButtonText}>Saving...</Text>
               ) : (
                 <>
                   <CheckCircle size={24} color="white" />
-                  <Text style={styles.submitButtonText}>Submit Attendance</Text>
+                  <Text style={styles.submitButtonText}>
+                    {stats.attendanceTaken > 0
+                      ? "Update Attendance"
+                      : "Save Attendance"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -489,6 +573,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
   },
+  attendanceStatusContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  attendanceStatusText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+  },
   studentsSection: {
     marginBottom: 24,
   },
@@ -529,6 +625,9 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: "center",
   },
+  studentCardAttendanceTaken: {
+    opacity: 0.7, // Indicate that attendance is already taken
+  },
   studentInfo: {
     flex: 1,
   },
@@ -541,6 +640,12 @@ const styles = StyleSheet.create({
   studentId: {
     fontSize: 14,
     color: "#6b7280",
+  },
+  attendanceTakenText: {
+    fontSize: 12,
+    color: "#10b981",
+    marginTop: 4,
+    fontWeight: "500",
   },
   studentStatus: {
     flexDirection: "row",

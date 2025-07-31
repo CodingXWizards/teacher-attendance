@@ -23,30 +23,35 @@ import {
 import React, { useEffect, useState } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { StudentsService } from "@/services";
+import { ClassesService, StudentsService } from "@/services";
 import { Appbar } from "@/components/appbar";
-import { Student, StudentAttendance } from "@/types";
+import { Class, Student, StudentAttendance } from "@/types";
 import { ScreenLoader } from "@/components/screen-loader";
 
 const StudentScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
   const { studentId } = route.params as { studentId: string };
 
   const [studentInfo, setStudentInfo] = useState<Student | null>(null);
   const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [studentClass, setStudentClass] = useState<Class | null>(null);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
-      StudentsService.getStudentById(studentId),
+      StudentsService.getStudentByStudentId(studentId),
       StudentsService.getStudentAttendance(studentId),
     ])
       .then(([studentRes, attendanceRes]) => {
         setStudentInfo(studentRes);
         setAttendance(attendanceRes);
+        if (studentRes) {
+          ClassesService.getClassById(studentRes.classId).then(classRes => {
+            setStudentClass(classRes);
+          });
+        }
       })
       .catch(err => {
         console.log(err);
@@ -180,7 +185,7 @@ const StudentScreen = () => {
                     <View style={styles.classBadge}>
                       <School size={16} color="#2563eb" />
                       <Text style={styles.classBadgeText}>
-                        {studentInfo.class?.name || "Class not assigned"}
+                        {studentClass?.name || "Class not assigned"}
                       </Text>
                     </View>
                   </View>
@@ -229,7 +234,7 @@ const StudentScreen = () => {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Date of Birth</Text>
                     <Text style={styles.infoValue}>
-                      {formatDate(studentInfo.dateOfBirth)}
+                      {formatDate(studentInfo.dateOfBirth || "")}
                     </Text>
                   </View>
                 </View>
@@ -241,8 +246,10 @@ const StudentScreen = () => {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Gender</Text>
                     <Text style={styles.infoValue}>
-                      {studentInfo.gender.charAt(0).toUpperCase() +
-                        studentInfo.gender.slice(1)}
+                      {studentInfo.gender
+                        ? studentInfo.gender.charAt(0).toUpperCase() +
+                          studentInfo.gender.slice(1)
+                        : "N/A"}
                     </Text>
                   </View>
                 </View>

@@ -80,8 +80,6 @@ export default function ProfilePage() {
         return "Teacher";
       case UserRole.ADMIN:
         return "Administrator";
-      case UserRole.PRINCIPAL:
-        return "Principal";
       default:
         return "Unknown";
     }
@@ -93,8 +91,6 @@ export default function ProfilePage() {
         return "#3b82f6";
       case UserRole.ADMIN:
         return "#8b5cf6";
-      case UserRole.PRINCIPAL:
-        return "#10b981";
       default:
         return "#6b7280";
     }
@@ -106,8 +102,6 @@ export default function ProfilePage() {
         return User;
       case UserRole.ADMIN:
         return Settings;
-      case UserRole.PRINCIPAL:
-        return School;
       default:
         return User;
     }
@@ -425,8 +419,10 @@ export default function ProfilePage() {
           </View>
 
           {/* Logout Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account Actions</Text>
+          <View>
+            <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>
+              Account Actions
+            </Text>
             <View style={styles.logoutCard}>
               <TouchableOpacity
                 style={styles.logoutButton}
@@ -607,8 +603,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
     gap: 12,
   },
   logoutText: {

@@ -5,11 +5,11 @@ export interface Student {
   studentId: string;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  dateOfBirth: string;
-  gender: "male" | "female" | "other";
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
   classId: string;
   isActive: boolean;
   createdAt: string;

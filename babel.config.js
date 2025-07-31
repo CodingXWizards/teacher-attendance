@@ -25,6 +25,7 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
+      ["@babel/plugin-proposal-decorators", { legacy: true }],
     ],
   };
 };

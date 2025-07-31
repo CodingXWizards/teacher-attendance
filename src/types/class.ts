@@ -1,5 +1,4 @@
 import { Student } from "./student";
-import { TeacherClass } from "./teacher";
 
 export interface Class {
   id: string;
@@ -7,14 +6,24 @@ export interface Class {
   grade: string;
   section: string;
   academicYear: string;
+  description: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface ClassSummary {
+  id: string;
+  name: string;
+  studentCount: number;
+  presentToday: number;
+  absentToday: number;
+  attendanceRate: number;
+  color: string;
+}
+
 export interface ClassWithDetails extends Class {
   students?: Student[];
-  teachers?: TeacherClass[];
 }
 
 export interface ClassStats {

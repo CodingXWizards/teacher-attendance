@@ -1,95 +1,131 @@
-import {
-  Student,
-  StudentWithClass,
-  StudentListParams,
-  StudentAttendance,
-  PaginatedResponse,
-  CreateStudentRequest,
-  UpdateStudentRequest,
-} from "@/types";
-import { studentsApi, handleApiError } from "@/lib/api";
+import type { Student } from "@/types";
+
+import { DatabaseService } from "./databaseService";
 
 class StudentsService {
   /**
-   * Get all students with pagination and filtering
-   */
-  static async getStudents(
-    params?: StudentListParams
-  ): Promise<PaginatedResponse<StudentWithClass>> {
-    try {
-      const response = await studentsApi.list(params);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get active students only
-   */
-  static async getActiveStudents(): Promise<StudentWithClass[]> {
-    try {
-      const response = await studentsApi.active();
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get student by ID
-   */
-  static async getStudentById(id: string): Promise<StudentWithClass> {
-    try {
-      const response = await studentsApi.get(id);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get student by student ID
-   */
-  static async getStudentByStudentId(
-    studentId: string
-  ): Promise<StudentWithClass> {
-    try {
-      const response = await studentsApi.byStudentId(studentId);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get students by class
+   * Get students by class from local database
    */
   static async getStudentsByClass(classId: string): Promise<Student[]> {
     try {
-      const response = await studentsApi.byClass(classId);
-      return response;
+      const students = await DatabaseService.getClassStudents(classId);
+      return students.map(student => ({
+        id: student.id,
+        studentId: student.studentId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        classId: student.class?.id || "",
+        isActive: student.isActive,
+        createdAt: student.createdAt.toString(),
+        updatedAt: student.updatedAt.toString(),
+      }));
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting students by class:", error);
+      throw new Error("Failed to get students by class");
     }
   }
 
   /**
-   * Get students by gender
+   * Get student by ID from local database
    */
-  static async getStudentsByGender(
-    gender: string
-  ): Promise<StudentWithClass[]> {
+  static async getStudentById(id: string): Promise<Student | null> {
     try {
-      const response = await studentsApi.byGender(gender);
-      return response;
+      const student = await DatabaseService.getStudentById(id);
+      if (!student) return null;
+
+      return {
+        id: student.id,
+        studentId: student.studentId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        classId: student.class?.id || "",
+        isActive: student.isActive,
+        createdAt: student.createdAt.toString(),
+        updatedAt: student.updatedAt.toString(),
+      };
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting student by ID:", error);
+      throw new Error("Failed to get student by ID");
+    }
+  }
+  static async getStudentByStudentId(
+    studentId: string,
+  ): Promise<Student | null> {
+    try {
+      const student = await DatabaseService.getStudentByStudentId(studentId);
+      if (!student) return null;
+
+      return {
+        id: student.id,
+        studentId: student.studentId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        classId: student.class?.id || "",
+        isActive: student.isActive,
+        createdAt: student.createdAt.toString(),
+        updatedAt: student.updatedAt.toString(),
+      };
+    } catch (error) {
+      console.error("Error getting student by ID:", error);
+      throw new Error("Failed to get student by ID");
     }
   }
 
   /**
-   * Get student's attendance records
+   * Search students from local database
+   */
+  static async searchStudents(
+    query: string,
+    classId?: string,
+  ): Promise<Student[]> {
+    try {
+      // For now, get all students and filter by query
+      const allStudents = await DatabaseService.getAllStudents();
+      return allStudents
+        .filter(
+          student =>
+            student.firstName.toLowerCase().includes(query.toLowerCase()) ||
+            student.lastName.toLowerCase().includes(query.toLowerCase()) ||
+            student.studentId.toLowerCase().includes(query.toLowerCase()),
+        )
+        .map(student => ({
+          id: student.id,
+          studentId: student.studentId,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          email: student.email,
+          phone: student.phone,
+          address: student.address,
+          dateOfBirth: student.dateOfBirth,
+          gender: student.gender,
+          classId: student.class?.id || "",
+          isActive: student.isActive,
+          createdAt: student.createdAt.toString(),
+          updatedAt: student.updatedAt.toString(),
+        }));
+    } catch (error) {
+      console.error("Error searching students:", error);
+      throw new Error("Failed to search students");
+    }
+  }
+
+  /**
+   * Get student attendance from local database
    */
   static async getStudentAttendance(
     studentId: string,
@@ -97,84 +133,18 @@ class StudentsService {
       startDate?: string;
       endDate?: string;
       classId?: string;
-    }
-  ): Promise<StudentAttendance[]> {
+    },
+  ): Promise<any[]> {
     try {
-      const response = await studentsApi.attendance(studentId, params);
-      return response;
+      const studentAttendance = await DatabaseService.getStudentAttendance(
+        studentId,
+        params,
+      );
+      return studentAttendance;
+      return [];
     } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Create new student
-   */
-  static async createStudent(
-    studentData: CreateStudentRequest
-  ): Promise<Student> {
-    try {
-      const response = await studentsApi.create(studentData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Update student
-   */
-  static async updateStudent(
-    id: string,
-    studentData: UpdateStudentRequest
-  ): Promise<Student> {
-    try {
-      const response = await studentsApi.update(id, studentData);
-      return response;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Delete student
-   */
-  static async deleteStudent(id: string): Promise<void> {
-    try {
-      await studentsApi.delete(id);
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Search students by name
-   */
-  static async searchStudents(searchTerm: string): Promise<StudentWithClass[]> {
-    try {
-      const response = await this.getStudents({ search: searchTerm });
-      return response.data;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  }
-
-  /**
-   * Get students with attendance for a specific date
-   */
-  static async getStudentsWithAttendance(
-    classId: string,
-    date: string,
-    subjectId: string
-  ): Promise<Student[]> {
-    try {
-      const students = await this.getStudentsByClass(classId);
-
-      // For now, return students without attendance data
-      // In the future, this could be enhanced to include attendance status
-      return students;
-    } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error("Error getting student attendance:", error);
+      throw new Error("Failed to get student attendance");
     }
   }
 }

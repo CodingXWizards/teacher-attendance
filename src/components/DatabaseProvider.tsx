@@ -1,7 +1,7 @@
 import { ActivityIndicator, View } from "react-native";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { initDatabase } from "@/db";
+import watermelonDB from "@/db";
 
 interface DatabaseContextType {
   database: any;
@@ -32,12 +32,18 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        console.log("🔄 Initializing database...");
-        const db = await initDatabase();
-        setDatabase(db);
-        console.log("✅ Database initialized successfully");
+        console.log("🔄 Initializing WatermelonDB...");
+
+        // WatermelonDB is already initialized when imported
+        if (watermelonDB) {
+          setDatabase(watermelonDB);
+          console.log("✅ WatermelonDB initialized successfully");
+        } else {
+          throw new Error("WatermelonDB instance is null");
+        }
       } catch (error) {
         console.error("❌ Database initialization failed:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
       } finally {
         setIsLoading(false);
       }

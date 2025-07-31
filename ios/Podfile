@@ -33,3 +33,5 @@ target 'teacher_attendance' do
     )
   end
 end
+
+pod 'simdjson', path: '../node_modules/@nozbe/simdjson', modular_headers: true
