@@ -16,8 +16,8 @@ export interface User {
   address?: string;
   hireDate?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface UserStats {

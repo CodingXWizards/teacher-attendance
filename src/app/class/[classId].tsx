@@ -1,38 +1,34 @@
 import {
   View,
   Text,
-  Alert,
   TextInput,
+  StyleSheet,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
 } from "react-native";
 import {
-  Search,
-  AlertCircle,
-  Users,
   Edit,
-  BarChart3,
-  MoreVertical,
-  CheckCircle,
-  XCircle,
+  Users,
   Clock,
+  Search,
+  XCircle,
+  BarChart3,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react-native";
-import {
-  useNavigation,
-  useRoute,
-  useFocusEffect,
-} from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRoute, useFocusEffect } from "@react-navigation/native";
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 
+import { useNavigation } from "@/navigation";
 import { Appbar } from "@/components/appbar";
 import ClassesService from "@/services/classes";
+import { useAlert } from "@/contexts/AlertContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { ClassWithDetails, Student } from "@/types";
 import { AttendanceStatus } from "@/types/attendance";
-import AttendanceService from "@/services/attendance";
 import { DatabaseService } from "@/services/databaseService";
 
 // Extended student interface with attendance info
@@ -48,7 +44,9 @@ interface StudentWithAttendance extends Student {
 export default function ClassDetail() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { id } = route.params as { id: string };
+  const { showAlert } = useAlert();
+  const { colors } = useTheme();
+  const { classId } = route.params as { classId: string };
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "present" | "absent" | "not-taken"
@@ -70,7 +68,7 @@ export default function ClassDetail() {
       try {
         setClassLoading(true);
         setClassError(null);
-        const data = await ClassesService.getClassWithDetails(id);
+        const data = await ClassesService.getClassWithDetails(classId);
         setClassData(data);
       } catch (error) {
         const errorMessage =
@@ -78,16 +76,20 @@ export default function ClassDetail() {
             ? error.message
             : "Failed to load class details";
         setClassError(errorMessage);
-        Alert.alert("Error", errorMessage);
+        showAlert({
+          title: "Error",
+          message: errorMessage,
+          type: "error",
+        });
       } finally {
         setClassLoading(false);
       }
     };
 
-    if (id) {
+    if (classId) {
       fetchClassData();
     }
-  }, [id]);
+  }, [classId]);
 
   // Fetch attendance data when class data is loaded
   const fetchAttendanceData = useCallback(async () => {
@@ -96,8 +98,7 @@ export default function ClassDetail() {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const data = await DatabaseService.getTodayAttendanceForClass(id);
-      console.log("data", data);
+      const data = await DatabaseService.getTodayAttendanceForClass(classId);
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
@@ -107,7 +108,7 @@ export default function ClassDetail() {
     } finally {
       setAttendanceLoading(false);
     }
-  }, [classData, id]);
+  }, [classData, classId]);
 
   useEffect(() => {
     fetchAttendanceData();
@@ -128,17 +129,21 @@ export default function ClassDetail() {
     try {
       setClassLoading(true);
       setClassError(null);
-      const data = await ClassesService.getClassWithDetails(id);
+      const data = await ClassesService.getClassWithDetails(classId);
       setClassData(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load class details";
       setClassError(errorMessage);
-      Alert.alert("Error", errorMessage);
+      showAlert({
+        title: "Error",
+        message: errorMessage,
+        type: "error",
+      });
     } finally {
       setClassLoading(false);
     }
-  }, [id]);
+  }, [classId]);
 
   const refreshAttendance = useCallback(async () => {
     if (!classData) return;
@@ -146,7 +151,7 @@ export default function ClassDetail() {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const data = await DatabaseService.getTodayAttendanceForClass(id);
+      const data = await DatabaseService.getTodayAttendanceForClass(classId);
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
@@ -156,7 +161,7 @@ export default function ClassDetail() {
     } finally {
       setAttendanceLoading(false);
     }
-  }, [classData, id]);
+  }, [classData, classId]);
 
   // Combined refresh function for pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -170,7 +175,7 @@ export default function ClassDetail() {
     return classData.students.map(student => {
       // Find today's attendance for this student
       const todayRecord = todayAttendance?.find(
-        (att: any) => att.studentId === student.id,
+        att => att.studentId === student.studentId,
       );
 
       // Calculate attendance percentage (mock calculation for now)
@@ -219,11 +224,11 @@ export default function ClassDetail() {
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "#10b981";
+        return colors.success;
       case AttendanceStatus.ABSENT:
-        return "#ef4444";
+        return colors.error;
       default:
-        return "#94a3b8";
+        return colors.textSecondary;
     }
   };
 
@@ -270,9 +275,16 @@ export default function ClassDetail() {
   // Loading state
   if (classLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading class details...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Loading class details...
+        </Text>
       </View>
     );
   }
@@ -280,34 +292,39 @@ export default function ClassDetail() {
   // Error state
   if (classError || !classData) {
     return (
-      <View style={styles.errorContainer}>
-        <View style={styles.errorIconContainer}>
-          <AlertCircle size={32} color="#ef4444" />
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.errorIconContainer,
+            { backgroundColor: colors.errorContainer },
+          ]}
+        >
+          <AlertCircle size={32} color={colors.error} />
         </View>
-        <Text style={styles.errorText}>{classError || "Class not found"}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refreshClass}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
+        <Text style={[styles.errorText, { color: colors.text }]}>
+          {classError || "Class not found"}
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={refreshClass}
+        >
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Try Again
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <Appbar
           title={classData.grade}
           subtitle={`Section ${classData.section}`}
-          trailing={
-            <TouchableOpacity
-              onPress={() =>
-                Alert.alert("Settings", "Settings not implemented yet")
-              }
-            >
-              <MoreVertical size={24} color="#1f2937" />
-            </TouchableOpacity>
-          }
         />
         <ScrollView
           style={styles.scrollView}
@@ -317,41 +334,84 @@ export default function ClassDetail() {
             <RefreshControl
               refreshing={classLoading || attendanceLoading}
               onRefresh={handleRefresh}
-              colors={["#8b5cf6"]}
-              tintColor="#8b5cf6"
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
         >
           {/* Today's Attendance Summary */}
-          <View style={styles.attendanceSummaryCard}>
-            <Text style={styles.attendanceSummaryTitle}>
+          <View
+            style={[
+              styles.attendanceSummaryCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text
+              style={[styles.attendanceSummaryTitle, { color: colors.text }]}
+            >
               Today's Attendance
             </Text>
             <View style={styles.attendanceSummaryGrid}>
               <View style={styles.attendanceSummaryItem}>
-                <CheckCircle size={20} color="#10b981" />
-                <Text style={styles.attendanceSummaryNumber}>
+                <CheckCircle size={20} color={colors.success} />
+                <Text
+                  style={[
+                    styles.attendanceSummaryNumber,
+                    { color: colors.text },
+                  ]}
+                >
                   {attendanceStats.present}
                 </Text>
-                <Text style={styles.attendanceSummaryLabel}>Present</Text>
+                <Text
+                  style={[
+                    styles.attendanceSummaryLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Present
+                </Text>
               </View>
               <View style={styles.attendanceSummaryItem}>
-                <XCircle size={20} color="#ef4444" />
-                <Text style={styles.attendanceSummaryNumber}>
+                <XCircle size={20} color={colors.error} />
+                <Text
+                  style={[
+                    styles.attendanceSummaryNumber,
+                    { color: colors.text },
+                  ]}
+                >
                   {attendanceStats.absent}
                 </Text>
-                <Text style={styles.attendanceSummaryLabel}>Absent</Text>
+                <Text
+                  style={[
+                    styles.attendanceSummaryLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Absent
+                </Text>
               </View>
               <View style={styles.attendanceSummaryItem}>
-                <Clock size={20} color="#6b7280" />
-                <Text style={styles.attendanceSummaryNumber}>
+                <Clock size={20} color={colors.textSecondary} />
+                <Text
+                  style={[
+                    styles.attendanceSummaryNumber,
+                    { color: colors.text },
+                  ]}
+                >
                   {attendanceStats.notTaken}
                 </Text>
-                <Text style={styles.attendanceSummaryLabel}>Not Taken</Text>
+                <Text
+                  style={[
+                    styles.attendanceSummaryLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Not Taken
+                </Text>
               </View>
             </View>
             <View style={styles.attendanceRateContainer}>
-              <Text style={styles.attendanceRateText}>
+              <Text style={[styles.attendanceRateText, { color: colors.text }]}>
                 {attendanceStats.attendanceRate}% Attendance Rate
               </Text>
             </View>
@@ -359,11 +419,18 @@ export default function ClassDetail() {
 
           {/* Search and Filter */}
           <View style={styles.searchSection}>
-            <View style={styles.searchContainer}>
-              <Search size={18} color="#6b7280" style={styles.searchIcon} />
+            <View
+              style={[styles.searchContainer, { borderColor: colors.border }]}
+            >
+              <Search
+                size={18}
+                color={colors.textSecondary}
+                style={styles.searchIcon}
+              />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Search students..."
+                placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -375,15 +442,24 @@ export default function ClassDetail() {
                     key={status}
                     style={[
                       styles.filterButton,
-                      filterStatus === status && styles.filterButtonActive,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                      filterStatus === status && {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.primary,
+                      },
                     ]}
                     onPress={() => setFilterStatus(status)}
                   >
                     <Text
                       style={[
                         styles.filterButtonText,
-                        filterStatus === status &&
-                          styles.filterButtonTextActive,
+                        { color: colors.text },
+                        filterStatus === status && {
+                          color: colors.onPrimary,
+                        },
                       ]}
                     >
                       {status === "not-taken"
@@ -399,16 +475,25 @@ export default function ClassDetail() {
           {/* Students List */}
           <View style={styles.studentsSection}>
             <View style={styles.studentsHeader}>
-              <Text style={styles.studentsTitle}>Students</Text>
-              <Text style={styles.studentsCount}>
+              <Text style={[styles.studentsTitle, { color: colors.text }]}>
+                Students
+              </Text>
+              <Text
+                style={[styles.studentsCount, { color: colors.textSecondary }]}
+              >
                 {filteredStudents.length} students
               </Text>
             </View>
 
             {attendanceLoading && (
               <View style={styles.loadingStudentsContainer}>
-                <ActivityIndicator size="small" color="#8b5cf6" />
-                <Text style={styles.loadingStudentsText}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingStudentsText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   Loading attendance...
                 </Text>
               </View>
@@ -424,21 +509,25 @@ export default function ClassDetail() {
                     key={student.id}
                     style={[
                       styles.studentCard,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
                       student.attendance?.attendanceTaken &&
                         styles.studentCardAttendanceTaken,
                     ]}
                     onPress={() =>
-                      navigation.navigate(
-                        "StudentDetails" as any,
-                        {
-                          studentId: student.studentId,
-                        } as any,
-                      )
+                      navigation.navigate("StudentDetails", {
+                        studentId: student.studentId,
+                        classId,
+                      })
                     }
                   >
                     <View style={styles.studentInfo}>
                       <View style={styles.studentHeader}>
-                        <Text style={styles.studentName}>
+                        <Text
+                          style={[styles.studentName, { color: colors.text }]}
+                        >
                           {student.firstName} {student.lastName}
                         </Text>
                         {student.attendance && (
@@ -462,20 +551,42 @@ export default function ClassDetail() {
                           </View>
                         )}
                       </View>
-                      <Text style={styles.studentEmail}>{student.email}</Text>
+                      <Text
+                        style={[
+                          styles.studentEmail,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {student.email}
+                      </Text>
                       <View style={styles.studentFooter}>
                         {student.attendance && (
                           <>
-                            <Text style={styles.attendanceInfo}>
+                            <Text
+                              style={[
+                                styles.attendanceInfo,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
                               Attendance:{" "}
                               {student.attendance.attendancePercentage}%
                             </Text>
                             {student.attendance.attendanceTaken ? (
-                              <Text style={styles.attendanceTakenText}>
+                              <Text
+                                style={[
+                                  styles.attendanceTakenText,
+                                  { color: colors.success },
+                                ]}
+                              >
                                 ✅ Recorded
                               </Text>
                             ) : (
-                              <Text style={styles.attendanceNotTakenText}>
+                              <Text
+                                style={[
+                                  styles.attendanceNotTakenText,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
                                 ⏰ Not taken
                               </Text>
                             )}
@@ -484,12 +595,19 @@ export default function ClassDetail() {
                       </View>
                     </View>
                     <TouchableOpacity
-                      style={styles.editButton}
+                      style={[
+                        styles.editButton,
+                        { borderColor: colors.border },
+                      ]}
                       onPress={() =>
-                        Alert.alert("Edit", "Edit student not implemented yet")
+                        showAlert({
+                          title: "Edit",
+                          message: "Edit student not implemented yet",
+                          type: "info",
+                        })
                       }
                     >
-                      <Edit size={16} color="#6b7280" />
+                      <Edit size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );
@@ -498,8 +616,13 @@ export default function ClassDetail() {
 
             {filteredStudents.length === 0 && !attendanceLoading && (
               <View style={styles.emptyStudentsContainer}>
-                <Users size={48} color="#6b7280" />
-                <Text style={styles.emptyStudentsText}>
+                <Users size={48} color={colors.textSecondary} />
+                <Text
+                  style={[
+                    styles.emptyStudentsText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {searchQuery || filterStatus !== "all"
                     ? "No students match your search criteria"
                     : "No students in this class yet"}
@@ -511,22 +634,38 @@ export default function ClassDetail() {
           {/* Quick Actions */}
           <View style={styles.quickActions}>
             <TouchableOpacity
-              style={styles.takeAttendanceButton}
+              style={[
+                styles.takeAttendanceButton,
+                { backgroundColor: colors.primary },
+              ]}
               onPress={() =>
-                navigation.navigate("TakeAttendance" as any, { id } as any)
+                navigation.navigate("TakeAttendance" as any, { classId } as any)
               }
             >
-              <Text style={styles.takeAttendanceIcon}>✓</Text>
-              <Text style={styles.takeAttendanceText}>Take Attendance</Text>
+              <Text
+                style={[styles.takeAttendanceIcon, { color: colors.onPrimary }]}
+              >
+                ✓
+              </Text>
+              <Text
+                style={[styles.takeAttendanceText, { color: colors.onPrimary }]}
+              >
+                Take Attendance
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.viewReportsButton}
+              style={[
+                styles.viewReportsButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
               onPress={() =>
-                navigation.navigate("Reports" as any, { classId: id } as any)
+                navigation.navigate("Reports" as any, { classId } as any)
               }
             >
-              <BarChart3 size={24} color="#1f2937" />
-              <Text style={styles.viewReportsText}>View Reports</Text>
+              <BarChart3 size={24} color={colors.text} />
+              <Text style={[styles.viewReportsText, { color: colors.text }]}>
+                View Reports
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -538,7 +677,6 @@ export default function ClassDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
   },
   safeArea: {
     flex: 1,
@@ -552,18 +690,15 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
     fontSize: 18,
-    color: "#1f2937",
     marginTop: 16,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -571,7 +706,6 @@ const styles = StyleSheet.create({
   errorIconContainer: {
     width: 64,
     height: 64,
-    backgroundColor: "#fef2f2",
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
@@ -579,7 +713,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: "#1f2937",
     marginTop: 16,
     textAlign: "center",
   },
@@ -587,11 +720,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#8b5cf6",
     borderRadius: 12,
   },
   retryButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   searchSection: {

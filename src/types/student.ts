@@ -12,8 +12,8 @@ export interface Student {
   gender: string | null;
   classId: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
   class?: Class;
 }
 

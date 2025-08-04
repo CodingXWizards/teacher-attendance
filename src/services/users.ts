@@ -29,8 +29,8 @@ class UsersService {
         address: user.address || "",
         hireDate: user.hireDate || "",
         isActive: user.isActive,
-        createdAt: user.createdAt.toString(),
-        updatedAt: user.updatedAt.toString(),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
     } catch (error) {
       console.error("Error getting current user:", error);
@@ -75,8 +75,8 @@ class UsersService {
         address: user.address || "",
         hireDate: user.hireDate || "",
         isActive: user.isActive,
-        createdAt: user.createdAt.toString(),
-        updatedAt: user.updatedAt.toString(),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
     } catch (error) {
       console.error("Error getting teacher profile:", error);
@@ -113,8 +113,8 @@ class UsersService {
         teacherId: assignment.teacherId,
         isPrimaryTeacher: assignment.isPrimaryTeacher,
         isActive: assignment.isActive,
-        createdAt: assignment.createdAt.toString(),
-        updatedAt: assignment.updatedAt.toString(),
+        createdAt: assignment.createdAt,
+        updatedAt: assignment.updatedAt,
       }));
     } catch (error) {
       console.error("Error getting teacher assignments:", error);

@@ -3,7 +3,6 @@ export { default as AuthService } from "./auth";
 export { default as UsersService } from "./users";
 export { default as ClassesService } from "./classes";
 export { default as StudentsService } from "./students";
-export { default as SubjectsService } from "./subjects";
 export { default as DashboardService } from "./dashboard";
 export { default as AttendanceService } from "./attendance";
 export { default as DataSyncService } from "./dataSyncService";
@@ -16,7 +15,6 @@ export { DatabaseService } from "./databaseService";
 export type {
   User,
   Class,
-  Subject,
   Teacher,
   Student,
   UserRole,
@@ -32,7 +30,6 @@ export type {
   AttendanceStatus,
   CreateUserRequest,
   UpdateUserRequest,
-  SubjectListParams,
   TeacherListParams,
   StudentListParams,
   TeacherAttendance,
@@ -40,8 +37,6 @@ export type {
   StudentAttendance,
   CreateClassRequest,
   UpdateClassRequest,
-  CreateSubjectRequest,
-  UpdateSubjectRequest,
   CreateTeacherRequest,
   UpdateTeacherRequest,
   CreateStudentRequest,

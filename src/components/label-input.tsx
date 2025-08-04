@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { LucideIcon, Eye, EyeOff } from "lucide-react-native";
-import { useThemeStore } from "@/stores/themeStore";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface LabelInputProps {
   label: string;
@@ -28,7 +28,7 @@ export const LabelInput = ({
   onChangeText,
   onIconPress,
 }: LabelInputProps) => {
-  const { isDark } = useThemeStore();
+  const { colors, isDark } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
 
   const handleIconPress = () => {
@@ -40,17 +40,24 @@ export const LabelInput = ({
   };
 
   const getIconColor = () => {
-    return isDark ? "hsl(217.9 10.6% 64.9%)" : "hsl(220 8.9% 46.1%)";
+    return colors.textSecondary;
   };
 
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: colors.surface,
+            },
+          ]}
           placeholder={placeholder}
-          placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+          placeholderTextColor={colors.textSecondary}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={type === "password" && !showPassword}
@@ -75,7 +82,6 @@ export const LabelInput = ({
 
 const styles = StyleSheet.create({
   label: {
-    color: "#1f2937",
     fontWeight: "500",
     marginBottom: 6,
   },
@@ -87,9 +93,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     borderRadius: 8,
-    color: "#1f2937",
     fontSize: 16,
   },
   iconButton: {

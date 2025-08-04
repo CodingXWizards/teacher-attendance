@@ -69,7 +69,7 @@ class DataSyncService {
   /**
    * Load teacher data from server
    */
-  static async loadTeacherData(teacherId: string): Promise<void> {
+  static async loadTeacherData(): Promise<void> {
     try {
       const classes = await usersApi.teacherClasses();
 
@@ -92,11 +92,10 @@ class DataSyncService {
 
   static async loadAttendanceData(teacherId: string): Promise<void> {
     try {
-      // const teacherAttendance = await attendanceApi.teacher.byTeacher(
-      //   teacherId,
-      // );
-      // await DatabaseService.syncTeacherAttendance(teacherAttendance);
-
+      const teacherAttendance = await attendanceApi.teacher.byTeacher(
+        teacherId,
+      );
+      await DatabaseService.syncTeacherAttendance(teacherAttendance);
       const classes = await DatabaseService.getAllClasses();
       const studentAttendanceData: StudentAttendance[] = [];
 

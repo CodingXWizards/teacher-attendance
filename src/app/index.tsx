@@ -1,52 +1,47 @@
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
-  RefreshControl,
-  ActivityIndicator,
   StyleSheet,
-  Alert,
+  RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import {
   User,
-  School,
+  Plus,
+  Book,
   Users,
+  School,
   BookOpen,
   Calendar,
   BarChart3,
-  Plus,
-  Book,
 } from "lucide-react-native";
 import { useState, useEffect } from "react";
-import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Appbar } from "@/components/appbar";
+import { ConnectivityBanner } from "@/components/ConnectivityBanner";
+import { useNavigation } from "@/navigation";
 import { useUserStore } from "@/stores/userStore";
+import { useAlert } from "@/contexts/AlertContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import DashboardService from "@/services/dashboard";
-import { ClassSummary, ClassWithDetails, TeacherClass } from "@/types";
+import { ClassSummary, ClassWithDetails } from "@/types";
 
 // Interface for class summary from dashboard service
 
 export default function Home() {
   const { user } = useUserStore();
+  const { showAlert } = useAlert();
+  const { colors } = useTheme();
   const navigation = useNavigation();
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [classes, setClasses] = useState<ClassWithDetails[]>([]);
   const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
-
   const [error, setError] = useState<string | null>(null);
-
-  if (!user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading user...</Text>
-      </View>
-    );
-  }
 
   const generateColorFromString = (str: string): string => {
     const colors = [
@@ -71,6 +66,8 @@ export default function Home() {
   };
 
   const loadDashboardData = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -85,8 +82,6 @@ export default function Home() {
           user.id,
         );
         setClassSummaries(allClassSummaries);
-      } else {
-        // Load admin/principal data
       }
     } catch (error) {
       const errorMessage =
@@ -109,51 +104,86 @@ export default function Home() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Loading dashboard...
+        </Text>
       </View>
     );
   }
 
+  if (!user) {
+    navigation.navigate("Login");
+    return;
+  }
+
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <View style={styles.errorIconContainer}>
-          <ActivityIndicator size="large" color="#ef4444" />
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.errorIconContainer,
+            { backgroundColor: colors.errorContainer },
+          ]}
+        >
+          <ActivityIndicator size="large" color={colors.error} />
         </View>
-        <Text style={styles.errorTitle}>Something went wrong</Text>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorTitle, { color: colors.text }]}>
+          Something went wrong
+        </Text>
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+          {error}
+        </Text>
         <TouchableOpacity
-          style={styles.retryButton}
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
           onPress={loadDashboardData}
         >
-          <Text style={styles.retryButtonText}>Try Again</Text>
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Try Again
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.navigate("Login")}
+        >
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Go to Login
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         <Appbar
           showBack={false}
-          title={`Good morning, ${user.firstName}!`}
-          subtitle={
-            user.role === "teacher"
-              ? "Here are your assigned classes for today"
-              : "Here's an overview of your school today"
-          }
+          title={`Welcome, ${user.firstName}!`}
           trailing={
             <TouchableOpacity
-              style={styles.profileButton}
-              onPress={() => navigation.navigate("Profile" as never)}
+              style={[
+                styles.profileButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => navigation.navigate("Profile")}
             >
-              <User size={24} color="#1f2937" />
+              <User size={24} color={colors.text} />
             </TouchableOpacity>
           }
         />
+        <ConnectivityBanner />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -167,54 +197,132 @@ export default function Home() {
             {user.role === "teacher" ? (
               // Teacher-specific stats
               <>
-                <View style={styles.statCard}>
-                  <BookOpen size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>{classes.length}</Text>
-                  <Text style={styles.statLabel}>Assigned Classes</Text>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <BookOpen size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
+                    {classes.length}
+                  </Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Assigned Classes
+                  </Text>
                 </View>
-                <View style={styles.statCard}>
-                  <Users size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Users size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
                     {classes.reduce(
                       (total, cls) => total + (cls.students?.length || 0),
                       0,
                     )}
                   </Text>
-                  <Text style={styles.statLabel}>Total Students</Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Total Students
+                  </Text>
                 </View>
-                <View style={styles.statCard}>
-                  <Calendar size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>{new Date().getDate()}</Text>
-                  <Text style={styles.statLabel}>Today's Date</Text>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Calendar size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
+                    {new Date().getDate()}
+                  </Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Today's Date
+                  </Text>
                 </View>
               </>
             ) : (
               // Admin/Principal stats
               <>
-                <View style={styles.statCard}>
-                  <School size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>{classSummaries.length}</Text>
-                  <Text style={styles.statLabel}>Total Classes</Text>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <School size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
+                    {classSummaries.length}
+                  </Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Total Classes
+                  </Text>
                 </View>
-                <View style={styles.statCard}>
-                  <Users size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Users size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
                     {classSummaries.reduce(
                       (total, cls) => total + cls.studentCount,
                       0,
                     )}
                   </Text>
-                  <Text style={styles.statLabel}>Total Students</Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Total Students
+                  </Text>
                 </View>
-                <View style={styles.statCard}>
-                  <BookOpen size={24} color="#8b5cf6" />
-                  <Text style={styles.statNumber}>
+                <View
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <BookOpen size={24} color={colors.primary} />
+                  <Text style={[styles.statNumber, { color: colors.text }]}>
                     {classSummaries.reduce(
                       (total, cls) => total + cls.presentToday,
                       0,
                     )}
                   </Text>
-                  <Text style={styles.statLabel}>Present Today</Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.textSecondary }]}
+                  >
+                    Present Today
+                  </Text>
                 </View>
               </>
             )}
@@ -223,17 +331,27 @@ export default function Home() {
           {/* Classes Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 {user.role === "teacher" ? "Your Classes" : "All Classes"}
               </Text>
               {user.role !== "teacher" && (
                 <TouchableOpacity
-                  style={styles.addButton}
+                  style={[
+                    styles.addButton,
+                    {
+                      backgroundColor: colors.surfaceVariant,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() =>
-                    Alert.alert("Add Class", "Add class not implemented yet")
+                    showAlert({
+                      title: "Add Class",
+                      message: "Add class not implemented yet",
+                      type: "info",
+                    })
                   }
                 >
-                  <Plus size={20} color="#1f2937" />
+                  <Plus size={20} color={colors.text} />
                 </TouchableOpacity>
               )}
             </View>
@@ -242,8 +360,10 @@ export default function Home() {
               // Show classes for teacher
               classes.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Book size={48} color="#6b7280" />
-                  <Text style={styles.emptyText}>
+                  <Book size={48} color={colors.textSecondary} />
+                  <Text
+                    style={[styles.emptyText, { color: colors.textSecondary }]}
+                  >
                     No classes assigned yet. Contact your administrator.
                   </Text>
                 </View>
@@ -252,15 +372,21 @@ export default function Home() {
                   {classes.map(cls => {
                     const color = generateColorFromString(cls.name);
                     const studentCount = cls.students?.length || 0;
+
                     return (
                       <TouchableOpacity
                         key={cls.id}
-                        style={styles.classCard}
+                        style={[
+                          styles.classCard,
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                          },
+                        ]}
                         onPress={() =>
-                          navigation.navigate(
-                            "ClassDetails" as never,
-                            { id: cls.id } as never,
-                          )
+                          navigation.navigate("ClassDetails", {
+                            classId: cls.id,
+                          })
                         }
                       >
                         <View
@@ -272,17 +398,36 @@ export default function Home() {
                           <Book size={24} color={color} />
                         </View>
                         <View style={styles.classInfo}>
-                          <Text style={styles.className}>{cls.name}</Text>
-                          <Text style={styles.classDetails}>
+                          <Text
+                            style={[styles.className, { color: colors.text }]}
+                          >
+                            {cls.name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.classDetails,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             Grade {cls.grade} - {cls.section}
                           </Text>
-                          <Text style={styles.academicYear}>
+                          <Text
+                            style={[
+                              styles.academicYear,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             Academic Year: {cls.academicYear}
                           </Text>
                           <View style={styles.classFooter}>
                             <View style={styles.studentCount}>
-                              <Users size={16} color="#6b7280" />
-                              <Text style={styles.studentCountText}>
+                              <Users size={16} color={colors.textSecondary} />
+                              <Text
+                                style={[
+                                  styles.studentCountText,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
                                 {studentCount} students
                               </Text>
                             </View>
@@ -292,14 +437,18 @@ export default function Home() {
                                 { backgroundColor: color },
                               ]}
                               onPress={() =>
-                                navigation.navigate(
-                                  "ClassDetails" as never,
-                                  { id: cls.id } as never,
-                                )
+                                navigation.navigate("TakeAttendance", {
+                                  classId: cls.id,
+                                })
                               }
                             >
-                              <Text style={styles.viewButtonText}>
-                                View Details
+                              <Text
+                                style={[
+                                  styles.viewButtonText,
+                                  { color: colors.onPrimary },
+                                ]}
+                              >
+                                Take Attendance
                               </Text>
                             </TouchableOpacity>
                           </View>
@@ -312,8 +461,10 @@ export default function Home() {
             ) : // Show classes for admin/principal
             classSummaries.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <School size={48} color="#6b7280" />
-                <Text style={styles.emptyText}>
+                <School size={48} color={colors.textSecondary} />
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   No classes found. Create your first class to get started.
                 </Text>
               </View>
@@ -330,10 +481,9 @@ export default function Home() {
                       key={classItem.id}
                       style={styles.classCard}
                       onPress={() =>
-                        navigation.navigate(
-                          "ClassDetails" as never,
-                          { id: classItem.classId } as never,
-                        )
+                        navigation.navigate("ClassDetails", {
+                          classId: classItem.id,
+                        })
                       }
                     >
                       <View
@@ -365,10 +515,9 @@ export default function Home() {
                               { backgroundColor: color },
                             ]}
                             onPress={() =>
-                              navigation.navigate(
-                                "ClassDetails" as never,
-                                { id: classItem.id } as never,
-                              )
+                              navigation.navigate("ClassDetails", {
+                                classId: classItem.id,
+                              })
                             }
                           >
                             <Text style={styles.viewButtonText}>
@@ -386,26 +535,45 @@ export default function Home() {
 
           {/* Quick Actions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Quick Actions
+            </Text>
             <View style={styles.quickActions}>
               <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => navigation.navigate("Attendance" as never)}
+                style={[
+                  styles.quickActionCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => navigation.navigate("Attendance")}
               >
-                <Calendar size={24} color="#8b5cf6" />
-                <Text style={styles.quickActionText}>My Attendance</Text>
+                <Calendar size={24} color={colors.primary} />
+                <Text style={[styles.quickActionText, { color: colors.text }]}>
+                  My Attendance
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.quickActionCard}
+                style={[
+                  styles.quickActionCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={() =>
-                  Alert.alert(
-                    "Generate Reports",
-                    "Generate reports not implemented yet",
-                  )
+                  showAlert({
+                    title: "Generate Reports",
+                    message: "Generate reports not implemented yet",
+                    type: "info",
+                  })
                 }
               >
-                <BarChart3 size={24} color="#8b5cf6" />
-                <Text style={styles.quickActionText}>Generate Reports</Text>
+                <BarChart3 size={24} color={colors.primary} />
+                <Text style={[styles.quickActionText, { color: colors.text }]}>
+                  Generate Reports
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -418,7 +586,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
   },
   safeArea: {
     flex: 1,
@@ -427,9 +594,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -437,22 +602,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: 16,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
-    color: "#6b7280",
     marginTop: 16,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -460,32 +621,27 @@ const styles = StyleSheet.create({
   errorIconContainer: {
     width: 48,
     height: 48,
-    backgroundColor: "#fef2f2",
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   errorTitle: {
-    color: "#1f2937",
     fontSize: 18,
     fontWeight: "600",
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
-    color: "#6b7280",
     textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#8b5cf6",
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   statsContainer: {
@@ -505,13 +661,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1f2937",
     marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "#6b7280",
     textAlign: "center",
   },
   section: {
@@ -525,16 +679,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 8,
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -543,7 +694,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    color: "#6b7280",
     textAlign: "center",
     marginTop: 16,
   },
@@ -554,9 +704,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     gap: 16,
     alignItems: "center",
   },
@@ -573,17 +721,14 @@ const styles = StyleSheet.create({
   className: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1f2937",
     marginBottom: 4,
   },
   classDetails: {
     fontSize: 14,
-    color: "#6b7280",
     marginBottom: 4,
   },
   academicYear: {
     fontSize: 12,
-    color: "#6b7280",
     marginBottom: 12,
   },
   classFooter: {
@@ -598,7 +743,6 @@ const styles = StyleSheet.create({
   },
   studentCountText: {
     fontSize: 12,
-    color: "#6b7280",
   },
   viewButton: {
     paddingHorizontal: 12,
@@ -608,7 +752,6 @@ const styles = StyleSheet.create({
   viewButtonText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#ffffff",
   },
   quickActions: {
     flexDirection: "row",
@@ -618,16 +761,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     alignItems: "center",
     gap: 8,
   },
   quickActionText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1f2937",
     textAlign: "center",
   },
 });

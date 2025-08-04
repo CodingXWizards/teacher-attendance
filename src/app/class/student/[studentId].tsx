@@ -2,34 +2,35 @@ import {
   Text,
   View,
   ScrollView,
+  StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  StyleSheet,
 } from "react-native";
 import {
   Mail,
   Phone,
   MapPin,
-  Calendar,
   User,
   School,
-  CheckCircle,
   XCircle,
-  Clock,
-  MinusCircle,
+  Calendar,
   BarChart3,
+  CheckCircle,
   Calendar as CalendarIcon,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 
-import { ClassesService, StudentsService } from "@/services";
 import { Appbar } from "@/components/appbar";
-import { Class, Student, StudentAttendance } from "@/types";
 import { ScreenLoader } from "@/components/screen-loader";
+import { Calendar as CalendarComponent } from "@/components/Calendar";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Class, Student, StudentAttendance } from "@/types";
+import { ClassesService, StudentsService } from "@/services";
 
 const StudentScreen = () => {
   const route = useRoute();
+  const { colors } = useTheme();
   const { studentId } = route.params as { studentId: string };
 
   const [studentInfo, setStudentInfo] = useState<Student | null>(null);
@@ -37,6 +38,7 @@ const StudentScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [studentClass, setStudentClass] = useState<Class | null>(null);
   const [isLoadingAttendance, setIsLoadingAttendance] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     setIsLoading(true);
@@ -54,7 +56,7 @@ const StudentScreen = () => {
         }
       })
       .catch(err => {
-        console.log(err);
+        console.error(err);
       })
       .finally(() => {
         setIsLoading(false);
@@ -74,58 +76,15 @@ const StudentScreen = () => {
     return { present, absent, total, percentage };
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string | number) => {
+    const date =
+      typeof dateString === "string"
+        ? new Date(dateString)
+        : new Date(dateString);
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return styles.statusPresent;
-      case "absent":
-        return styles.statusAbsent;
-      default:
-        return styles.statusDefault;
-    }
-  };
-
-  const getStatusTextColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return styles.statusTextPresent;
-      case "absent":
-        return styles.statusTextAbsent;
-      default:
-        return styles.statusTextDefault;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "present":
-        return "✓";
-      case "absent":
-        return "✗";
-      default:
-        return "?";
-    }
-  };
-
-  const formatShortDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatMonthYear = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
     });
   };
 
@@ -148,6 +107,16 @@ const StudentScreen = () => {
 
   const groupedAttendance = groupAttendanceByMonth();
 
+  const changeMonth = (direction: "prev" | "next") => {
+    const newMonth = new Date(currentMonth);
+    if (direction === "prev") {
+      newMonth.setMonth(newMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(newMonth.getMonth() + 1);
+    }
+    setCurrentMonth(newMonth);
+  };
+
   const stats = calculateAttendanceStats();
 
   if (isLoading) {
@@ -155,7 +124,9 @@ const StudentScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {studentInfo && (
         <View style={styles.content}>
           <Appbar title="Student Details" />
@@ -166,25 +137,52 @@ const StudentScreen = () => {
             contentContainerStyle={styles.scrollContent}
           >
             {/* Hero Section */}
-            <View style={styles.heroSection}>
-              <View style={styles.heroCard}>
+            <View style={{ marginBottom: 16 }}>
+              <View
+                style={[
+                  styles.heroCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <View style={styles.heroHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
+                  <View
+                    style={[styles.avatar, { backgroundColor: colors.primary }]}
+                  >
+                    <Text
+                      style={[styles.avatarText, { color: colors.onPrimary }]}
+                    >
                       {studentInfo.firstName.charAt(0)}
                       {studentInfo.lastName.charAt(0)}
                     </Text>
                   </View>
                   <View style={styles.heroInfo}>
-                    <Text style={styles.studentName}>
+                    <Text style={[styles.studentName, { color: colors.text }]}>
                       {studentInfo.firstName} {studentInfo.lastName}
                     </Text>
-                    <Text style={styles.studentId}>
+                    <Text
+                      style={[
+                        styles.studentId,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Student ID: {studentInfo.studentId}
                     </Text>
-                    <View style={styles.classBadge}>
-                      <School size={16} color="#2563eb" />
-                      <Text style={styles.classBadgeText}>
+                    <View
+                      style={[
+                        styles.classBadge,
+                        { backgroundColor: colors.primaryContainer },
+                      ]}
+                    >
+                      <School size={16} color={colors.primary} />
+                      <Text
+                        style={[
+                          styles.classBadgeText,
+                          { color: colors.primary },
+                        ]}
+                      >
                         {studentClass?.name || "Class not assigned"}
                       </Text>
                     </View>
@@ -195,57 +193,158 @@ const StudentScreen = () => {
 
             {/* Personal Information */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Personal Information</Text>
-              <View style={styles.infoCard}>
-                <View style={styles.infoRow}>
-                  <View style={styles.infoIcon}>
-                    <Mail size={20} color="#2563eb" />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Personal Information
+              </Text>
+              <View
+                style={[
+                  styles.infoCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.infoRow,
+                    { backgroundColor: colors.surfaceElevated },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: colors.primaryContainer },
+                    ]}
+                  >
+                    <Mail size={20} color={colors.primary} />
                   </View>
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Email</Text>
-                    <Text style={styles.infoValue}>{studentInfo.email}</Text>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Email
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {studentInfo.email}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIcon, styles.infoIconGreen]}>
-                    <Phone size={20} color="#16a34a" />
+                <View
+                  style={[
+                    styles.infoRow,
+                    { backgroundColor: colors.surfaceElevated },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: colors.successContainer },
+                    ]}
+                  >
+                    <Phone size={20} color={colors.success} />
                   </View>
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>{studentInfo.phone}</Text>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Phone
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {studentInfo.phone}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIcon, styles.infoIconPurple]}>
-                    <MapPin size={20} color="#8b5cf6" />
+                <View
+                  style={[
+                    styles.infoRow,
+                    { backgroundColor: colors.surfaceElevated },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: colors.secondaryContainer },
+                    ]}
+                  >
+                    <MapPin size={20} color={colors.secondary} />
                   </View>
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Address</Text>
-                    <Text style={styles.infoValue}>{studentInfo.address}</Text>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Address
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {studentInfo.address}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIcon, styles.infoIconOrange]}>
-                    <Calendar size={20} color="#f59e0b" />
+                <View
+                  style={[
+                    styles.infoRow,
+                    { backgroundColor: colors.surfaceElevated },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: colors.warningContainer },
+                    ]}
+                  >
+                    <Calendar size={20} color={colors.warning} />
                   </View>
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Date of Birth</Text>
-                    <Text style={styles.infoValue}>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Date of Birth
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
                       {formatDate(studentInfo.dateOfBirth || "")}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <View style={[styles.infoIcon, styles.infoIconPink]}>
-                    <User size={20} color="#ec4899" />
+                <View
+                  style={[
+                    styles.infoRow,
+                    { backgroundColor: colors.surfaceElevated },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: colors.secondaryContainer },
+                    ]}
+                  >
+                    <User size={20} color={colors.secondary} />
                   </View>
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Gender</Text>
-                    <Text style={styles.infoValue}>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Gender
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
                       {studentInfo.gender
                         ? studentInfo.gender.charAt(0).toUpperCase() +
                           studentInfo.gender.slice(1)
@@ -258,54 +357,133 @@ const StudentScreen = () => {
 
             {/* Attendance Statistics */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Attendance Overview</Text>
-              <View style={styles.statsCard}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Attendance Overview
+              </Text>
+              <View
+                style={[
+                  styles.statsCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <View style={styles.statsRow}>
-                  <View style={styles.statCard}>
+                  <View
+                    style={[
+                      styles.statCard,
+                      {
+                        backgroundColor: colors.successContainer,
+                        borderColor: colors.success,
+                      },
+                    ]}
+                  >
                     <View style={styles.statHeader}>
-                      <CheckCircle size={24} color="#16a34a" />
-                      <Text style={styles.statNumber}>{stats.present}</Text>
+                      <CheckCircle size={24} color={colors.success} />
+                      <Text
+                        style={[styles.statNumber, { color: colors.success }]}
+                      >
+                        {stats.present}
+                      </Text>
                     </View>
-                    <Text style={styles.statLabel}>Present</Text>
+                    <Text style={[styles.statLabel, { color: colors.success }]}>
+                      Present
+                    </Text>
                   </View>
 
-                  <View style={styles.statCardAbsent}>
+                  <View
+                    style={[
+                      styles.statCardAbsent,
+                      {
+                        backgroundColor: colors.errorContainer,
+                        borderColor: colors.error,
+                      },
+                    ]}
+                  >
                     <View style={styles.statHeader}>
-                      <XCircle size={24} color="#ef4444" />
-                      <Text style={styles.statNumberAbsent}>
+                      <XCircle size={24} color={colors.error} />
+                      <Text
+                        style={[
+                          styles.statNumberAbsent,
+                          { color: colors.error },
+                        ]}
+                      >
                         {stats.absent}
                       </Text>
                     </View>
-                    <Text style={styles.statLabelAbsent}>Absent</Text>
+                    <Text
+                      style={[styles.statLabelAbsent, { color: colors.error }]}
+                    >
+                      Absent
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.statsRow}>
-                  <View style={styles.statCardTotal}>
+                  <View
+                    style={[
+                      styles.statCardTotal,
+                      {
+                        backgroundColor: colors.primaryContainer,
+                        borderColor: colors.primary,
+                      },
+                    ]}
+                  >
                     <View style={styles.statHeader}>
-                      <BarChart3 size={24} color="#2563eb" />
-                      <Text style={styles.statNumberTotal}>{stats.total}</Text>
+                      <BarChart3 size={24} color={colors.primary} />
+                      <Text
+                        style={[
+                          styles.statNumberTotal,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {stats.total}
+                      </Text>
                     </View>
-                    <Text style={styles.statLabelTotal}>Total</Text>
+                    <Text
+                      style={[styles.statLabelTotal, { color: colors.primary }]}
+                    >
+                      Total
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.attendanceRateCard}>
+                <View
+                  style={[
+                    styles.attendanceRateCard,
+                    { borderColor: colors.border },
+                  ]}
+                >
                   <View style={styles.rateHeader}>
-                    <Text style={styles.rateTitle}>Attendance Rate</Text>
-                    <Text style={styles.ratePercentage}>
+                    <Text style={[styles.rateTitle, { color: colors.text }]}>
+                      Attendance Rate
+                    </Text>
+                    <Text
+                      style={[styles.ratePercentage, { color: colors.primary }]}
+                    >
                       {stats.percentage}%
                     </Text>
                   </View>
-                  <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressBar,
+                      { backgroundColor: colors.border },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${stats.percentage}%` },
+                        {
+                          width: `${stats.percentage}%`,
+                          backgroundColor: colors.primary,
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.rateText}>
+                  <Text
+                    style={[styles.rateText, { color: colors.textSecondary }]}
+                  >
                     {stats.present} out of {stats.total} days attended
                   </Text>
                 </View>
@@ -314,195 +492,50 @@ const StudentScreen = () => {
 
             {/* Recent Attendance */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Attendance Calendar</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Attendance Calendar
+              </Text>
               <View style={styles.calendarContainer}>
                 {isLoadingAttendance ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#8b5cf6" />
-                    <Text style={styles.loadingText}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text
+                      style={[
+                        styles.loadingText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Loading attendance records...
                     </Text>
                   </View>
                 ) : attendance.length > 0 ? (
-                  <View style={styles.calendarList}>
-                    {Object.entries(groupedAttendance)
-                      .sort(([a], [b]) => b.localeCompare(a)) // Sort by month (newest first)
-                      .slice(0, 3) // Show last 3 months
-                      .map(([monthKey, monthAttendance]) => {
-                        const firstDate = new Date(monthAttendance[0].date);
-                        const monthName = formatMonthYear(
-                          monthAttendance[0].date,
-                        );
-
-                        // Create a map of dates to attendance records
-                        const attendanceMap = new Map();
-                        monthAttendance.forEach(record => {
-                          attendanceMap.set(record.date, record);
-                        });
-
-                        // Get all days in the month
-                        const year = firstDate.getFullYear();
-                        const month = firstDate.getMonth();
-                        const daysInMonth = new Date(
-                          year,
-                          month + 1,
-                          0,
-                        ).getDate();
-                        const firstDayOfMonth = new Date(
-                          year,
-                          month,
-                          1,
-                        ).getDay();
-
-                        return (
-                          <View key={monthKey} style={styles.monthCard}>
-                            <Text style={styles.monthTitle}>{monthName}</Text>
-
-                            {/* Calendar Grid */}
-                            <View style={styles.calendarGrid}>
-                              {/* Day headers */}
-                              <View style={styles.dayHeaders}>
-                                {[
-                                  "Sun",
-                                  "Mon",
-                                  "Tue",
-                                  "Wed",
-                                  "Thu",
-                                  "Fri",
-                                  "Sat",
-                                ].map(day => (
-                                  <View key={day} style={styles.dayHeader}>
-                                    <Text style={styles.dayHeaderText}>
-                                      {day}
-                                    </Text>
-                                  </View>
-                                ))}
-                              </View>
-
-                              {/* Calendar days */}
-                              <View style={styles.calendarDays}>
-                                {Array.from(
-                                  {
-                                    length: Math.ceil(
-                                      (firstDayOfMonth + daysInMonth) / 7,
-                                    ),
-                                  },
-                                  (_, weekIndex) => (
-                                    <View
-                                      key={weekIndex}
-                                      style={styles.weekRow}
-                                    >
-                                      {Array.from(
-                                        { length: 7 },
-                                        (_, dayIndex) => {
-                                          const dayNumber =
-                                            weekIndex * 7 +
-                                            dayIndex -
-                                            firstDayOfMonth +
-                                            1;
-                                          const isValidDay =
-                                            dayNumber > 0 &&
-                                            dayNumber <= daysInMonth;
-
-                                          if (!isValidDay) {
-                                            return (
-                                              <View
-                                                key={dayIndex}
-                                                style={styles.emptyDay}
-                                              />
-                                            );
-                                          }
-
-                                          const dateString = `${year}-${String(
-                                            month + 1,
-                                          ).padStart(2, "0")}-${String(
-                                            dayNumber,
-                                          ).padStart(2, "0")}`;
-                                          const attendanceRecord =
-                                            attendanceMap.get(dateString);
-                                          const isToday =
-                                            dateString ===
-                                            new Date()
-                                              .toISOString()
-                                              .split("T")[0];
-
-                                          return (
-                                            <View
-                                              key={dayIndex}
-                                              style={styles.calendarDay}
-                                            >
-                                              {attendanceRecord ? (
-                                                <View
-                                                  style={[
-                                                    styles.dayWithAttendance,
-                                                    getStatusColor(
-                                                      attendanceRecord.status,
-                                                    ),
-                                                    isToday &&
-                                                      styles.todayBorder,
-                                                  ]}
-                                                >
-                                                  <Text
-                                                    style={styles.dayNumber}
-                                                  >
-                                                    {dayNumber}
-                                                  </Text>
-                                                </View>
-                                              ) : (
-                                                <View
-                                                  style={[
-                                                    styles.dayWithoutAttendance,
-                                                    isToday &&
-                                                      styles.todayHighlight,
-                                                  ]}
-                                                >
-                                                  <Text
-                                                    style={[
-                                                      styles.dayNumberEmpty,
-                                                      isToday &&
-                                                        styles.todayText,
-                                                    ]}
-                                                  >
-                                                    {dayNumber}
-                                                  </Text>
-                                                </View>
-                                              )}
-                                            </View>
-                                          );
-                                        },
-                                      )}
-                                    </View>
-                                  ),
-                                )}
-                              </View>
-                            </View>
-
-                            {/* Legend */}
-                            <View style={styles.legend}>
-                              <View style={styles.legendItem}>
-                                <View style={styles.legendDotPresent} />
-                                <Text style={styles.legendText}>Present</Text>
-                              </View>
-                              <View style={styles.legendItem}>
-                                <View style={styles.legendDotAbsent} />
-                                <Text style={styles.legendText}>Absent</Text>
-                              </View>
-                              <View style={styles.legendItem}>
-                                <View style={styles.legendDotToday} />
-                                <Text style={styles.legendText}>Today</Text>
-                              </View>
-                            </View>
-                          </View>
-                        );
-                      })}
-                  </View>
+                  <CalendarComponent
+                    currentMonth={currentMonth}
+                    attendanceData={attendance.map(att => ({
+                      date: att.date,
+                      status: att.status,
+                    }))}
+                    onMonthChange={changeMonth}
+                  />
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <View style={styles.emptyIcon}>
-                      <CalendarIcon size={32} color="#9ca3af" />
+                    <View
+                      style={[
+                        styles.emptyIcon,
+                        { backgroundColor: colors.surfaceVariant },
+                      ]}
+                    >
+                      <CalendarIcon size={32} color={colors.textSecondary} />
                     </View>
-                    <Text style={styles.emptyTitle}>No attendance records</Text>
-                    <Text style={styles.emptyText}>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                      No attendance records
+                    </Text>
+                    <Text
+                      style={[
+                        styles.emptyText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Attendance records will appear here once they are added.
                     </Text>
                   </View>
@@ -514,12 +547,24 @@ const StudentScreen = () => {
       )}
 
       {!studentInfo && !isLoading && (
-        <View style={styles.notFoundContainer}>
-          <View style={styles.notFoundIcon}>
-            <User size={40} color="#9ca3af" />
+        <View
+          style={[
+            styles.notFoundContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          <View
+            style={[
+              styles.notFoundIcon,
+              { backgroundColor: colors.surfaceVariant },
+            ]}
+          >
+            <User size={40} color={colors.textSecondary} />
           </View>
-          <Text style={styles.notFoundTitle}>Student not found</Text>
-          <Text style={styles.notFoundText}>
+          <Text style={[styles.notFoundTitle, { color: colors.text }]}>
+            Student not found
+          </Text>
+          <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>
             The student you're looking for doesn't exist or has been removed
             from the system.
           </Text>
@@ -532,7 +577,6 @@ const StudentScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
   },
   content: {
     flex: 1,
@@ -541,20 +585,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-  },
-  heroSection: {
-    backgroundColor: "#f8fafc",
-    paddingTop: 24,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+    padding: 16,
   },
   heroCard: {
-    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   heroHeader: {
     flexDirection: "row",
@@ -563,7 +599,6 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    backgroundColor: "#8b5cf6",
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
@@ -575,7 +610,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   avatarText: {
-    color: "#ffffff",
     fontSize: 24,
     fontWeight: "bold",
   },
@@ -585,93 +619,79 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#111827",
     marginBottom: 4,
   },
   studentId: {
-    color: "#6b7280",
     fontSize: 14,
     marginBottom: 8,
   },
   classBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#dbeafe",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
     alignSelf: "flex-start",
   },
   classBadgeText: {
-    color: "#1d4ed8",
     fontSize: 14,
     fontWeight: "500",
     marginLeft: 4,
   },
   section: {
-    paddingHorizontal: 24,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#111827",
     marginBottom: 16,
   },
   infoCard: {
-    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#f9fafb",
     borderRadius: 12,
     marginBottom: 16,
   },
   infoIcon: {
     width: 40,
     height: 40,
-    backgroundColor: "#dbeafe",
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   infoIconGreen: {
-    backgroundColor: "#dcfce7",
+    // Handled dynamically
   },
   infoIconPurple: {
-    backgroundColor: "#f3e8ff",
+    // Handled dynamically
   },
   infoIconOrange: {
-    backgroundColor: "#fed7aa",
+    // Handled dynamically
   },
   infoIconPink: {
-    backgroundColor: "#fce7f3",
+    // Handled dynamically
   },
   infoContent: {
     flex: 1,
   },
   infoLabel: {
     fontSize: 14,
-    color: "#6b7280",
     fontWeight: "500",
   },
   infoValue: {
-    color: "#111827",
     fontSize: 16,
   },
   statsCard: {
-    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   statsRow: {
     flexDirection: "row",
@@ -682,25 +702,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#f0fdf4",
     borderWidth: 1,
-    borderColor: "#bbf7d0",
   },
   statCardAbsent: {
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#fef2f2",
     borderWidth: 1,
-    borderColor: "#fecaca",
   },
   statCardTotal: {
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#eff6ff",
     borderWidth: 1,
-    borderColor: "#bfdbfe",
   },
   statHeader: {
     flexDirection: "row",
@@ -711,35 +725,28 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#16a34a",
   },
   statNumberAbsent: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#ef4444",
   },
   statNumberTotal: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2563eb",
   },
   statLabel: {
-    color: "#16a34a",
     fontWeight: "500",
   },
   statLabelAbsent: {
-    color: "#ef4444",
     fontWeight: "500",
   },
   statLabelTotal: {
-    color: "#2563eb",
     fontWeight: "500",
   },
   attendanceRateCard: {
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   rateHeader: {
     flexDirection: "row",
@@ -750,39 +757,33 @@ const styles = StyleSheet.create({
   rateTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
   },
   ratePercentage: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2563eb",
   },
   progressBar: {
     width: "100%",
-    backgroundColor: "#ffffff",
     borderRadius: 6,
     height: 12,
     marginBottom: 8,
   },
   progressFill: {
-    backgroundColor: "#8b5cf6",
     height: 12,
     borderRadius: 6,
   },
   rateText: {
     fontSize: 14,
-    color: "#6b7280",
     textAlign: "center",
   },
   calendarContainer: {
-    backgroundColor: "#ffffff",
+    // Handled dynamically
   },
   loadingContainer: {
     alignItems: "center",
     paddingVertical: 32,
   },
   loadingText: {
-    color: "#6b7280",
     marginTop: 12,
     fontWeight: "500",
   },
@@ -795,12 +796,10 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderRadius: 16,
-    borderColor: "#e5e7eb",
   },
   monthTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
     marginBottom: 12,
   },
   calendarGrid: {
@@ -817,7 +816,6 @@ const styles = StyleSheet.create({
   dayHeaderText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#6b7280",
   },
   calendarDays: {
     gap: 8,
@@ -840,7 +838,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   dayWithoutAttendance: {
     flex: 1,
@@ -848,45 +845,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   todayBorder: {
-    borderColor: "#3b82f6",
+    // Handled dynamically
   },
   todayHighlight: {
-    borderColor: "#3b82f6",
-    backgroundColor: "#eff6ff",
+    // Handled dynamically
   },
   dayNumber: {
-    color: "#ffffff",
     fontSize: 12,
     fontWeight: "bold",
   },
   dayNumberEmpty: {
     fontSize: 12,
-    color: "#9ca3af",
   },
   todayText: {
-    color: "#1d4ed8",
-    fontWeight: "bold",
+    // Handled dynamically
   },
   statusPresent: {
-    backgroundColor: "#16a34a",
+    // Handled dynamically
   },
   statusAbsent: {
-    backgroundColor: "#ef4444",
+    // Handled dynamically
   },
   statusDefault: {
-    backgroundColor: "#d1d5db",
+    // Handled dynamically
   },
   statusTextPresent: {
-    color: "#16a34a",
+    // Handled dynamically
   },
   statusTextAbsent: {
-    color: "#ef4444",
+    // Handled dynamically
   },
   statusTextDefault: {
-    color: "#6b7280",
+    // Handled dynamically
   },
   legend: {
     flexDirection: "row",
@@ -894,7 +886,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
   },
   legendItem: {
     flexDirection: "row",
@@ -903,14 +894,12 @@ const styles = StyleSheet.create({
   legendDotPresent: {
     width: 16,
     height: 16,
-    backgroundColor: "#16a34a",
     borderRadius: 8,
     marginRight: 8,
   },
   legendDotAbsent: {
     width: 16,
     height: 16,
-    backgroundColor: "#ef4444",
     borderRadius: 8,
     marginRight: 8,
   },
@@ -918,14 +907,11 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderWidth: 2,
-    borderColor: "#3b82f6",
-    backgroundColor: "#eff6ff",
     borderRadius: 8,
     marginRight: 8,
   },
   legendText: {
     fontSize: 12,
-    color: "#6b7280",
   },
   emptyContainer: {
     alignItems: "center",
@@ -934,20 +920,17 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 64,
     height: 64,
-    backgroundColor: "#f3f4f6",
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
   emptyTitle: {
-    color: "#111827",
     fontWeight: "600",
     marginBottom: 8,
     fontSize: 18,
   },
   emptyText: {
-    color: "#6b7280",
     textAlign: "center",
     fontSize: 16,
     lineHeight: 24,
@@ -961,7 +944,6 @@ const styles = StyleSheet.create({
   notFoundIcon: {
     width: 80,
     height: 80,
-    backgroundColor: "#f3f4f6",
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
@@ -970,11 +952,9 @@ const styles = StyleSheet.create({
   notFoundTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#111827",
     marginBottom: 12,
   },
   notFoundText: {
-    color: "#6b7280",
     textAlign: "center",
     fontSize: 18,
     lineHeight: 24,

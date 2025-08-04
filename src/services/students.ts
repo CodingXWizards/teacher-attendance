@@ -21,8 +21,8 @@ class StudentsService {
         gender: student.gender,
         classId: student.class?.id || "",
         isActive: student.isActive,
-        createdAt: student.createdAt.toString(),
-        updatedAt: student.updatedAt.toString(),
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
       }));
     } catch (error) {
       console.error("Error getting students by class:", error);
@@ -50,8 +50,8 @@ class StudentsService {
         gender: student.gender,
         classId: student.class?.id || "",
         isActive: student.isActive,
-        createdAt: student.createdAt.toString(),
-        updatedAt: student.updatedAt.toString(),
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
       };
     } catch (error) {
       console.error("Error getting student by ID:", error);
@@ -77,8 +77,8 @@ class StudentsService {
         gender: student.gender,
         classId: student.class?.id || "",
         isActive: student.isActive,
-        createdAt: student.createdAt.toString(),
-        updatedAt: student.updatedAt.toString(),
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
       };
     } catch (error) {
       console.error("Error getting student by ID:", error);
@@ -115,8 +115,8 @@ class StudentsService {
           gender: student.gender,
           classId: student.class?.id || "",
           isActive: student.isActive,
-          createdAt: student.createdAt.toString(),
-          updatedAt: student.updatedAt.toString(),
+          createdAt: student.createdAt,
+          updatedAt: student.updatedAt,
         }));
     } catch (error) {
       console.error("Error searching students:", error);
@@ -130,8 +130,8 @@ class StudentsService {
   static async getStudentAttendance(
     studentId: string,
     params?: {
-      startDate?: string;
-      endDate?: string;
+      startDate?: Date;
+      endDate?: Date;
       classId?: string;
     },
   ): Promise<any[]> {

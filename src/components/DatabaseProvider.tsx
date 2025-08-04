@@ -1,14 +1,15 @@
-import { ActivityIndicator, View } from "react-native";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import watermelonDB from "@/db";
 
 interface DatabaseContextType {
   database: any;
+  isLoading: boolean;
 }
 
 const DatabaseContext = createContext<DatabaseContextType>({
   database: null,
+  isLoading: true,
 });
 
 export const useDatabase = () => {
@@ -32,12 +33,8 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        console.log("🔄 Initializing WatermelonDB...");
-
-        // WatermelonDB is already initialized when imported
         if (watermelonDB) {
           setDatabase(watermelonDB);
-          console.log("✅ WatermelonDB initialized successfully");
         } else {
           throw new Error("WatermelonDB instance is null");
         }
@@ -52,16 +49,8 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     initializeDatabase();
   }, []);
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
   return (
-    <DatabaseContext.Provider value={{ database }}>
+    <DatabaseContext.Provider value={{ database, isLoading }}>
       {children}
     </DatabaseContext.Provider>
   );

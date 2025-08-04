@@ -17,8 +17,8 @@ class ClassesService {
         description: cls.description || "",
         academicYear: cls.academicYear,
         isActive: cls.isActive,
-        createdAt: cls.createdAt.toString(),
-        updatedAt: cls.updatedAt.toString(),
+        createdAt: cls.createdAt,
+        updatedAt: cls.updatedAt,
       }));
     } catch (error) {
       console.error("Error getting teacher classes:", error);
@@ -42,8 +42,8 @@ class ClassesService {
         description: cls.description || "",
         academicYear: cls.academicYear,
         isActive: cls.isActive,
-        createdAt: cls.createdAt.toString(),
-        updatedAt: cls.updatedAt.toString(),
+        createdAt: cls.createdAt,
+        updatedAt: cls.updatedAt,
       };
     } catch (error) {
       console.error("Error getting class by ID:", error);
@@ -75,8 +75,8 @@ class ClassesService {
           description: cls.description || "",
           academicYear: cls.academicYear,
           isActive: cls.isActive,
-          createdAt: cls.createdAt.toString(),
-          updatedAt: cls.updatedAt.toString(),
+          createdAt: cls.createdAt,
+          updatedAt: cls.updatedAt,
         }));
     } catch (error) {
       console.error("Error searching classes:", error);
@@ -102,8 +102,8 @@ class ClassesService {
         gender: student.gender,
         classId: student.class?.id || "",
         isActive: student.isActive,
-        createdAt: student.createdAt.toString(),
-        updatedAt: student.updatedAt.toString(),
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
       }));
     } catch (error) {
       console.error("Error getting class students:", error);

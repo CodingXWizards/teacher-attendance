@@ -1,22 +1,19 @@
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
-  Alert,
-  ActivityIndicator,
   StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  MinusCircle,
-  HelpCircle,
-  Calendar,
-  TrendingUp,
-  ArrowLeftRight,
   Users,
+  XCircle,
+  Calendar,
+  HelpCircle,
+  TrendingUp,
+  CheckCircle,
+  ArrowLeftRight,
 } from "lucide-react-native";
 import React, { useState, useEffect } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -28,7 +25,9 @@ import AttendanceService from "@/services/attendance";
 import { AttendanceStatus } from "@/types/attendance";
 import { Appbar } from "@/components/appbar";
 import { DatabaseService } from "@/services/databaseService";
-import { useUserStore } from "../../stores/userStore";
+import { useUserStore } from "@/stores/userStore";
+import { useAlert } from "@/contexts/AlertContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Extended student interface with attendance info
 interface StudentWithAttendance extends Student {
@@ -39,7 +38,9 @@ interface StudentWithAttendance extends Student {
 export default function AttendancePage() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { id } = route.params as { id: string };
+  const { showAlert } = useAlert();
+  const { colors } = useTheme();
+  const { classId } = route.params as { classId: string };
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State for class data
@@ -58,7 +59,7 @@ export default function AttendancePage() {
       try {
         setClassLoading(true);
         setClassError(null);
-        const data = await ClassesService.getClassWithDetails(id);
+        const data = await ClassesService.getClassWithDetails(classId);
         setClassData(data);
       } catch (error) {
         const errorMessage =
@@ -66,16 +67,20 @@ export default function AttendancePage() {
             ? error.message
             : "Failed to load class details";
         setClassError(errorMessage);
-        Alert.alert("Error", errorMessage);
+        showAlert({
+          title: "Error",
+          message: errorMessage,
+          type: "error",
+        });
       } finally {
         setClassLoading(false);
       }
     };
 
-    if (id) {
+    if (classId) {
       fetchClassData();
     }
-  }, [id]);
+  }, [classId]);
 
   // Initialize students with today's attendance status when class data loads
   useEffect(() => {
@@ -85,13 +90,12 @@ export default function AttendancePage() {
         try {
           // Fetch today's attendance for this class
           const todayAttendance =
-            await DatabaseService.getTodayAttendanceForClass(id);
-          console.log("todayAttendance", todayAttendance);
+            await DatabaseService.getTodayAttendanceForClass(classId);
           const studentsWithAttendance: StudentWithAttendance[] =
             classData.students.map(student => {
               // Find today's attendance for this student
               const studentAttendance = todayAttendance.find(
-                attendance => attendance.studentId === student.id,
+                attendance => attendance.studentId === student.studentId,
               );
 
               return {
@@ -123,16 +127,16 @@ export default function AttendancePage() {
     if (classData?.students) {
       initializeStudentsWithAttendance();
     }
-  }, [classData, id]);
+  }, [classData, classId]);
 
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
-        return "#10b981";
+        return colors.success;
       case AttendanceStatus.ABSENT:
-        return "#ef4444";
+        return colors.error;
       default:
-        return "#94a3b8";
+        return colors.textSecondary;
     }
   };
 
@@ -161,7 +165,7 @@ export default function AttendancePage() {
   const toggleStatus = (studentId: string) => {
     setStudents(prevStudents =>
       prevStudents.map(student => {
-        if (student.id === studentId) {
+        if (student.studentId === studentId) {
           const statusOrder = [
             AttendanceStatus.PRESENT,
             AttendanceStatus.ABSENT,
@@ -200,19 +204,21 @@ export default function AttendancePage() {
     setIsSubmitting(true);
 
     if (!user) {
-      Alert.alert("Error", "User not found");
+      showAlert({
+        title: "Error",
+        message: "User not found",
+        type: "error",
+      });
       return;
     }
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = Date.now();
 
       // Create or update attendance records for all students
-      console.log("students", students);
-      console.log("classData", id);
       const attendanceData = students.map(student => ({
-        studentId: student.id,
-        classId: id,
+        studentId: student.studentId,
+        classId,
         date: today,
         status: student.attendanceStatus,
         notes: "",
@@ -230,17 +236,19 @@ export default function AttendancePage() {
           attendanceTaken: true,
         })),
       );
-
-      Alert.alert("Success!", "Attendance has been recorded successfully.", [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      showAlert({
+        title: "Success!",
+        message: "Attendance has been recorded successfully.",
+        type: "success",
+      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to submit attendance";
-      Alert.alert("Error", errorMessage);
+      showAlert({
+        title: "Error",
+        message: errorMessage,
+        type: "error",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -251,9 +259,16 @@ export default function AttendancePage() {
   // Loading state
   if (classLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading class details...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Loading class details...
+        </Text>
       </View>
     );
   }
@@ -261,23 +276,34 @@ export default function AttendancePage() {
   // Error state
   if (classError || !classData) {
     return (
-      <View style={styles.errorContainer}>
-        <View style={styles.errorIconContainer}>
-          <XCircle size={32} color="#ef4444" />
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.errorIconContainer,
+            { backgroundColor: colors.errorContainer },
+          ]}
+        >
+          <XCircle size={32} color={colors.error} />
         </View>
-        <Text style={styles.errorText}>{classError || "Class not found"}</Text>
+        <Text style={[styles.errorText, { color: colors.text }]}>
+          {classError || "Class not found"}
+        </Text>
         <TouchableOpacity
-          style={styles.goBackButton}
+          style={[styles.goBackButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.goBackButtonText}>Go Back</Text>
+          <Text style={[styles.goBackButtonText, { color: colors.onPrimary }]}>
+            Go Back
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         <Appbar
           title={classData.grade}
@@ -285,13 +311,13 @@ export default function AttendancePage() {
           trailing={
             <TouchableOpacity
               onPress={() =>
-                Alert.alert(
-                  "Date",
-                  "Today's date: " + new Date().toLocaleDateString(),
-                )
+                showAlert({
+                  title: "Date",
+                  message: "Today's date: " + new Date().toLocaleDateString(),
+                })
               }
             >
-              <Calendar size={20} color="#1f2937" />
+              <Calendar size={20} color={colors.text} />
             </TouchableOpacity>
           }
         />
@@ -301,36 +327,94 @@ export default function AttendancePage() {
           showsVerticalScrollIndicator={false}
         >
           {/* Attendance Stats */}
-          <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>Today's Attendance</Text>
+          <View
+            style={[
+              styles.statsCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.statsTitle, { color: colors.text }]}>
+              Today's Attendance
+            </Text>
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <View style={styles.statIconContainer}>
-                  <CheckCircle size={20} color="#10b981" />
+                <View
+                  style={[
+                    styles.statIconContainer,
+                    { backgroundColor: colors.successContainer },
+                  ]}
+                >
+                  <CheckCircle size={20} color={colors.success} />
                 </View>
-                <Text style={styles.statNumber}>{stats.present}</Text>
-                <Text style={styles.statLabel}>Present</Text>
+                <Text style={[styles.statNumber, { color: colors.text }]}>
+                  {stats.present}
+                </Text>
+                <Text
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
+                >
+                  Present
+                </Text>
               </View>
 
               <View style={styles.statItem}>
-                <View style={styles.statIconContainer}>
-                  <XCircle size={20} color="#ef4444" />
+                <View
+                  style={[
+                    styles.statIconContainer,
+                    { backgroundColor: colors.errorContainer },
+                  ]}
+                >
+                  <XCircle size={20} color={colors.error} />
                 </View>
-                <Text style={styles.statNumber}>{stats.absent}</Text>
-                <Text style={styles.statLabel}>Absent</Text>
+                <Text style={[styles.statNumber, { color: colors.text }]}>
+                  {stats.absent}
+                </Text>
+                <Text
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
+                >
+                  Absent
+                </Text>
               </View>
             </View>
-            <View style={styles.attendanceRateContainer}>
-              <View style={styles.attendanceRateIconContainer}>
-                <TrendingUp size={24} color="#8b5cf6" />
+            <View
+              style={[
+                styles.attendanceRateContainer,
+                { borderColor: colors.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.attendanceRateIconContainer,
+                  { backgroundColor: colors.primaryContainer },
+                ]}
+              >
+                <TrendingUp size={24} color={colors.primary} />
               </View>
-              <Text style={styles.attendanceRate}>{stats.attendanceRate}%</Text>
-              <Text style={styles.attendanceRateLabel}>Attendance Rate</Text>
+              <Text style={[styles.attendanceRate, { color: colors.text }]}>
+                {stats.attendanceRate}%
+              </Text>
+              <Text
+                style={[
+                  styles.attendanceRateLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Attendance Rate
+              </Text>
             </View>
 
             {/* Attendance Status Indicator */}
-            <View style={styles.attendanceStatusContainer}>
-              <Text style={styles.attendanceStatusText}>
+            <View
+              style={[
+                styles.attendanceStatusContainer,
+                { borderColor: colors.border },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.attendanceStatusText,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 {stats.attendanceTaken === stats.total
                   ? "✅ Attendance completed for today"
                   : stats.attendanceTaken > 0
@@ -343,14 +427,25 @@ export default function AttendancePage() {
           {/* Students List */}
           <View style={styles.studentsSection}>
             <View style={styles.studentsHeader}>
-              <Text style={styles.studentsTitle}>Students</Text>
-              <Text style={styles.studentsCount}>{stats.total} students</Text>
+              <Text style={[styles.studentsTitle, { color: colors.text }]}>
+                Students
+              </Text>
+              <Text
+                style={[styles.studentsCount, { color: colors.textSecondary }]}
+              >
+                {stats.total} students
+              </Text>
             </View>
 
             {studentsLoading && (
               <View style={styles.loadingStudentsContainer}>
-                <ActivityIndicator size="small" color="#8b5cf6" />
-                <Text style={styles.loadingStudentsText}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingStudentsText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   Loading students...
                 </Text>
               </View>
@@ -364,20 +459,36 @@ export default function AttendancePage() {
                     key={student.id}
                     style={[
                       styles.studentCard,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
                       student.attendanceTaken &&
                         styles.studentCardAttendanceTaken,
                     ]}
-                    onPress={() => toggleStatus(student.id)}
+                    onPress={() => toggleStatus(student.studentId)}
                   >
                     <View style={styles.studentInfo}>
-                      <Text style={styles.studentName}>
+                      <Text
+                        style={[styles.studentName, { color: colors.text }]}
+                      >
                         {student.firstName} {student.lastName}
                       </Text>
-                      <Text style={styles.studentId}>
+                      <Text
+                        style={[
+                          styles.studentId,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         ID: {student.studentId}
                       </Text>
                       {student.attendanceTaken && (
-                        <Text style={styles.attendanceTakenText}>
+                        <Text
+                          style={[
+                            styles.attendanceTakenText,
+                            { color: colors.success },
+                          ]}
+                        >
                           ✅ Attendance recorded
                         </Text>
                       )}
@@ -398,10 +509,16 @@ export default function AttendancePage() {
                         </Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.toggleButton}
-                        onPress={() => toggleStatus(student.id)}
+                        style={[
+                          styles.toggleButton,
+                          { borderColor: colors.border },
+                        ]}
+                        onPress={() => toggleStatus(student.studentId)}
                       >
-                        <ArrowLeftRight size={16} color="#6b7280" />
+                        <ArrowLeftRight
+                          size={16}
+                          color={colors.textSecondary}
+                        />
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -411,8 +528,13 @@ export default function AttendancePage() {
 
             {students.length === 0 && !studentsLoading && (
               <View style={styles.emptyStudentsContainer}>
-                <Users size={48} color="#6b7280" />
-                <Text style={styles.emptyStudentsText}>
+                <Users size={48} color={colors.textSecondary} />
+                <Text
+                  style={[
+                    styles.emptyStudentsText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   No students in this class
                 </Text>
               </View>
@@ -424,17 +546,27 @@ export default function AttendancePage() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                isSubmitting && styles.submitButtonDisabled,
+                { backgroundColor: colors.primary },
+                isSubmitting && { backgroundColor: colors.disabled },
               ]}
               onPress={handleSubmit}
               disabled={isSubmitting || students.length === 0}
             >
               {isSubmitting ? (
-                <Text style={styles.submitButtonText}>Saving...</Text>
+                <Text
+                  style={[styles.submitButtonText, { color: colors.onPrimary }]}
+                >
+                  Saving...
+                </Text>
               ) : (
                 <>
-                  <CheckCircle size={24} color="white" />
-                  <Text style={styles.submitButtonText}>
+                  <CheckCircle size={24} color={colors.onPrimary} />
+                  <Text
+                    style={[
+                      styles.submitButtonText,
+                      { color: colors.onPrimary },
+                    ]}
+                  >
                     {stats.attendanceTaken > 0
                       ? "Update Attendance"
                       : "Save Attendance"}
@@ -452,7 +584,6 @@ export default function AttendancePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
   },
   safeArea: {
     flex: 1,
@@ -466,18 +597,15 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
     fontSize: 18,
-    color: "#1f2937",
     marginTop: 16,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -485,7 +613,6 @@ const styles = StyleSheet.create({
   errorIconContainer: {
     width: 64,
     height: 64,
-    backgroundColor: "#fef2f2",
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
@@ -493,7 +620,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: "#1f2937",
     marginTop: 16,
     textAlign: "center",
   },
@@ -501,25 +627,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#8b5cf6",
     borderRadius: 12,
   },
   goBackButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   statsCard: {
     padding: 20,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     marginBottom: 24,
   },
   statsTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -535,25 +656,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0fdf4",
     justifyContent: "center",
     alignItems: "center",
   },
   statNumber: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
   },
   statLabel: {
     fontSize: 12,
-    color: "#6b7280",
   },
   attendanceRateContainer: {
     alignItems: "center",
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
   },
   attendanceRateIconContainer: {
     width: 48,
@@ -561,28 +678,23 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#8b5cf620",
   },
   attendanceRate: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1f2937",
     marginTop: 8,
   },
   attendanceRateLabel: {
     fontSize: 14,
-    color: "#6b7280",
   },
   attendanceStatusContainer: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
     alignItems: "center",
   },
   attendanceStatusText: {
     fontSize: 14,
-    color: "#6b7280",
     textAlign: "center",
   },
   studentsSection: {
@@ -597,11 +709,9 @@ const styles = StyleSheet.create({
   studentsTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
   },
   studentsCount: {
     fontSize: 14,
-    color: "#6b7280",
   },
   loadingStudentsContainer: {
     paddingVertical: 16,
@@ -609,7 +719,6 @@ const styles = StyleSheet.create({
   },
   loadingStudentsText: {
     fontSize: 14,
-    color: "#6b7280",
     marginTop: 8,
   },
   studentsList: {
@@ -619,9 +728,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     gap: 16,
     alignItems: "center",
   },
@@ -634,16 +741,13 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2937",
     marginBottom: 4,
   },
   studentId: {
     fontSize: 14,
-    color: "#6b7280",
   },
   attendanceTakenText: {
     fontSize: 12,
-    color: "#10b981",
     marginTop: 4,
     fontWeight: "500",
   },
@@ -666,7 +770,6 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -676,7 +779,6 @@ const styles = StyleSheet.create({
   },
   emptyStudentsText: {
     fontSize: 16,
-    color: "#6b7280",
     marginTop: 8,
     textAlign: "center",
   },
@@ -691,14 +793,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     gap: 8,
-    backgroundColor: "#8b5cf6",
   },
   submitButtonDisabled: {
-    backgroundColor: "#9ca3af",
+    // Handled dynamically
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#ffffff",
   },
 });

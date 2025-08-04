@@ -15,7 +15,7 @@ export default class StudentAttendance extends Model {
 
   @field("student_id") studentId!: string;
   @field("class_id") classId!: string;
-  @field("date") date!: string;
+  @field("date") date!: number;
   @field("status") status!: string;
   @field("notes") notes!: string | null;
   @field("marked_by") markedBy!: string;

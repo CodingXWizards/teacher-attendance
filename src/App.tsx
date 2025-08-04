@@ -1,21 +1,57 @@
+import React from "react";
+import "react-native-screens";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import AppRouter from "@/app/_router";
+import Alert from "@/components/Alert";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { navigationRef } from "@/navigation/NavigationService";
 import { DatabaseProvider } from "@/components/DatabaseProvider";
+import { AlertProvider, useAlert } from "@/contexts/AlertContext";
+import { autoSyncService } from "@/services/autoSyncService";
 
-// Import screens
-import AppRouter from "./app/_router";
+const AppContent = () => {
+  const { hideAlert, alertState } = useAlert();
+
+  // Initialize auto sync service
+  React.useEffect(() => {
+    autoSyncService.initialize();
+
+    return () => {
+      autoSyncService.cleanup();
+    };
+  }, []);
+
+  return (
+    <>
+      <Alert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
+      <NavigationContainer ref={navigationRef}>
+        <AppRouter />
+      </NavigationContainer>
+    </>
+  );
+};
 
 const App = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <DatabaseProvider>
-          <NavigationContainer>
-            <AppRouter />
-          </NavigationContainer>
+          <ThemeProvider>
+            <AlertProvider>
+              <AppContent />
+            </AlertProvider>
+          </ThemeProvider>
         </DatabaseProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

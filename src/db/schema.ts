@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export default appSchema({
-  version: 3,
+  version: 2,
   tables: [
     tableSchema({
       name: "users",
@@ -16,17 +16,6 @@ export default appSchema({
         { name: "phone", type: "string", isOptional: true },
         { name: "address", type: "string", isOptional: true },
         { name: "hire_date", type: "string", isOptional: true },
-        { name: "is_active", type: "boolean" },
-        { name: "created_at", type: "number" },
-        { name: "updated_at", type: "number" },
-      ],
-    }),
-    tableSchema({
-      name: "subjects",
-      columns: [
-        { name: "name", type: "string" },
-        { name: "code", type: "string" },
-        { name: "description", type: "string", isOptional: true },
         { name: "is_active", type: "boolean" },
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
@@ -78,9 +67,9 @@ export default appSchema({
       name: "teacher_attendance",
       columns: [
         { name: "teacher_id", type: "string", isIndexed: true },
-        { name: "date", type: "string" },
-        { name: "check_in", type: "string", isOptional: true },
-        { name: "check_out", type: "string", isOptional: true },
+        { name: "latitude", type: "number" },
+        { name: "longitude", type: "number" },
+        { name: "check_in", type: "number" },
         { name: "status", type: "string" },
         { name: "notes", type: "string", isOptional: true },
         { name: "created_at", type: "number" },
@@ -92,7 +81,7 @@ export default appSchema({
       columns: [
         { name: "student_id", type: "string", isIndexed: true },
         { name: "class_id", type: "string", isIndexed: true },
-        { name: "date", type: "string" },
+        { name: "date", type: "number" },
         { name: "status", type: "string" },
         { name: "notes", type: "string", isOptional: true },
         { name: "marked_by", type: "string", isIndexed: true },

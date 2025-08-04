@@ -1,6 +1,5 @@
 import {
   createTable,
-  addColumns,
   schemaMigrations,
 } from "@nozbe/watermelondb/Schema/migrations";
 
@@ -28,19 +27,9 @@ export default schemaMigrations({
           ],
         }),
         createTable({
-          name: "subjects",
-          columns: [
-            { name: "name", type: "string" },
-            { name: "code", type: "string" },
-            { name: "description", type: "string", isOptional: true },
-            { name: "is_active", type: "boolean" },
-            { name: "created_at", type: "number" },
-            { name: "updated_at", type: "number" },
-          ],
-        }),
-        createTable({
           name: "classes",
           columns: [
+            { name: "class_id", type: "string" },
             { name: "name", type: "string" },
             { name: "grade", type: "string" },
             { name: "section", type: "string" },
@@ -83,9 +72,9 @@ export default schemaMigrations({
           name: "teacher_attendance",
           columns: [
             { name: "teacher_id", type: "string", isIndexed: true },
-            { name: "date", type: "string" },
-            { name: "check_in", type: "string", isOptional: true },
-            { name: "check_out", type: "string", isOptional: true },
+            { name: "latitude", type: "number" },
+            { name: "longitude", type: "number" },
+            { name: "check_in", type: "string" },
             { name: "status", type: "string" },
             { name: "notes", type: "string", isOptional: true },
             { name: "created_at", type: "number" },
@@ -113,15 +102,6 @@ export default schemaMigrations({
             { name: "created_at", type: "number" },
             { name: "updated_at", type: "number" },
           ],
-        }),
-      ],
-    },
-    {
-      toVersion: 3,
-      steps: [
-        addColumns({
-          table: "classes",
-          columns: [{ name: "class_id", type: "string" }],
         }),
       ],
     },

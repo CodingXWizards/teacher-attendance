@@ -6,7 +6,6 @@ import migrations from "./migrations";
 
 import {
   User,
-  Subject,
   Class,
   TeacherClass,
   Student,
@@ -14,10 +13,6 @@ import {
   StudentAttendance,
   SyncStatus,
 } from "./models";
-
-console.log("🔧 Starting WatermelonDB setup...");
-console.log("📋 Schema version:", schema.version);
-console.log("📋 Number of tables:", schema.tables.length);
 
 // First, create the adapter
 const adapter = new SQLiteAdapter({
@@ -29,16 +24,10 @@ const adapter = new SQLiteAdapter({
   },
 });
 
-console.log(
-  "🔧 WatermelonDB Adapter created with schema version:",
-  schema.version,
-);
-
 const database = new Database({
   adapter,
   modelClasses: [
     User,
-    Subject,
     Class,
     TeacherClass,
     Student,
@@ -48,6 +37,15 @@ const database = new Database({
   ],
 });
 
-console.log("✅ WatermelonDB Database instance created successfully");
+// Development helper to clear database (only use in development!)
+export const clearDatabase = async () => {
+  if (__DEV__) {
+    await database.write(async () => {
+      await database.unsafeResetDatabase();
+    });
+  } else {
+    console.warn("⚠️ clearDatabase should only be used in development!");
+  }
+};
 
 export default database;

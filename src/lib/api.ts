@@ -8,7 +8,6 @@ import {
 } from "@/types/auth";
 import {
   Class,
-  Subject,
   Teacher,
   Student,
   UserStats,
@@ -25,8 +24,6 @@ import {
   PaginatedResponse,
   CreateClassRequest,
   UpdateClassRequest,
-  CreateSubjectRequest,
-  UpdateSubjectRequest,
   CreateTeacherRequest,
   UpdateTeacherRequest,
   CreateStudentRequest,
@@ -169,7 +166,7 @@ class ApiClient {
       const data: ApiResponse<T> = await response.json();
       return data.data as T;
     } catch (error) {
-      console.log("error", error);
+      console.error("error", error);
       throw error;
     }
   }
@@ -190,7 +187,6 @@ class ApiClient {
     body?: any,
     config?: Omit<RequestConfig, "method">,
   ): Promise<T> {
-    console.log("post", endpoint, body);
     return this.makeRequest<T>(endpoint, {
       ...config,
       method: "POST",
@@ -339,31 +335,32 @@ export const endpoints = {
   },
   attendance: {
     teacher: {
-      list: "/teacher-attendance",
-      get: (id: string) => `/teacher-attendance/${id}`,
-      byTeacher: (teacherId: string) =>
-        `/teacher-attendance/teacher/${teacherId}`,
-      byDate: (date: string) => `/teacher-attendance/date/${date}`,
-      create: "/teacher-attendance",
-      update: (id: string) => `/teacher-attendance/${id}`,
-      delete: (id: string) => `/teacher-attendance/${id}`,
+      list: "/attendance/teacher",
+      get: (id: string) => `/attendance/teacher/${id}`,
+      byTeacher: (teacherId: string) => `/attendance/teacher/${teacherId}`,
+      byDate: (date: string) => `/attendance/date/${date}`,
+      update: (id: string) => `/attendance/teacher/${id}`,
+      delete: (id: string) => `/attendance/teacher/${id}`,
     },
     student: {
-      list: "/student-attendance",
-      get: (id: string) => `/student-attendance/${id}`,
-      byStudent: (studentId: string) =>
-        `/student-attendance/student/${studentId}`,
-      byClass: (classId: string) => `/student-attendance/class/${classId}`,
-      byDate: (date: string) => `/student-attendance/date/${date}`,
-      create: "/student-attendance",
-      update: (id: string) => `/student-attendance/${id}`,
-      delete: (id: string) => `/student-attendance/${id}`,
+      list: "/attendance/student",
+      get: (id: string) => `/attendance/student/${id}`,
+      byStudent: (studentId: string) => `/attendance/student/${studentId}`,
+      byClass: (classId: string) => `/attendance/student/class/${classId}`,
+      byDate: (date: string) => `/attendance/student/date/${date}`,
+      create: "/attendance/student",
+      update: (id: string) => `/attendance/student/${id}`,
+      delete: (id: string) => `/attendance/student/${id}`,
     },
   },
   reports: {
     summary: "/reports/summary",
     teacher: (teacherId: string) => `/reports/teacher/${teacherId}`,
     dateRange: "/reports/date-range",
+  },
+  resync: {
+    teacher: "/attendance/teacher/bulk",
+    student: "/attendance/student/bulk",
   },
 } as const;
 
@@ -470,40 +467,50 @@ export const usersApi = {
   delete: (id: string) => api.delete<void>(endpoints.users.delete(id)),
 };
 
-export const subjectsApi = {
-  list: (params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    isActive?: boolean;
-  }) =>
-    api.getPaginated<Subject>(
-      endpoints.subjects.list,
-      params?.page,
-      params?.limit,
-      { params },
-    ),
+export const resyncApi = {
+  teacher: (
+    bulkData: Omit<TeacherAttendance, "id" | "createdAt" | "updatedAt">[],
+  ) => api.post<void>(endpoints.resync.teacher, bulkData),
 
-  active: () => api.get<Subject[]>(endpoints.subjects.active),
-
-  get: (id: string) => api.get<Subject>(endpoints.subjects.get(id)),
-
-  byCode: (code: string) => api.get<Subject>(endpoints.subjects.byCode(code)),
-
-  byField: (field: string) =>
-    api.get<Subject[]>(endpoints.subjects.byField(field)),
-
-  create: (subjectData: CreateSubjectRequest) =>
-    api.post<Subject>(endpoints.subjects.create, subjectData),
-
-  update: (id: string, subjectData: UpdateSubjectRequest) =>
-    api.put<Subject>(endpoints.subjects.update(id), subjectData),
-
-  delete: (id: string) => api.delete<void>(endpoints.subjects.delete(id)),
-
-  hardDelete: (id: string) =>
-    api.delete<void>(endpoints.subjects.hardDelete(id)),
+  student: (
+    bulkData: Omit<StudentAttendance, "id" | "createdAt" | "updatedAt">[],
+  ) => api.post<void>(endpoints.resync.student, bulkData),
 };
+
+// export const subjectsApi = {
+//   list: (params?: {
+//     page?: number;
+//     limit?: number;
+//     search?: string;
+//     isActive?: boolean;
+//   }) =>
+//     api.getPaginated<Subject>(
+//       endpoints.subjects.list,
+//       params?.page,
+//       params?.limit,
+//       { params },
+//     ),
+
+//   active: () => api.get<Subject[]>(endpoints.subjects.active),
+
+//   get: (id: string) => api.get<Subject>(endpoints.subjects.get(id)),
+
+//   byCode: (code: string) => api.get<Subject>(endpoints.subjects.byCode(code)),
+
+//   byField: (field: string) =>
+//     api.get<Subject[]>(endpoints.subjects.byField(field)),
+
+//   create: (subjectData: CreateSubjectRequest) =>
+//     api.post<Subject>(endpoints.subjects.create, subjectData),
+
+//   update: (id: string, subjectData: UpdateSubjectRequest) =>
+//     api.put<Subject>(endpoints.subjects.update(id), subjectData),
+
+//   delete: (id: string) => api.delete<void>(endpoints.subjects.delete(id)),
+
+//   hardDelete: (id: string) =>
+//     api.delete<void>(endpoints.subjects.hardDelete(id)),
+// };
 
 export const teachersApi = {
   list: (params?: {
@@ -670,12 +677,6 @@ export const attendanceApi = {
 
     byDate: (date: string) =>
       api.get<TeacherAttendance[]>(endpoints.attendance.teacher.byDate(date)),
-
-    create: (attendanceData: CreateTeacherAttendanceRequest) =>
-      api.post<TeacherAttendance>(
-        endpoints.attendance.teacher.create,
-        attendanceData,
-      ),
 
     update: (id: string, attendanceData: UpdateTeacherAttendanceRequest) =>
       api.put<TeacherAttendance>(

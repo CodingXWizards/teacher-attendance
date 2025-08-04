@@ -1,50 +1,57 @@
 import React, { useEffect } from "react";
-import { useNavigation } from "@react-navigation/native";
 
 import LoginScreen from "@/app/login";
 import { AuthService } from "@/services";
 import DashboardScreen from "@/app/index";
 import ProfileScreen from "@/app/profile";
+import ReportsScreen from "@/app/reports";
 import DataSyncScreen from "@/app/data-sync";
+import SyncLogsScreen from "@/app/sync-logs";
+import SplashScreen from "@/app/splash-screen";
 import AttendanceScreen from "@/app/attendance";
-import ClassDetailsScreen from "@/app/class/[id]";
 import { useUserStore } from "@/stores/userStore";
-import TakeAttendanceScreen from "@/app/attendance/[id]";
+import ClassDetailsScreen from "@/app/class/[classId]";
+import { useNavigation } from "@react-navigation/native";
+import { useDatabase } from "@/components/DatabaseProvider";
+import TakeAttendanceScreen from "@/app/attendance/[classId]";
 import { createStackNavigator } from "@react-navigation/stack";
 import StudentDetailsScreen from "@/app/class/student/[studentId]";
-import ReportsScreen from "@/app/reports";
 
 const Stack = createStackNavigator();
 
 const AppRouter = () => {
   const { setUser } = useUserStore();
   const navigation = useNavigation();
+  const { isLoading: isDatabaseLoading } = useDatabase();
 
   useEffect(() => {
+    if (isDatabaseLoading) {
+      return;
+    }
+
     AuthService.isAuthenticated().then(async isAuthenticated => {
       if (isAuthenticated) {
         try {
-          const user = await AuthService.getCurrentUser();
-          setUser(user);
-          // For now, always go to dashboard if authenticated
-          // Data sync will be handled during login flow
+          const user = await AuthService.getCurrentUserFromStore();
           navigation.navigate("Dashboard" as never);
+          setUser(user);
         } catch (error) {
           console.error("Error getting current user:", error);
-          navigation.navigate("Login" as never);
         }
       } else {
         navigation.navigate("Login" as never);
       }
     });
-  }, []);
+  }, [isDatabaseLoading]);
 
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
+      initialRouteName="Splash"
     >
+      <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="DataSync" component={DataSyncScreen} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
@@ -72,6 +79,11 @@ const AppRouter = () => {
       <Stack.Screen
         name="Reports"
         component={ReportsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SyncLogs"
+        component={SyncLogsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

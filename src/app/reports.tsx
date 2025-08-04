@@ -1,33 +1,32 @@
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
-  ActivityIndicator,
   Modal,
   TextInput,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import {
-  BarChart3,
-  Calendar,
-  TrendingUp,
-  Users,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ChevronLeft,
-  Filter,
   X,
+  XCircle,
+  Calendar,
+  BarChart3,
+  TrendingUp,
+  CheckCircle,
 } from "lucide-react-native";
+import { useRoute } from "@react-navigation/native";
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Appbar } from "@/components/appbar";
-import { DatabaseService } from "@/services/databaseService";
+import { useAlert } from "@/contexts/AlertContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { AttendanceStatus } from "@/types/attendance";
+import { DatabaseService } from "@/services/databaseService";
+import { format } from "date-fns";
 
 interface AttendanceData {
   date: string;
@@ -48,14 +47,15 @@ interface StudentAttendanceData {
 
 interface DateRange {
   label: string;
-  startDate: string;
-  endDate: string;
+  startDate: number;
+  endDate: number;
 }
 
 export default function ReportsPage() {
   const route = useRoute();
-  const navigation = useNavigation();
   const { classId } = route.params as { classId: string };
+  const { showAlert } = useAlert();
+  const { colors } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +69,8 @@ export default function ReportsPage() {
     null,
   );
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
+  const [customStartDate, setCustomStartDate] = useState<number>(Date.now());
+  const [customEndDate, setCustomEndDate] = useState<number>(Date.now());
 
   // Date range options
   const dateRanges: DateRange[] = useMemo(() => {
@@ -90,28 +90,28 @@ export default function ReportsPage() {
     return [
       {
         label: "Today",
-        startDate: today.toISOString().split("T")[0],
-        endDate: today.toISOString().split("T")[0],
+        startDate: today.getTime(),
+        endDate: today.getTime(),
       },
       {
         label: "Yesterday",
-        startDate: yesterday.toISOString().split("T")[0],
-        endDate: yesterday.toISOString().split("T")[0],
+        startDate: yesterday.getTime(),
+        endDate: yesterday.getTime(),
       },
       {
         label: "Last 7 Days",
-        startDate: last7Days.toISOString().split("T")[0],
-        endDate: today.toISOString().split("T")[0],
+        startDate: last7Days.getTime(),
+        endDate: today.getTime(),
       },
       {
         label: "Last 30 Days",
-        startDate: last30Days.toISOString().split("T")[0],
-        endDate: today.toISOString().split("T")[0],
+        startDate: last30Days.getTime(),
+        endDate: today.getTime(),
       },
       {
         label: "Last Month",
-        startDate: lastMonth.toISOString().split("T")[0],
-        endDate: lastMonthEnd.toISOString().split("T")[0],
+        startDate: lastMonth.getTime(),
+        endDate: lastMonthEnd.getTime(),
       },
     ];
   }, []);
@@ -149,7 +149,11 @@ export default function ReportsPage() {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load data";
       setError(errorMessage);
-      Alert.alert("Error", errorMessage);
+      showAlert({
+        title: "Error",
+        message: errorMessage,
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -178,9 +182,9 @@ export default function ReportsPage() {
       const endDateObj = new Date(endDate);
 
       while (currentDate <= endDateObj) {
-        const dateStr = currentDate.toISOString().split("T")[0];
-        attendanceByDate.set(dateStr, {
-          date: dateStr,
+        const dateKey = currentDate.toISOString().split("T")[0];
+        attendanceByDate.set(dateKey, {
+          date: dateKey,
           present: 0,
           absent: 0,
           total: students.length,
@@ -191,7 +195,10 @@ export default function ReportsPage() {
 
       // Count attendance by date
       attendanceRecords.forEach(record => {
-        const dateData = attendanceByDate.get(record.date);
+        // Convert record.date (timestamp) to date string for comparison
+        const recordDate = new Date(record.date);
+        const dateKey = recordDate.toISOString().split("T")[0];
+        const dateData = attendanceByDate.get(dateKey);
         if (dateData) {
           if (record.status === AttendanceStatus.PRESENT) {
             dateData.present++;
@@ -208,7 +215,7 @@ export default function ReportsPage() {
       const studentAttendanceMap = new Map<string, StudentAttendanceData>();
 
       students.forEach(student => {
-        studentAttendanceMap.set(student.studentId, {
+        studentAttendanceMap.set(student.id, {
           studentId: student.studentId,
           studentName: `${student.firstName} ${student.lastName}`,
           totalDays: 0,
@@ -248,12 +255,20 @@ export default function ReportsPage() {
 
   const handleCustomDateRange = () => {
     if (!customStartDate || !customEndDate) {
-      Alert.alert("Error", "Please select both start and end dates");
+      showAlert({
+        title: "Error",
+        message: "Please select both start and end dates",
+        type: "error",
+      });
       return;
     }
 
     if (new Date(customStartDate) > new Date(customEndDate)) {
-      Alert.alert("Error", "Start date cannot be after end date");
+      showAlert({
+        title: "Error",
+        message: "Start date cannot be after end date",
+        type: "error",
+      });
       return;
     }
 
@@ -302,28 +317,42 @@ export default function ReportsPage() {
 
   if (loading && !classData) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading reports...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Loading reports...
+        </Text>
       </View>
     );
   }
 
   if (error || !classData) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <Text style={[styles.errorText, { color: colors.text }]}>
           {error || "Failed to load class data"}
         </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={loadData}
+        >
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Try Again
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         <Appbar
           title="Attendance Reports"
@@ -335,10 +364,17 @@ export default function ReportsPage() {
           showsVerticalScrollIndicator={false}
         >
           {/* Date Range Selector */}
-          <View style={styles.dateRangeSection}>
+          <View
+            style={[
+              styles.dateRangeSection,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.dateRangeHeader}>
-              <Calendar size={20} color="#1f2937" />
-              <Text style={styles.dateRangeTitle}>Date Range</Text>
+              <Calendar size={20} color={colors.text} />
+              <Text style={[styles.dateRangeTitle, { color: colors.text }]}>
+                Date Range
+              </Text>
             </View>
 
             <ScrollView
@@ -351,16 +387,24 @@ export default function ReportsPage() {
                   key={index}
                   style={[
                     styles.dateRangeButton,
-                    selectedDateRange?.label === range.label &&
-                      styles.dateRangeButtonActive,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                    selectedDateRange?.label === range.label && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={() => setSelectedDateRange(range)}
                 >
                   <Text
                     style={[
                       styles.dateRangeButtonText,
-                      selectedDateRange?.label === range.label &&
-                        styles.dateRangeButtonTextActive,
+                      { color: colors.text },
+                      selectedDateRange?.label === range.label && {
+                        color: colors.onPrimary,
+                      },
                     ]}
                   >
                     {range.label}
@@ -371,16 +415,24 @@ export default function ReportsPage() {
               <TouchableOpacity
                 style={[
                   styles.dateRangeButton,
-                  selectedDateRange?.label === "Custom Range" &&
-                    styles.dateRangeButtonActive,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                  selectedDateRange?.label === "Custom Range" && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => setShowCustomDatePicker(true)}
               >
                 <Text
                   style={[
                     styles.dateRangeButtonText,
-                    selectedDateRange?.label === "Custom Range" &&
-                      styles.dateRangeButtonTextActive,
+                    { color: colors.text },
+                    selectedDateRange?.label === "Custom Range" && {
+                      color: colors.onPrimary,
+                    },
                   ]}
                 >
                   Custom
@@ -389,43 +441,72 @@ export default function ReportsPage() {
             </ScrollView>
 
             {selectedDateRange && (
-              <Text style={styles.dateRangeInfo}>
-                {selectedDateRange.startDate} to {selectedDateRange.endDate}
+              <Text
+                style={[styles.dateRangeInfo, { color: colors.textSecondary }]}
+              >
+                {format(selectedDateRange.startDate, "MMM d, yyyy")} to{" "}
+                {format(selectedDateRange.endDate, "MMM d, yyyy")}
               </Text>
             )}
           </View>
 
           {/* Overall Statistics */}
-          <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>Overall Statistics</Text>
+          <View
+            style={[
+              styles.statsCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.statsTitle, { color: colors.text }]}>
+              Overall Statistics
+            </Text>
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <CheckCircle size={24} color="#10b981" />
-                <Text style={styles.statNumber}>
+                <CheckCircle size={24} color={colors.success} />
+                <Text style={[styles.statNumber, { color: colors.text }]}>
                   {overallStats.totalPresent}
                 </Text>
-                <Text style={styles.statLabel}>Total Present</Text>
+                <Text
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
+                >
+                  Total Present
+                </Text>
               </View>
               <View style={styles.statItem}>
-                <XCircle size={24} color="#ef4444" />
-                <Text style={styles.statNumber}>
+                <XCircle size={24} color={colors.error} />
+                <Text style={[styles.statNumber, { color: colors.text }]}>
                   {overallStats.totalAbsent}
                 </Text>
-                <Text style={styles.statLabel}>Total Absent</Text>
+                <Text
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
+                >
+                  Total Absent
+                </Text>
               </View>
               <View style={styles.statItem}>
-                <TrendingUp size={24} color="#8b5cf6" />
-                <Text style={styles.statNumber}>
+                <TrendingUp size={24} color={colors.primary} />
+                <Text style={[styles.statNumber, { color: colors.text }]}>
                   {overallStats.averageRate}%
                 </Text>
-                <Text style={styles.statLabel}>Average Rate</Text>
+                <Text
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
+                >
+                  Average Rate
+                </Text>
               </View>
             </View>
           </View>
 
           {/* Daily Attendance Chart */}
-          <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>Daily Attendance Trend</Text>
+          <View
+            style={[
+              styles.chartCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.chartTitle, { color: colors.text }]}>
+              Daily Attendance Trend
+            </Text>
             <ScrollView
               style={styles.chartContainer}
               showsVerticalScrollIndicator={false}
@@ -435,14 +516,24 @@ export default function ReportsPage() {
                   {attendanceData.map((day, index) => (
                     <View key={day.date} style={styles.barContainer}>
                       <View style={styles.barLabels}>
-                        <Text style={styles.barDate}>
+                        <Text style={[styles.barDate, { color: colors.text }]}>
                           {formatDate(day.date)}
                         </Text>
-                        <Text style={styles.barRate}>
+                        <Text
+                          style={[
+                            styles.barRate,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           {Math.round(day.attendanceRate)}%
                         </Text>
                       </View>
-                      <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barTrack,
+                          { backgroundColor: colors.border },
+                        ]}
+                      >
                         <View
                           style={[
                             styles.barFill,
@@ -450,10 +541,10 @@ export default function ReportsPage() {
                               width: `${day.attendanceRate}%`,
                               backgroundColor:
                                 day.attendanceRate >= 80
-                                  ? "#10b981"
+                                  ? colors.success
                                   : day.attendanceRate >= 60
-                                  ? "#f59e0b"
-                                  : "#ef4444",
+                                  ? colors.warning
+                                  : colors.error,
                             },
                           ]}
                         />
@@ -463,8 +554,10 @@ export default function ReportsPage() {
                 </View>
               ) : (
                 <View style={styles.noDataContainer}>
-                  <BarChart3 size={48} color="#6b7280" />
-                  <Text style={styles.noDataText}>
+                  <BarChart3 size={48} color={colors.textSecondary} />
+                  <Text
+                    style={[styles.noDataText, { color: colors.textSecondary }]}
+                  >
                     No attendance data for selected period
                   </Text>
                 </View>
@@ -473,8 +566,15 @@ export default function ReportsPage() {
           </View>
 
           {/* Student Performance */}
-          <View style={styles.studentsCard}>
-            <Text style={styles.studentsTitle}>Student Performance</Text>
+          <View
+            style={[
+              styles.studentsCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.studentsTitle, { color: colors.text }]}>
+              Student Performance
+            </Text>
             <ScrollView
               style={styles.studentsList}
               showsVerticalScrollIndicator={false}
@@ -482,12 +582,28 @@ export default function ReportsPage() {
               {studentAttendanceData
                 .sort((a, b) => b.attendanceRate - a.attendanceRate)
                 .map((student, index) => (
-                  <View key={student.studentId} style={styles.studentRow}>
+                  <View
+                    key={student.studentId}
+                    style={[
+                      styles.studentRow,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
                     <View style={styles.studentInfo}>
-                      <Text style={styles.studentName}>
+                      <Text
+                        style={[styles.studentName, { color: colors.text }]}
+                      >
                         {student.studentName}
                       </Text>
-                      <Text style={styles.studentStats}>
+                      <Text
+                        style={[
+                          styles.studentStats,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         {student.presentDays} present, {student.absentDays}{" "}
                         absent
                       </Text>
@@ -499,10 +615,10 @@ export default function ReportsPage() {
                           {
                             color:
                               student.attendanceRate >= 80
-                                ? "#10b981"
+                                ? colors.success
                                 : student.attendanceRate >= 60
-                                ? "#f59e0b"
-                                : "#ef4444",
+                                ? colors.warning
+                                : colors.error,
                           },
                         ]}
                       >
@@ -522,50 +638,109 @@ export default function ReportsPage() {
           transparent={true}
           onRequestClose={() => setShowCustomDatePicker(false)}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <View
+            style={[styles.modalOverlay, { backgroundColor: colors.backdrop }]}
+          >
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.surfaceElevated },
+              ]}
+            >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Custom Date Range</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Select Custom Date Range
+                </Text>
                 <TouchableOpacity
                   onPress={() => setShowCustomDatePicker(false)}
                   style={styles.closeButton}
                 >
-                  <X size={24} color="#6b7280" />
+                  <X size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.dateInputContainer}>
-                <Text style={styles.dateInputLabel}>Start Date</Text>
+                <Text
+                  style={[
+                    styles.dateInputLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Start Date
+                </Text>
                 <TextInput
-                  style={styles.dateInput}
+                  style={[
+                    styles.dateInput,
+                    {
+                      borderColor: colors.border,
+                      color: colors.text,
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
                   placeholder="YYYY-MM-DD"
-                  value={customStartDate}
-                  onChangeText={setCustomStartDate}
+                  placeholderTextColor={colors.textTertiary}
+                  value={customStartDate.toString()}
+                  onChangeText={text => setCustomStartDate(Number(text))}
                 />
               </View>
 
               <View style={styles.dateInputContainer}>
-                <Text style={styles.dateInputLabel}>End Date</Text>
+                <Text
+                  style={[
+                    styles.dateInputLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  End Date
+                </Text>
                 <TextInput
-                  style={styles.dateInput}
+                  style={[
+                    styles.dateInput,
+                    {
+                      borderColor: colors.border,
+                      color: colors.text,
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
                   placeholder="YYYY-MM-DD"
-                  value={customEndDate}
-                  onChangeText={setCustomEndDate}
+                  placeholderTextColor={colors.textTertiary}
+                  value={customEndDate.toString()}
+                  onChangeText={text => setCustomEndDate(Number(text))}
                 />
               </View>
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[
+                    styles.cancelButton,
+                    {
+                      backgroundColor: colors.surfaceVariant,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() => setShowCustomDatePicker(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text
+                    style={[styles.cancelButtonText, { color: colors.text }]}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.applyButton}
+                  style={[
+                    styles.applyButton,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={handleCustomDateRange}
                 >
-                  <Text style={styles.applyButtonText}>Apply</Text>
+                  <Text
+                    style={[
+                      styles.applyButtonText,
+                      { color: colors.onPrimary },
+                    ]}
+                  >
+                    Apply
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -579,7 +754,6 @@ export default function ReportsPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
   },
   safeArea: {
     flex: 1,
@@ -594,7 +768,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: "#1f2937",
     marginTop: 16,
   },
   errorContainer: {
@@ -605,26 +778,21 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: "#1f2937",
     textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#8b5cf6",
     borderRadius: 12,
   },
   retryButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   dateRangeSection: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: "#f8fafc",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
   },
   dateRangeHeader: {
     flexDirection: "row",
@@ -635,7 +803,6 @@ const styles = StyleSheet.create({
   dateRangeTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2937",
   },
   dateRangeScroll: {
     marginBottom: 8,
@@ -646,33 +813,26 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#ffffff",
   },
   dateRangeButtonActive: {
-    backgroundColor: "#8b5cf6",
-    borderColor: "#8b5cf6",
+    // Handled dynamically
   },
   dateRangeButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1f2937",
   },
   dateRangeButtonTextActive: {
-    color: "#ffffff",
+    // Handled dynamically
   },
   dateRangeInfo: {
     fontSize: 12,
-    color: "#6b7280",
     textAlign: "center",
   },
   statsCard: {
     margin: 16,
     padding: 20,
-    backgroundColor: "#f8fafc",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   statsTitle: {
     fontSize: 18,
@@ -692,24 +852,19 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1f2937",
   },
   statLabel: {
     fontSize: 12,
-    color: "#6b7280",
   },
   chartCard: {
     margin: 16,
     padding: 20,
-    backgroundColor: "#f8fafc",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   chartTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -729,16 +884,13 @@ const styles = StyleSheet.create({
   },
   barDate: {
     fontSize: 12,
-    color: "#6b7280",
   },
   barRate: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#1f2937",
   },
   barTrack: {
     height: 8,
-    backgroundColor: "#e5e7eb",
     borderRadius: 4,
     overflow: "hidden",
   },
@@ -754,22 +906,18 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 16,
-    color: "#6b7280",
     marginTop: 8,
     textAlign: "center",
   },
   studentsCard: {
     margin: 16,
     padding: 20,
-    backgroundColor: "#f8fafc",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   studentsTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -786,10 +934,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 8,
-    backgroundColor: "#ffffff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   studentInfo: {
     flex: 1,
@@ -801,7 +947,6 @@ const styles = StyleSheet.create({
   },
   studentStats: {
     fontSize: 12,
-    color: "#6b7280",
     marginTop: 2,
   },
   studentRate: {
@@ -815,11 +960,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
     width: "80%",
-    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 20,
     alignItems: "center",
@@ -834,7 +977,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
   },
   closeButton: {
     padding: 5,
@@ -846,17 +988,14 @@ const styles = StyleSheet.create({
   dateInputLabel: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1f2937",
     marginBottom: 8,
   },
   dateInput: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: "#1f2937",
   },
   modalButtons: {
     flexDirection: "row",
@@ -867,21 +1006,17 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#ef4444",
     borderRadius: 8,
   },
   cancelButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   applyButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#8b5cf6",
     borderRadius: 8,
   },
   applyButtonText: {
-    color: "#ffffff",
     fontWeight: "500",
   },
   backButton: {
@@ -889,13 +1024,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#f8fafc",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
   },
   backButtonText: {
     fontSize: 16,
-    color: "#1f2937",
     marginLeft: 8,
   },
 });

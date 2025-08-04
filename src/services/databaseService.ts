@@ -4,7 +4,6 @@ import {
   User,
   Class,
   Student,
-  Subject,
   SyncStatus,
   TeacherClass,
   TeacherAttendance,
@@ -154,35 +153,12 @@ export class DatabaseService {
     for (const attendance of teacherAttendanceData) {
       await this.markTeacherAttendance({
         teacherId: attendance.teacherId,
-        date: attendance.date,
-        checkIn: attendance.checkIn || "",
+        latitude: attendance.latitude,
+        longitude: attendance.longitude,
+        checkIn: attendance.checkIn || Date.now(),
         status: attendance.status,
       });
     }
-  }
-
-  // Subject operations
-  static async createSubject(subjectData: {
-    name: string;
-    code: string;
-    description?: string;
-    isActive: boolean;
-  }): Promise<Subject> {
-    return await database.write(async () => {
-      return await database.get<Subject>("subjects").create(subject => {
-        subject.name = subjectData.name;
-        subject.code = subjectData.code;
-        subject.description = subjectData.description || null;
-        subject.isActive = subjectData.isActive;
-      });
-    });
-  }
-
-  static async getAllSubjects(): Promise<Subject[]> {
-    return await database
-      .get<Subject>("subjects")
-      .query(Q.where("is_active", true))
-      .fetch();
   }
 
   // Class operations
@@ -383,8 +359,9 @@ export class DatabaseService {
   // Teacher Attendance operations
   static async markTeacherAttendance(attendanceData: {
     teacherId: string;
-    date: string;
-    checkIn: string;
+    latitude: number;
+    longitude: number;
+    checkIn: number;
     status: string;
   }): Promise<TeacherAttendance> {
     return await database.write(async () => {
@@ -392,8 +369,9 @@ export class DatabaseService {
         .get<TeacherAttendance>("teacher_attendance")
         .create(attendance => {
           attendance.teacherId = attendanceData.teacherId;
-          attendance.date = attendanceData.date;
-          attendance.checkIn = attendanceData.checkIn || null;
+          attendance.latitude = attendanceData.latitude;
+          attendance.longitude = attendanceData.longitude;
+          attendance.checkIn = attendanceData.checkIn || undefined;
           attendance.status = attendanceData.status;
         });
     });
@@ -401,19 +379,44 @@ export class DatabaseService {
 
   static async getTeacherAttendance(
     teacherId: string,
-    date: string,
+    checkIn?: number,
   ): Promise<TeacherAttendance[]> {
-    return await database
+    let query = [Q.where("teacher_id", teacherId)];
+    if (checkIn) {
+      // Convert checkIn to a date range for the same day
+      const checkInDate = new Date(checkIn);
+      const startOfDay = new Date(
+        checkInDate.getFullYear(),
+        checkInDate.getMonth(),
+        checkInDate.getDate(),
+      ).getTime();
+      const endOfDay = new Date(
+        checkInDate.getFullYear(),
+        checkInDate.getMonth(),
+        checkInDate.getDate(),
+        23,
+        59,
+        59,
+        999,
+      ).getTime();
+
+      query.push(Q.where("check_in", Q.gte(startOfDay)));
+      query.push(Q.where("check_in", Q.lte(endOfDay)));
+    }
+
+    const attendance = await database
       .get<TeacherAttendance>("teacher_attendance")
-      .query(Q.where("teacher_id", teacherId), Q.where("date", date))
+      .query(...query)
       .fetch();
+    return extractRawDataArray(attendance);
   }
 
   static async updateTeacherAttendance(
     id: string,
     updateData: {
-      checkIn?: string;
-      checkOut?: string;
+      checkIn?: number;
+      latitude?: number;
+      longitude?: number;
       status?: string;
     },
   ): Promise<void> {
@@ -425,6 +428,10 @@ export class DatabaseService {
         await attendance.update(updatedAttendance => {
           if (updateData.checkIn !== undefined)
             updatedAttendance.checkIn = updateData.checkIn;
+          if (updateData.latitude !== undefined)
+            updatedAttendance.latitude = updateData.latitude;
+          if (updateData.longitude !== undefined)
+            updatedAttendance.longitude = updateData.longitude;
           if (updateData.status !== undefined)
             updatedAttendance.status = updateData.status;
         });
@@ -436,7 +443,7 @@ export class DatabaseService {
   static async markStudentAttendance(attendanceData: {
     classId: string;
     studentId: string;
-    date: string;
+    date: number;
     status: string;
     notes?: string;
     markedBy?: string;
@@ -482,7 +489,7 @@ export class DatabaseService {
 
   static async getStudentAttendanceByClassAndDate(
     classId: string,
-    date: string,
+    date: number,
   ): Promise<StudentAttendance[]> {
     return await database
       .get<StudentAttendance>("student_attendance")
@@ -500,11 +507,16 @@ export class DatabaseService {
 
   static async getClassAttendance(
     classId: string,
-    date: string,
+    date?: number,
   ): Promise<StudentAttendance[]> {
+    let query = [Q.where("class_id", classId)];
+    if (date) {
+      query.push(Q.where("date", Q.like(`%${date}%`)));
+    }
+
     const studentAttendance = await database
       .get<StudentAttendance>("student_attendance")
-      .query(Q.where("class_id", classId), Q.where("date", date))
+      .query(...query)
       .fetch();
     return extractRawDataArray(studentAttendance);
   }
@@ -522,8 +534,32 @@ export class DatabaseService {
   static async getTodayAttendanceForClass(
     classId: string,
   ): Promise<StudentAttendance[]> {
-    const today = new Date().toISOString().split("T")[0];
-    return await this.getClassAttendance(classId, today);
+    // Get today's date range (start of day to end of day)
+    const today = new Date();
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    ).getTime();
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
+
+    const studentAttendance = await database
+      .get<StudentAttendance>("student_attendance")
+      .query(
+        Q.where("class_id", classId),
+        Q.where("date", Q.gte(startOfDay)),
+        Q.where("date", Q.lte(endOfDay)),
+      )
+      .fetch();
+    return extractRawDataArray(studentAttendance);
   }
 
   static async getTodayAttendanceForClassModels(
@@ -535,15 +571,18 @@ export class DatabaseService {
 
   static async getStudentAttendanceByDateRange(
     classId: string,
-    startDate: string,
-    endDate: string,
+    startDate: number,
+    endDate: number,
   ): Promise<StudentAttendance[]> {
+    const startTimestamp = startDate;
+    const endTimestamp = endDate;
+
     const studentAttendance = await database
       .get<StudentAttendance>("student_attendance")
       .query(
         Q.where("class_id", classId),
-        Q.where("date", Q.gte(startDate)),
-        Q.where("date", Q.lte(endDate)),
+        Q.where("date", Q.gte(startTimestamp)),
+        Q.where("date", Q.lte(endTimestamp)),
       )
       .fetch();
     return extractRawDataArray(studentAttendance);
@@ -552,8 +591,8 @@ export class DatabaseService {
   static async getStudentAttendance(
     studentId: string,
     params?: {
-      startDate?: string;
-      endDate?: string;
+      startDate?: Date;
+      endDate?: Date;
       classId?: string;
     },
   ): Promise<StudentAttendance[]> {
@@ -567,19 +606,29 @@ export class DatabaseService {
     attendanceData: {
       studentId: string;
       classId: string;
-      date: string;
+      date: number;
       status: string;
       notes?: string;
       markedBy?: string;
     }[],
   ): Promise<void> {
-    const today = new Date().toISOString().split("T")[0];
+    // Use the date from the first attendance record to find existing records
+    const targetDate = attendanceData[0]?.date || Date.now();
+    const todayStart = new Date(targetDate);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(targetDate);
+    todayEnd.setHours(23, 59, 59, 999);
 
-    // Get existing attendance records for today as model instances
-    const existingAttendance = await this.getClassAttendanceModels(
-      attendanceData[0]?.classId || "",
-      today,
-    );
+    // Get existing attendance records for the target date as model instances
+    // Use date range query to find records for the same day
+    const existingAttendance = await database
+      .get<StudentAttendance>("student_attendance")
+      .query(
+        Q.where("class_id", attendanceData[0]?.classId || ""),
+        Q.where("date", Q.gte(todayStart.getTime())),
+        Q.where("date", Q.lte(todayEnd.getTime())),
+      )
+      .fetch();
 
     await database.write(async () => {
       for (const data of attendanceData) {
@@ -587,7 +636,6 @@ export class DatabaseService {
         const existingRecord = existingAttendance.find(
           record => record.studentId === data.studentId,
         );
-
         if (existingRecord) {
           // Update existing record directly
           await existingRecord.update(updatedAttendance => {
@@ -689,7 +737,6 @@ export class DatabaseService {
   static async clearAllData(): Promise<void> {
     return await database.write(async () => {
       await database.get<User>("users").query().destroyAllPermanently();
-      await database.get<Subject>("subjects").query().destroyAllPermanently();
       await database.get<Class>("classes").query().destroyAllPermanently();
       await database
         .get<TeacherClass>("teacher_class")

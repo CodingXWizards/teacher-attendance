@@ -1,7 +1,9 @@
 import React from "react";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Wifi, WifiOff } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useConnectivity } from "@/hooks/useConnectivity";
 
 interface AppbarProps {
   title: string;
@@ -17,22 +19,57 @@ export const Appbar = ({
   showBack = true,
 }: AppbarProps) => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isOnline, connectionType } = useConnectivity();
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          borderBottomColor: colors.border,
+        },
+      ]}
+    >
       {showBack && (
         <TouchableOpacity
-          style={styles.backButton}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={() => navigation.goBack()}
         >
-          <ArrowLeft size={24} color="#8b5cf6" />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
       )}
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        {subtitle && (
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {subtitle}
+          </Text>
+        )}
       </View>
-      {trailing}
+      <View style={styles.trailingContainer}>
+        {/* Connectivity Status */}
+        <View style={styles.connectivityContainer}>
+          {isOnline ? (
+            <Wifi size={16} color={colors.success} />
+          ) : (
+            <WifiOff size={16} color={colors.error} />
+          )}
+          <Text
+            style={[styles.connectivityText, { color: colors.textSecondary }]}
+          >
+            {isOnline ? connectionType : "Offline"}
+          </Text>
+        </View>
+        {trailing}
+      </View>
     </View>
   );
 };
@@ -43,7 +80,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -51,9 +87,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -63,11 +97,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6b7280",
+  },
+  trailingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  connectivityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  connectivityText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });

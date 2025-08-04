@@ -58,8 +58,6 @@ class SyncService {
    */
   async loadTeacherData(teacherId: string): Promise<void> {
     try {
-      console.log("Loading teacher data from backend...");
-
       // Update sync status to in_progress
       await DatabaseService.updateSyncStatus("teacherData", Date.now());
 
@@ -80,8 +78,6 @@ class SyncService {
 
       // Update sync status to success
       await DatabaseService.updateSyncStatus("teacherData", Date.now());
-
-      console.log("Teacher data loaded successfully");
     } catch (error) {
       console.error("Error loading teacher data:", error);
 
@@ -134,8 +130,6 @@ class SyncService {
           });
         }
       }
-
-      console.log("Teacher data stored in local database");
     } catch (error) {
       console.error("Error storing teacher data:", error);
       throw error;
@@ -147,13 +141,10 @@ class SyncService {
    */
   async syncDirtyRecords(): Promise<SyncResult> {
     try {
-      console.log("Starting sync of dirty records...");
-
       // For now, return empty array since sync tracking is not implemented
       const unsyncedChanges: any[] = [];
 
       if (unsyncedChanges.length === 0) {
-        console.log("No unsynced changes found");
         return { success: true, syncedRecords: 0, errors: [] };
       }
 
@@ -179,7 +170,6 @@ class SyncService {
       const success = errors.length === 0;
 
       if (success) {
-        console.log(`Successfully synced ${syncedRecords} records`);
       } else {
         console.error(`Sync completed with ${errors.length} errors`);
       }
@@ -232,7 +222,6 @@ class SyncService {
         }
 
         // Mark change as synced (not implemented yet)
-        console.log("Change synced:", change.id);
         syncedCount++;
       } catch (error) {
         console.error(
@@ -312,7 +301,6 @@ class SyncService {
   async clearLocalData(): Promise<void> {
     try {
       await DatabaseService.clearAllData();
-      console.log("Local data cleared successfully");
     } catch (error) {
       console.error("Error clearing local data:", error);
       throw error;

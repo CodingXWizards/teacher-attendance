@@ -12,8 +12,8 @@ export interface TeacherClass {
   classId: string;
   isPrimaryTeacher: boolean;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
   teacher?: Teacher;
   class?: Class;
 }

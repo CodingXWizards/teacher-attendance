@@ -13,7 +13,7 @@ import { DatabaseService } from "./databaseService";
 export interface AttendanceListParams {
   page?: number;
   limit?: number;
-  date?: string;
+  checkIn?: number;
   teacherId?: string;
   classId?: string;
   studentId?: string;
@@ -36,23 +36,20 @@ class AttendanceService {
     params?: AttendanceListParams,
   ): Promise<TeacherAttendance[]> {
     try {
-      const date = params?.date;
       const records = await DatabaseService.getTeacherAttendance(
         teacherId,
-        date || "",
+        params?.checkIn,
       );
 
-      // Convert database types to API types
       return records.map(record => ({
         id: record.id,
         teacherId: record.teacherId,
-        date: record.date,
-        checkIn: record.checkIn || "",
-        checkOut: record.checkOut || "",
+        latitude: record.latitude,
+        longitude: record.longitude,
+        checkIn: record.checkIn || undefined,
         status: record.status as AttendanceStatus,
-        createdAt: record.createdAt.toString(),
-        updatedAt: record.updatedAt.toString(),
-        teacher: undefined, // Will be populated if needed
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
       }));
     } catch (error) {
       console.error("Error getting teacher attendance:", error);
@@ -69,7 +66,7 @@ class AttendanceService {
     try {
       // This would need to be implemented in databaseService
       // For now, we'll get all records and filter
-      const allRecords = await DatabaseService.getTeacherAttendance("", "");
+      const allRecords = await DatabaseService.getTeacherAttendance(id);
       const record = allRecords.find(record => record.id === id);
 
       if (!record) return null;
@@ -78,13 +75,12 @@ class AttendanceService {
       return {
         id: record.id,
         teacherId: record.teacherId,
-        date: record.date,
+        latitude: record.latitude,
+        longitude: record.longitude,
         checkIn: record.checkIn || undefined,
-        checkOut: record.checkOut || undefined,
         status: record.status as AttendanceStatus,
-        createdAt: record.createdAt.toString(),
-        updatedAt: record.updatedAt.toString(),
-        teacher: undefined, // Will be populated if needed
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
       };
     } catch (error) {
       console.error("Error getting teacher attendance record:", error);
@@ -101,9 +97,9 @@ class AttendanceService {
     try {
       const attendance = await DatabaseService.markTeacherAttendance({
         teacherId: attendanceData.teacherId,
-        date: attendanceData.date,
+        latitude: attendanceData.latitude,
+        longitude: attendanceData.longitude,
         checkIn: attendanceData.checkIn,
-        checkOut: attendanceData.checkOut,
         status: attendanceData.status,
       });
       return attendance.id;
@@ -123,7 +119,8 @@ class AttendanceService {
     try {
       await DatabaseService.updateTeacherAttendance(id, {
         checkIn: attendanceData.checkIn,
-        checkOut: attendanceData.checkOut,
+        latitude: attendanceData.latitude,
+        longitude: attendanceData.longitude,
         status: attendanceData.status,
       });
     } catch (error) {
@@ -155,21 +152,18 @@ class AttendanceService {
   ): Promise<TeacherAttendance[]> {
     try {
       if (teacherId) {
-        const records = await DatabaseService.getTeacherAttendance(
-          teacherId,
-          date,
-        );
+        const records = await DatabaseService.getTeacherAttendance(teacherId);
 
         // Convert database types to API types
         return records.map(record => ({
           id: record.id,
           teacherId: record.teacherId,
-          date: record.date,
+          latitude: record.latitude,
+          longitude: record.longitude,
           checkIn: record.checkIn || undefined,
-          checkOut: record.checkOut || undefined,
           status: record.status as AttendanceStatus,
-          createdAt: record.createdAt.toString(),
-          updatedAt: record.updatedAt.toString(),
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
           teacher: undefined, // Will be populated if needed
         }));
       }
@@ -189,18 +183,18 @@ class AttendanceService {
     teacherId: string,
   ): Promise<TeacherAttendance[]> {
     try {
-      const records = await DatabaseService.getTeacherAttendance(teacherId, "");
+      const records = await DatabaseService.getTeacherAttendance(teacherId);
 
       // Convert database types to API types
       return records.map(record => ({
         id: record.id,
         teacherId: record.teacherId,
-        date: record.date,
+        latitude: record.latitude,
+        longitude: record.longitude,
         checkIn: record.checkIn || undefined,
-        checkOut: record.checkOut || undefined,
         status: record.status as AttendanceStatus,
-        createdAt: record.createdAt.toString(),
-        updatedAt: record.updatedAt.toString(),
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
         teacher: undefined, // Will be populated if needed
       }));
     } catch (error) {
@@ -230,7 +224,7 @@ class AttendanceService {
    */
   static async getStudentAttendanceByClassAndDate(
     id: string,
-    date: string,
+    date: number,
   ): Promise<StudentAttendance[]> {
     try {
       const records = await DatabaseService.getClassAttendance(id, date);
@@ -244,8 +238,8 @@ class AttendanceService {
         status: record.status as AttendanceStatus,
         notes: record.notes || "",
         markedBy: record.markedBy || "",
-        createdAt: record.createdAt.toString(),
-        updatedAt: record.updatedAt.toString(),
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
         student: undefined, // Will be populated if needed
         markedByUser: undefined, // Will be populated if needed
       }));
@@ -326,14 +320,16 @@ class AttendanceService {
    */
   static async markTeacherPresent(
     teacherId: string,
-    date: string,
-    checkInTime?: string,
+    latitude: number,
+    longitude: number,
+    checkInTime?: number,
   ): Promise<string> {
     try {
       const attendance = await DatabaseService.markTeacherAttendance({
         teacherId,
-        date,
-        checkIn: checkInTime,
+        latitude,
+        longitude,
+        checkIn: checkInTime || Date.now(),
         status: "present",
       });
       return attendance.id;
@@ -348,13 +344,16 @@ class AttendanceService {
    */
   static async markTeacherAbsent(
     teacherId: string,
-    date: string,
+    latitude: number,
+    longitude: number,
     notes?: string,
   ): Promise<string> {
     try {
       const attendance = await DatabaseService.markTeacherAttendance({
         teacherId,
-        date,
+        latitude,
+        longitude,
+        checkIn: Date.now(),
         status: "absent",
       });
       return attendance.id;
@@ -369,11 +368,11 @@ class AttendanceService {
    */
   static async checkOutTeacher(
     attendanceId: string,
-    checkOutTime: string,
+    checkOutTime: number,
   ): Promise<void> {
     try {
       await DatabaseService.updateTeacherAttendance(attendanceId, {
-        checkOut: checkOutTime,
+        checkIn: checkOutTime,
       });
     } catch (error) {
       console.error("Error checking out teacher:", error);
@@ -416,9 +415,9 @@ class AttendanceService {
       for (const data of attendanceData) {
         const attendance = await DatabaseService.markTeacherAttendance({
           teacherId: data.teacherId,
-          date: data.date,
+          latitude: data.latitude,
+          longitude: data.longitude,
           checkIn: data.checkIn,
-          checkOut: data.checkOut,
           status: data.status,
         });
         localIds.push(attendance.id);

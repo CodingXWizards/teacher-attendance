@@ -7,6 +7,7 @@ import type {
 } from "@/types";
 
 import { DatabaseService } from "./databaseService";
+import StudentsService from "./students";
 
 class DashboardService {
   /**
@@ -41,20 +42,28 @@ class DashboardService {
         this.getTeacherStats(teacherId),
         DatabaseService.getTeacherClasses(teacherId),
       ]);
+
+      const classesWithStudents: ClassWithDetails[] = classes.map(cls => ({
+        id: cls.classId,
+        name: cls.name,
+        grade: cls.grade,
+        section: cls.section,
+        description: cls.description || "",
+        academicYear: cls.academicYear,
+        isActive: cls.isActive,
+        createdAt: cls.createdAt,
+        updatedAt: cls.updatedAt,
+        students: [], // Will be populated when needed
+      }));
+
+      for (const cls of classesWithStudents) {
+        const students = await StudentsService.getStudentsByClass(cls.id);
+        cls.students = students;
+      }
+
       return {
         stats,
-        classes: classes.map(cls => ({
-          id: cls.classId,
-          name: cls.name,
-          grade: cls.grade,
-          section: cls.section,
-          description: cls.description || "",
-          academicYear: cls.academicYear,
-          isActive: cls.isActive,
-          createdAt: "",
-          updatedAt: "",
-          students: [], // Will be populated when needed
-        })),
+        classes: classesWithStudents,
         assignments: [], // Will be populated when needed
       };
     } catch (error) {
@@ -88,8 +97,8 @@ class DashboardService {
             gender: student.gender,
             classId: student.class?.id || "",
             isActive: student.isActive,
-            createdAt: student.createdAt.toString(),
-            updatedAt: student.updatedAt.toString(),
+            createdAt: student.createdAt,
+            updatedAt: student.updatedAt,
           }));
           return {
             id: cls.id,
@@ -99,8 +108,8 @@ class DashboardService {
             description: cls.description || "",
             academicYear: cls.academicYear,
             isActive: cls.isActive,
-            createdAt: cls.createdAt.toString(),
-            updatedAt: cls.updatedAt.toString(),
+            createdAt: cls.createdAt,
+            updatedAt: cls.updatedAt,
             students: mappedStudents,
           };
         }),

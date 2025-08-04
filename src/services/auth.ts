@@ -63,7 +63,7 @@ class AuthService {
    */
   static async logout(): Promise<void> {
     try {
-      await authApi.logout();
+      await this.clearAuthData();
     } catch (error) {
       // Continue with logout even if API call fails
       console.warn("Logout API call failed:", error);
@@ -120,6 +120,11 @@ class AuthService {
     } catch (error) {
       throw new Error(handleApiError(error));
     }
+  }
+
+  static async getCurrentUserFromStore(): Promise<User | null> {
+    const user = await this.getStoredUser();
+    return user;
   }
 
   /**
