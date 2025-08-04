@@ -435,7 +435,10 @@ export default function ClassDetail() {
                 onChangeText={setSearchQuery}
               />
             </View>
-            <View style={styles.filterContainer}>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.filterContainer}
+            >
               {(["all", "present", "absent", "not-taken"] as const).map(
                 status => (
                   <TouchableOpacity
@@ -469,7 +472,7 @@ export default function ClassDetail() {
                   </TouchableOpacity>
                 ),
               )}
-            </View>
+            </ScrollView>
           </View>
 
           {/* Students List */}
@@ -572,23 +575,29 @@ export default function ClassDetail() {
                               {student.attendance.attendancePercentage}%
                             </Text>
                             {student.attendance.attendanceTaken ? (
-                              <Text
-                                style={[
-                                  styles.attendanceTakenText,
-                                  { color: colors.success },
-                                ]}
-                              >
-                                ✅ Recorded
-                              </Text>
+                              <View style={styles.attendanceTakenContainer}>
+                                <CheckCircle size={16} color={colors.success} />
+                                <Text
+                                  style={[
+                                    styles.attendanceTakenText,
+                                    { color: colors.success },
+                                  ]}
+                                >
+                                  Recorded
+                                </Text>
+                              </View>
                             ) : (
-                              <Text
-                                style={[
-                                  styles.attendanceNotTakenText,
-                                  { color: colors.textSecondary },
-                                ]}
-                              >
-                                ⏰ Not taken
-                              </Text>
+                              <View style={styles.attendanceNotTakenContainer}>
+                                <Clock size={16} color={colors.textSecondary} />
+                                <Text
+                                  style={[
+                                    styles.attendanceNotTakenText,
+                                    { color: colors.textSecondary },
+                                  ]}
+                                >
+                                  Not taken
+                                </Text>
+                              </View>
                             )}
                           </>
                         )}
@@ -748,6 +757,7 @@ const styles = StyleSheet.create({
     color: "#1f2937",
   },
   filterContainer: {
+    width: "100%",
     flexDirection: "row",
     gap: 8,
   },
@@ -856,14 +866,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
   },
+  attendanceTakenContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   attendanceTakenText: {
     fontSize: 12,
-    color: "#10b981",
     fontWeight: "500",
+  },
+  attendanceNotTakenContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   attendanceNotTakenText: {
     fontSize: 12,
-    color: "#6b7280",
     fontWeight: "500",
   },
   editButton: {

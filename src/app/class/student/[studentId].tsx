@@ -22,11 +22,11 @@ import React, { useEffect, useState } from "react";
 import { useRoute } from "@react-navigation/native";
 
 import { Appbar } from "@/components/appbar";
-import { ScreenLoader } from "@/components/screen-loader";
-import { Calendar as CalendarComponent } from "@/components/Calendar";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ScreenLoader } from "@/components/screen-loader";
 import { Class, Student, StudentAttendance } from "@/types";
 import { ClassesService, StudentsService } from "@/services";
+import { Calendar as CalendarComponent } from "@/components/Calendar";
 
 const StudentScreen = () => {
   const route = useRoute();
@@ -161,14 +161,6 @@ const StudentScreen = () => {
                   <View style={styles.heroInfo}>
                     <Text style={[styles.studentName, { color: colors.text }]}>
                       {studentInfo.firstName} {studentInfo.lastName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.studentId,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Student ID: {studentInfo.studentId}
                     </Text>
                     <View
                       style={[

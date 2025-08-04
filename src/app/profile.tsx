@@ -251,27 +251,7 @@ export default function ProfilePage() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
-        <Appbar
-          title="Profile"
-          subtitle="Manage your account"
-          trailing={
-            <TouchableOpacity
-              style={[
-                styles.settingsButton,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-              onPress={() =>
-                showAlert({
-                  title: "Settings",
-                  message: "Settings not implemented yet",
-                  type: "info",
-                })
-              }
-            >
-              <Settings size={24} color={colors.text} />
-            </TouchableOpacity>
-          }
-        />
+        <Appbar title="Profile" subtitle="Manage your account" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}

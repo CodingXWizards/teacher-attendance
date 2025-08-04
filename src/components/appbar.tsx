@@ -1,9 +1,10 @@
 import React from "react";
-import { ArrowLeft, Wifi, WifiOff } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { ArrowLeft, Wifi, WifiOff } from "lucide-react-native";
+
 import { useTheme } from "@/contexts/ThemeContext";
 import { useConnectivity } from "@/hooks/useConnectivity";
+import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 
 interface AppbarProps {
   title: string;
@@ -58,15 +59,10 @@ export const Appbar = ({
         {/* Connectivity Status */}
         <View style={styles.connectivityContainer}>
           {isOnline ? (
-            <Wifi size={16} color={colors.success} />
+            <Wifi size={20} color={colors.success} />
           ) : (
-            <WifiOff size={16} color={colors.error} />
+            <WifiOff size={20} color={colors.error} />
           )}
-          <Text
-            style={[styles.connectivityText, { color: colors.textSecondary }]}
-          >
-            {isOnline ? connectionType : "Offline"}
-          </Text>
         </View>
         {trailing}
       </View>
@@ -111,9 +107,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-  },
-  connectivityText: {
-    fontSize: 12,
-    fontWeight: "500",
   },
 });
