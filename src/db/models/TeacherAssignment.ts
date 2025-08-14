@@ -4,8 +4,7 @@ import {
   readonly,
   relation,
 } from "@nozbe/watermelondb/decorators";
-import { Model } from "@nozbe/watermelondb";
-import { Relation } from "@nozbe/watermelondb";
+import { Model, Relation } from "@nozbe/watermelondb";
 
 import User from "./User";
 import Class from "./Class";

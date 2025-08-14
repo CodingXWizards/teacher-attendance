@@ -60,7 +60,6 @@ export default function ClassDetail() {
   // State for attendance data
   const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [attendanceError, setAttendanceError] = useState<string | null>(null);
 
   // Fetch class details
   useEffect(() => {
@@ -97,13 +96,11 @@ export default function ClassDetail() {
 
     try {
       setAttendanceLoading(true);
-      setAttendanceError(null);
       const data = await DatabaseService.getTodayAttendanceForClass(classId);
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load attendance";
-      setAttendanceError(errorMessage);
       console.warn("Failed to load today's attendance:", errorMessage);
     } finally {
       setAttendanceLoading(false);
@@ -150,13 +147,11 @@ export default function ClassDetail() {
 
     try {
       setAttendanceLoading(true);
-      setAttendanceError(null);
       const data = await DatabaseService.getTodayAttendanceForClass(classId);
       setTodayAttendance(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load attendance";
-      setAttendanceError(errorMessage);
       console.warn("Failed to load today's attendance:", errorMessage);
     } finally {
       setAttendanceLoading(false);
@@ -744,7 +739,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     marginBottom: 12,
   },
   searchIcon: {
@@ -754,7 +748,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     fontSize: 16,
-    color: "#1f2937",
   },
   filterContainer: {
     width: "100%",
@@ -767,21 +760,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#f8fafc",
-  },
-  filterButtonActive: {
-    backgroundColor: "#8b5cf6",
-    borderColor: "#8b5cf6",
   },
   filterButtonText: {
     fontSize: 12,
     fontWeight: "500",
     textAlign: "center",
-    color: "#1f2937",
-  },
-  filterButtonTextActive: {
-    color: "#ffffff",
   },
   studentsSection: {
     marginBottom: 24,
@@ -795,11 +778,9 @@ const styles = StyleSheet.create({
   studentsTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1f2937",
   },
   studentsCount: {
     fontSize: 14,
-    color: "#6b7280",
   },
   loadingStudentsContainer: {
     paddingVertical: 16,
@@ -807,7 +788,6 @@ const styles = StyleSheet.create({
   },
   loadingStudentsText: {
     fontSize: 14,
-    color: "#6b7280",
     marginTop: 8,
   },
   studentsList: {
@@ -817,9 +797,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     gap: 16,
   },
   studentCardAttendanceTaken: {
@@ -837,7 +815,6 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2937",
   },
   statusContainer: {
     flexDirection: "row",
@@ -848,14 +825,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-  studentId: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 4,
-  },
   studentEmail: {
     fontSize: 12,
-    color: "#6b7280",
     marginBottom: 8,
   },
   studentFooter: {
@@ -864,7 +835,6 @@ const styles = StyleSheet.create({
   },
   attendanceInfo: {
     fontSize: 12,
-    color: "#6b7280",
   },
   attendanceTakenContainer: {
     flexDirection: "row",
@@ -889,7 +859,6 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -899,7 +868,6 @@ const styles = StyleSheet.create({
   },
   emptyStudentsText: {
     fontSize: 16,
-    color: "#6b7280",
     marginTop: 8,
     textAlign: "center",
   },
@@ -917,16 +885,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     gap: 8,
-    backgroundColor: "#8b5cf6",
   },
   takeAttendanceIcon: {
-    color: "#ffffff",
     fontSize: 18,
   },
   takeAttendanceText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#ffffff",
   },
   viewReportsButton: {
     flex: 1,
@@ -936,28 +901,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     gap: 8,
   },
   viewReportsText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1f2937",
   },
   attendanceSummaryCard: {
-    backgroundColor: "#f8fafc",
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   attendanceSummaryTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -972,12 +931,10 @@ const styles = StyleSheet.create({
   attendanceSummaryNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1f2937",
     marginTop: 4,
   },
   attendanceSummaryLabel: {
     fontSize: 12,
-    color: "#6b7280",
     marginTop: 4,
   },
   attendanceRateContainer: {
@@ -986,6 +943,5 @@ const styles = StyleSheet.create({
   attendanceRateText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1f2937",
   },
 });

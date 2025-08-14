@@ -119,11 +119,13 @@ class AutoSyncService {
           lastSyncDate.getFullYear() !== currentDate.getFullYear()
         );
 
-      case "weekly":
+      case "weekly": {
         // Sync if it's Sunday and different week
         const lastWeek = this.getWeekNumber(lastSyncDate);
         const currentWeek = this.getWeekNumber(currentDate);
-        return currentDate.getDay() === 0 && lastWeek !== currentWeek;
+        const currentDay = currentDate.getDay();
+        return currentDay === 0 && lastWeek !== currentWeek;
+      }
 
       case "monthly":
         // Sync if it's the 1st of the month and different month
@@ -163,7 +165,7 @@ class AutoSyncService {
       // Check network connectivity
       const state = await NetInfo.fetch();
       if (!state.isConnected) {
-        console.log("Auto sync skipped: No internet connection");
+        console.info("Auto sync skipped: No internet connection");
         return;
       }
 
@@ -172,11 +174,11 @@ class AutoSyncService {
       const user = userStore.user;
 
       if (!user || user.role !== "teacher") {
-        console.log("Auto sync skipped: No teacher user found");
+        console.info("Auto sync skipped: No teacher user found");
         return;
       }
 
-      console.log("Starting automatic sync...");
+      console.info("Starting automatic sync...");
 
       // Perform sync
       const result = await resyncService.syncAllAttendance(user.id);
@@ -195,7 +197,7 @@ class AutoSyncService {
       this.config.lastAutoSync = Date.now();
       await this.saveConfig();
 
-      console.log(`Auto sync completed: ${result.totalSynced} records synced`);
+      console.info(`Auto sync completed: ${result.totalSynced} records synced`);
     } catch (error) {
       console.error("Auto sync failed:", error);
 
@@ -219,7 +221,7 @@ class AutoSyncService {
   private async saveConfig(): Promise<void> {
     // This could be saved to AsyncStorage or other persistent storage
     // For now, we'll just update the in-memory config
-    console.log("Auto sync config updated:", this.config);
+    console.info("Auto sync config updated:", this.config);
   }
 
   /**
@@ -229,7 +231,7 @@ class AutoSyncService {
     this.config.enabled = true;
     this.config.frequency = frequency;
     await this.saveConfig();
-    console.log(`Auto sync enabled with frequency: ${frequency}`);
+    console.info(`Auto sync enabled with frequency: ${frequency}`);
   }
 
   /**
@@ -238,7 +240,7 @@ class AutoSyncService {
   async disable(): Promise<void> {
     this.config.enabled = false;
     await this.saveConfig();
-    console.log("Auto sync disabled");
+    console.info("Auto sync disabled");
   }
 
   /**
@@ -253,7 +255,7 @@ class AutoSyncService {
    */
   async triggerSync(): Promise<void> {
     if (this.syncInProgress) {
-      console.log("Sync already in progress");
+      console.info("Sync already in progress");
       return;
     }
 

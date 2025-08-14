@@ -243,7 +243,7 @@ export class DatabaseService {
     }
   }
 
-  static async getTeacherClasses(teacherId: string): Promise<Class[]> {
+  static async getTeacherClasses(): Promise<Class[]> {
     const classes = await database
       .get<Class>("classes")
       .query(Q.where("is_active", true))
@@ -443,7 +443,7 @@ export class DatabaseService {
     teacherId: string,
     checkIn?: number,
   ): Promise<TeacherAttendance[]> {
-    let query = [Q.where("teacher_id", teacherId)];
+    const query = [Q.where("teacher_id", teacherId)];
     if (checkIn) {
       // Convert checkIn to a date range for the same day
       const checkInDate = new Date(checkIn);
@@ -563,7 +563,7 @@ export class DatabaseService {
     classId: string,
     date?: number,
   ): Promise<StudentAttendance[]> {
-    let query = [Q.where("class_id", classId)];
+    const query = [Q.where("class_id", classId)];
     if (date) {
       query.push(Q.where("date", Q.like(`%${date}%`)));
     }
@@ -644,11 +644,6 @@ export class DatabaseService {
 
   static async getStudentAttendance(
     studentId: string,
-    params?: {
-      startDate?: Date;
-      endDate?: Date;
-      classId?: string;
-    },
   ): Promise<StudentAttendance[]> {
     return await database
       .get<StudentAttendance>("student_attendance")
@@ -733,9 +728,7 @@ export class DatabaseService {
     });
   }
 
-  static async getAllSubjects(teacherId?: string): Promise<Subject[]> {
-    // For now, return all subjects since we don't have teacher-subject relationship
-    // This can be enhanced later if needed
+  static async getAllSubjects(): Promise<Subject[]> {
     return await database
       .get<Subject>("subjects")
       .query(Q.where("is_active", true))

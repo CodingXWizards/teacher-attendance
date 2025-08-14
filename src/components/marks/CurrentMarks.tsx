@@ -34,7 +34,7 @@ export const CurrentMarks: React.FC<CurrentMarksProps> = ({
         {
           text: "Update",
           onPress: (value?: string) => {
-            const newMarks = parseInt(value || "0");
+            const newMarks = parseInt(value || "0", 10);
             if (newMarks >= 0 && newMarks <= 100) {
               onUpdateMarks(markId, newMarks);
             } else {
@@ -111,7 +111,13 @@ export const CurrentMarks: React.FC<CurrentMarksProps> = ({
                   if (!student) return null;
 
                   return (
-                    <View key={mark.id} style={styles.markRow}>
+                    <View
+                      key={mark.id}
+                      style={[
+                        styles.markRow,
+                        { backgroundColor: colors.surface },
+                      ]}
+                    >
                       <Text
                         style={[styles.studentName, { color: colors.text }]}
                       >
@@ -199,7 +205,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "rgba(0, 0, 0, 0.02)",
     borderRadius: 8,
     marginBottom: 4,
   },

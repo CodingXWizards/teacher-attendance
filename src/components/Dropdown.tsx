@@ -1,13 +1,9 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+
 import { useTheme } from "@/contexts/ThemeContext";
+
 import { Modal } from "./Modal";
 
 export interface DropdownOption {
@@ -137,9 +133,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     flex: 1,
-  },
-  optionsContainer: {
-    maxHeight: 300,
   },
   option: {
     padding: 16,

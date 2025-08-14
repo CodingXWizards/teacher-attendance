@@ -25,7 +25,6 @@ import { Appbar } from "@/components/appbar";
 import { useUserStore } from "@/stores/userStore";
 import { useAlert } from "@/contexts/AlertContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useConnectivity } from "@/hooks/useConnectivity";
 import { SyncStatus } from "@/components/profile/sync-status";
 
 interface ProfileFormData {
@@ -45,7 +44,6 @@ export default function ProfilePage() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const { user, setUser } = useUserStore();
-  const { isOnline } = useConnectivity();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -646,14 +644,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   scrollView: {
     flex: 1,

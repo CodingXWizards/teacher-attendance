@@ -9,7 +9,8 @@
     "test": "jest",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "format:fix": "prettier --write ."
   },
   "dependencies": {
     "@nozbe/watermelondb": "^0.28.0",
@@ -47,12 +48,18 @@
     "@types/jest": "^29.5.13",
     "@types/react": "^19.1.0",
     "@types/react-test-renderer": "^19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
     "ansi-regex": "5.0.1",
     "autoprefixer": "^10.4.21",
     "babel-plugin-inline-import": "^3.0.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "drizzle-kit": "^0.31.4",
     "eslint": "^8.19.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-native": "^5.0.0",
     "jest": "^29.6.3",
     "metro-react-native-babel-preset": "^0.77.0",
     "postcss": "^8.5.6",

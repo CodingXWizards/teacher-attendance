@@ -138,31 +138,6 @@ class DataSyncService {
       throw new Error("Failed to load subject marks data");
     }
   }
-
-  /**
-   * Get sync progress for UI feedback
-   */
-  static async getSyncProgress(): Promise<{
-    isLoading: boolean;
-    progress: number;
-    message: string;
-  }> {
-    try {
-      // For now, return a simple progress indicator
-      return {
-        isLoading: false,
-        progress: 100,
-        message: "Data sync completed",
-      };
-    } catch (error) {
-      console.error("Error getting sync progress:", error);
-      return {
-        isLoading: false,
-        progress: 0,
-        message: "Error getting sync status",
-      };
-    }
-  }
 }
 
 export default DataSyncService;

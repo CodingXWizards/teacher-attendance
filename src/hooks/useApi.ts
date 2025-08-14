@@ -15,7 +15,7 @@ export interface UseApiOptions {
 
 export function useApi<T>(
   apiCall: () => Promise<T>,
-  options: UseApiOptions = {}
+  options: UseApiOptions = {},
 ): ApiState<T> & {
   execute: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -31,31 +31,31 @@ export function useApi<T>(
   });
 
   const execute = useCallback(async () => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const data = await apiCall();
-      setState((prev) => ({ ...prev, data, loading: false }));
+      setState(prev => ({ ...prev, data, loading: false }));
       onSuccess?.(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
-      setState((prev) => ({ ...prev, error: errorMessage, loading: false }));
+      setState(prev => ({ ...prev, error: errorMessage, loading: false }));
       onError?.(errorMessage);
     }
   }, [apiCall, onSuccess, onError]);
 
   const refresh = useCallback(async () => {
-    setState((prev) => ({ ...prev, refreshing: true, error: null }));
+    setState(prev => ({ ...prev, refreshing: true, error: null }));
 
     try {
       const data = await apiCall();
-      setState((prev) => ({ ...prev, data, refreshing: false }));
+      setState(prev => ({ ...prev, data, refreshing: false }));
       onSuccess?.(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
-      setState((prev) => ({ ...prev, error: errorMessage, refreshing: false }));
+      setState(prev => ({ ...prev, error: errorMessage, refreshing: false }));
       onError?.(errorMessage);
     }
   }, [apiCall, onSuccess, onError]);
@@ -86,7 +86,7 @@ export function useApi<T>(
 export function useApiWithParams<T, P>(
   apiCall: (params: P) => Promise<T>,
   params: P,
-  options: UseApiOptions = {}
+  options: UseApiOptions = {},
 ): ApiState<T> & {
   execute: (newParams?: P) => Promise<void>;
   refresh: () => Promise<void>;
@@ -104,33 +104,33 @@ export function useApiWithParams<T, P>(
   const execute = useCallback(
     async (newParams?: P) => {
       const currentParams = newParams || params;
-      setState((prev) => ({ ...prev, loading: true, error: null }));
+      setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
         const data = await apiCall(currentParams);
-        setState((prev) => ({ ...prev, data, loading: false }));
+        setState(prev => ({ ...prev, data, loading: false }));
         onSuccess?.(data);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "An error occurred";
-        setState((prev) => ({ ...prev, error: errorMessage, loading: false }));
+        setState(prev => ({ ...prev, error: errorMessage, loading: false }));
         onError?.(errorMessage);
       }
     },
-    [apiCall, params, onSuccess, onError]
+    [apiCall, params, onSuccess, onError],
   );
 
   const refresh = useCallback(async () => {
-    setState((prev) => ({ ...prev, refreshing: true, error: null }));
+    setState(prev => ({ ...prev, refreshing: true, error: null }));
 
     try {
       const data = await apiCall(params);
-      setState((prev) => ({ ...prev, data, refreshing: false }));
+      setState(prev => ({ ...prev, data, refreshing: false }));
       onSuccess?.(data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
-      setState((prev) => ({ ...prev, error: errorMessage, refreshing: false }));
+      setState(prev => ({ ...prev, error: errorMessage, refreshing: false }));
       onError?.(errorMessage);
     }
   }, [apiCall, params, onSuccess, onError]);

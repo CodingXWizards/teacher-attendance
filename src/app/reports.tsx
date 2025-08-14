@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  Alert,
   Modal,
   TextInput,
   StyleSheet,
@@ -145,9 +144,9 @@ export default function ReportsPage() {
 
       // Set default date range to last 7 days
       setSelectedDateRange(dateRanges[2]);
-    } catch (error) {
+    } catch (err) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to load data";
+        err instanceof Error ? err.message : "Failed to load data";
       setError(errorMessage);
       showAlert({
         title: "Error",
@@ -246,8 +245,8 @@ export default function ReportsPage() {
       });
 
       setStudentAttendanceData(Array.from(studentAttendanceMap.values()));
-    } catch (error) {
-      console.error("Error loading attendance data:", error);
+    } catch (err) {
+      console.error("Error loading attendance data:", err);
     } finally {
       setLoading(false);
     }
@@ -513,7 +512,7 @@ export default function ReportsPage() {
             >
               {attendanceData.length > 0 ? (
                 <View style={styles.barChart}>
-                  {attendanceData.map((day, index) => (
+                  {attendanceData.map(day => (
                     <View key={day.date} style={styles.barContainer}>
                       <View style={styles.barLabels}>
                         <Text style={[styles.barDate, { color: colors.text }]}>
@@ -581,7 +580,7 @@ export default function ReportsPage() {
             >
               {studentAttendanceData
                 .sort((a, b) => b.attendanceRate - a.attendanceRate)
-                .map((student, index) => (
+                .map(student => (
                   <View
                     key={student.studentId}
                     style={[
@@ -814,15 +813,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  dateRangeButtonActive: {
-    // Handled dynamically
-  },
   dateRangeButtonText: {
     fontSize: 14,
     fontWeight: "500",
-  },
-  dateRangeButtonTextActive: {
-    // Handled dynamically
   },
   dateRangeInfo: {
     fontSize: 12,
@@ -837,7 +830,6 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1f2937",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -943,7 +935,6 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1f2937",
   },
   studentStats: {
     fontSize: 12,
@@ -1018,16 +1009,5 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontWeight: "500",
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backButtonText: {
-    fontSize: 16,
-    marginLeft: 8,
   },
 });

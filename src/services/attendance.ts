@@ -67,7 +67,7 @@ class AttendanceService {
       // This would need to be implemented in databaseService
       // For now, we'll get all records and filter
       const allRecords = await DatabaseService.getTeacherAttendance(id);
-      const record = allRecords.find(record => record.id === id);
+      const record = allRecords.find(r => r.id === id);
 
       if (!record) return null;
 
@@ -132,7 +132,7 @@ class AttendanceService {
   /**
    * Delete teacher attendance record from local database
    */
-  static async deleteTeacherAttendance(id: string): Promise<void> {
+  static async deleteTeacherAttendance(_id: string): Promise<void> {
     try {
       // This would need to be implemented in DatabaseService
       // For now, we'll mark it as inactive or handle it differently
@@ -200,22 +200,6 @@ class AttendanceService {
     } catch (error) {
       console.error("Error getting attendance by teacher:", error);
       throw new Error("Failed to get attendance by teacher");
-    }
-  }
-
-  /**
-   * Get student attendance by class from local database
-   */
-  static async getStudentAttendanceByClass(
-    classId: string,
-  ): Promise<StudentAttendance[]> {
-    try {
-      // This would need to be implemented in DatabaseService
-      // For now, return empty array
-      return [];
-    } catch (error) {
-      console.error("Error getting student attendance by class:", error);
-      throw new Error("Failed to get student attendance by class");
     }
   }
 
@@ -346,7 +330,6 @@ class AttendanceService {
     teacherId: string,
     latitude: number,
     longitude: number,
-    notes?: string,
   ): Promise<string> {
     try {
       const attendance = await DatabaseService.markTeacherAttendance({
@@ -377,30 +360,6 @@ class AttendanceService {
     } catch (error) {
       console.error("Error checking out teacher:", error);
       throw new Error("Failed to check out teacher");
-    }
-  }
-
-  /**
-   * Get attendance summary from local database
-   */
-  static async getAttendanceSummary(
-    startDate: string,
-    endDate: string,
-    classId?: string,
-  ): Promise<AttendanceSummary> {
-    try {
-      // This would need to be implemented in DatabaseService
-      // For now, return default values
-      return {
-        total: 0,
-        present: 0,
-        absent: 0,
-        presentPercentage: 0,
-        absentPercentage: 0,
-      };
-    } catch (error) {
-      console.error("Error getting attendance summary:", error);
-      throw new Error("Failed to get attendance summary");
     }
   }
 

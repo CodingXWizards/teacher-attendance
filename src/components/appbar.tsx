@@ -21,7 +21,7 @@ export const Appbar = ({
 }: AppbarProps) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { isOnline, connectionType } = useConnectivity();
+  const { isOnline } = useConnectivity();
 
   return (
     <View

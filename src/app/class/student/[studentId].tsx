@@ -88,25 +88,6 @@ const StudentScreen = () => {
     });
   };
 
-  // Group attendance by month
-  const groupAttendanceByMonth = () => {
-    const grouped: { [key: string]: StudentAttendance[] } = {};
-
-    attendance.forEach(record => {
-      const date = new Date(record.date);
-      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-
-      if (!grouped[monthKey]) {
-        grouped[monthKey] = [];
-      }
-      grouped[monthKey].push(record);
-    });
-
-    return grouped;
-  };
-
-  const groupedAttendance = groupAttendanceByMonth();
-
   const changeMonth = (direction: "prev" | "next") => {
     const newMonth = new Date(currentMonth);
     if (direction === "prev") {
@@ -149,7 +130,13 @@ const StudentScreen = () => {
               >
                 <View style={styles.heroHeader}>
                   <View
-                    style={[styles.avatar, { backgroundColor: colors.primary }]}
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: colors.primary,
+                        shadowColor: colors.shadow,
+                      },
+                    ]}
                   >
                     <Text
                       style={[styles.avatarText, { color: colors.onPrimary }]}
@@ -595,7 +582,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -612,10 +598,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 4,
-  },
-  studentId: {
-    fontSize: 14,
-    marginBottom: 8,
   },
   classBadge: {
     flexDirection: "row",
@@ -657,18 +639,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-  },
-  infoIconGreen: {
-    // Handled dynamically
-  },
-  infoIconPurple: {
-    // Handled dynamically
-  },
-  infoIconOrange: {
-    // Handled dynamically
-  },
-  infoIconPink: {
-    // Handled dynamically
   },
   infoContent: {
     flex: 1,
@@ -778,132 +748,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontWeight: "500",
-  },
-  calendarList: {
-    gap: 24,
-  },
-  monthCard: {
-    flexDirection: "column",
-    gap: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 16,
-  },
-  monthTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  calendarGrid: {
-    flexDirection: "column",
-    gap: 8,
-  },
-  dayHeaders: {
-    flexDirection: "row",
-  },
-  dayHeader: {
-    flex: 1,
-    alignItems: "center",
-  },
-  dayHeaderText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  calendarDays: {
-    gap: 8,
-  },
-  weekRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  emptyDay: {
-    flex: 1,
-    aspectRatio: 1,
-  },
-  calendarDay: {
-    flex: 1,
-    aspectRatio: 1,
-  },
-  dayWithAttendance: {
-    flex: 1,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  dayWithoutAttendance: {
-    flex: 1,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  todayBorder: {
-    // Handled dynamically
-  },
-  todayHighlight: {
-    // Handled dynamically
-  },
-  dayNumber: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  dayNumberEmpty: {
-    fontSize: 12,
-  },
-  todayText: {
-    // Handled dynamically
-  },
-  statusPresent: {
-    // Handled dynamically
-  },
-  statusAbsent: {
-    // Handled dynamically
-  },
-  statusDefault: {
-    // Handled dynamically
-  },
-  statusTextPresent: {
-    // Handled dynamically
-  },
-  statusTextAbsent: {
-    // Handled dynamically
-  },
-  statusTextDefault: {
-    // Handled dynamically
-  },
-  legend: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  legendDotPresent: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendDotAbsent: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendDotToday: {
-    width: 16,
-    height: 16,
-    borderWidth: 2,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendText: {
-    fontSize: 12,
   },
   emptyContainer: {
     alignItems: "center",

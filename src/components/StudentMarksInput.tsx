@@ -7,19 +7,17 @@ interface StudentMarksInputProps {
   student: Student;
   marks: number;
   onMarksChange: (studentId: string, marks: number) => void;
-  index: number;
 }
 
 export const StudentMarksInput: React.FC<StudentMarksInputProps> = ({
   student,
   marks,
   onMarksChange,
-  index,
 }) => {
   const { colors } = useTheme();
 
   const handleMarksChange = (text: string) => {
-    const newMarks = parseInt(text) || 0;
+    const newMarks = parseInt(text, 10) || 0;
     // Ensure marks are between 0 and 100
     const validMarks = Math.max(0, Math.min(100, newMarks));
     onMarksChange(student.studentId, validMarks);
@@ -99,9 +97,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     textAlign: "center",
-  },
-  marksUnit: {
-    fontSize: 14,
-    fontWeight: "500",
   },
 });

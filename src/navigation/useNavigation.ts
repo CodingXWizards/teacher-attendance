@@ -51,7 +51,7 @@ export const useNavigation = (): NavigationProps => {
   }, []);
 
   const pop = useCallback(
-    (count?: number) => {
+    (_count?: number) => {
       // For pop, we need to use the native navigation
       if (navigation.canGoBack()) {
         navigation.goBack();

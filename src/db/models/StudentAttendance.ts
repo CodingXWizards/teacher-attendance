@@ -1,11 +1,10 @@
-import { Model } from "@nozbe/watermelondb";
 import {
   field,
   date,
   readonly,
   relation,
 } from "@nozbe/watermelondb/decorators";
-import { Relation } from "@nozbe/watermelondb";
+import { Relation, Model } from "@nozbe/watermelondb";
 import Class from "./Class";
 import Student from "./Student";
 import User from "./User";

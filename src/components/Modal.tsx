@@ -37,7 +37,10 @@ export const Modal: React.FC<ModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable
+        style={[styles.overlay, { backgroundColor: colors.backdrop }]}
+        onPress={onClose}
+      >
         <View
           style={[
             styles.content,
@@ -71,7 +74,6 @@ export const Modal: React.FC<ModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,

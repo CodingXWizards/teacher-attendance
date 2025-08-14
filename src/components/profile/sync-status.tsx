@@ -234,7 +234,15 @@ export const SyncStatus = () => {
 
           {/* Pending Sync Summary */}
           {pendingSync.totalPending > 0 && (
-            <View style={styles.pendingSyncContainer}>
+            <View
+              style={[
+                styles.pendingSyncContainer,
+                {
+                  borderColor: colors.warning,
+                  backgroundColor: colors.warning + "20",
+                },
+              ]}
+            >
               <View style={styles.pendingSyncHeader}>
                 <Text
                   style={[styles.pendingSyncTitle, { color: colors.warning }]}
@@ -328,7 +336,9 @@ export const SyncStatus = () => {
         animationType="fade"
         onRequestClose={() => setShowSyncFrequencyModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View
+          style={[styles.modalOverlay, { backgroundColor: colors.backdrop }]}
+        >
           <View
             style={[
               styles.modalContent,
@@ -499,7 +509,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
@@ -559,9 +568,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pendingSyncContainer: {
-    backgroundColor: "rgba(255, 193, 7, 0.1)",
     borderWidth: 1,
-    borderColor: "rgba(255, 193, 7, 0.3)",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,

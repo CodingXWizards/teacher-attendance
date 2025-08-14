@@ -59,8 +59,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <TouchableOpacity
             style={[
               styles.button,
-              styles.cancelButton,
               {
+                backgroundColor: "transparent",
                 borderColor: colors.border,
               },
             ]}
@@ -73,8 +73,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <TouchableOpacity
             style={[
               styles.button,
-              styles.confirmButton,
               {
+                borderColor: "transparent",
                 backgroundColor: typeColors,
               },
             ]}
@@ -120,12 +120,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     borderWidth: 1,
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-  },
-  confirmButton: {
-    borderColor: "transparent",
   },
   buttonText: {
     fontSize: 16,

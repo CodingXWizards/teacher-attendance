@@ -16,6 +16,7 @@ import {
   UserStats,
   ClassStats,
   SearchParams,
+  UserResponse,
   DashboardStats,
   TeacherWithUser,
   StudentWithClass,
@@ -34,13 +35,11 @@ import {
   ChangePasswordRequest,
   UpdatePasswordRequest,
   AssignTeacherToClassRequest,
-  CreateTeacherAttendanceRequest,
   UpdateTeacherAttendanceRequest,
   CreateStudentAttendanceRequest,
   UpdateStudentAttendanceRequest,
   RemoveTeacherFromClassRequest,
 } from "@/types";
-import { UserResponse } from "@/types/auth";
 import { API_BASE_URL } from "@/constants/api";
 
 // Generic response types

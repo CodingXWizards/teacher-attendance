@@ -8,19 +8,19 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Download, Plus } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Marks, Student } from "@/types";
 import { Appbar } from "@/components/appbar";
 import { useNavigation } from "@/navigation";
 import { MarksList } from "@/components/marks";
+import { Dropdown } from "@/components/Dropdown";
 import { useUserStore } from "@/stores/userStore";
 import { useAlert } from "@/contexts/AlertContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Subject, Marks, Student, Class } from "@/types";
-import { Dropdown, DropdownOption } from "@/components/Dropdown";
-import { MarksService, SubjectsService, StudentsService } from "@/services";
 import { SubjectWithClass } from "@/services/subjects";
+import { MarksService, SubjectsService, StudentsService } from "@/services";
 
 const months = [
   "January",
@@ -44,7 +44,6 @@ export default function MarksPage() {
   const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
-  const [refreshingMarks, setRefreshingMarks] = useState(false);
   const [subjectsWithClass, setSubjectsWithClass] = useState<
     SubjectWithClass[]
   >([]);
@@ -70,7 +69,7 @@ export default function MarksPage() {
   useFocusEffect(
     useCallback(() => {
       if (selectedSubjectWithClass && selectedMonth) {
-        loadSubjectMarksData(true); // true = refresh mode
+        loadSubjectMarksData();
       }
     }, [selectedSubjectWithClass, selectedMonth]),
   );
@@ -100,16 +99,10 @@ export default function MarksPage() {
     }
   };
 
-  const loadSubjectMarksData = async (isRefresh = false) => {
+  const loadSubjectMarksData = async () => {
     if (!selectedSubjectWithClass) return;
 
     try {
-      if (isRefresh) {
-        setRefreshingMarks(true);
-      } else {
-        setLoading(true);
-      }
-
       const allMarks = await MarksService.getSubjectMarksByClass(
         selectedSubjectWithClass.subject.id,
         selectedSubjectWithClass.class.id,
@@ -126,11 +119,7 @@ export default function MarksPage() {
         type: "error",
       });
     } finally {
-      if (isRefresh) {
-        setRefreshingMarks(false);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -304,60 +293,5 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     gap: 12,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  monthSelector: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  monthButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  monthButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  refreshingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 12,
-    gap: 8,
-  },
-  refreshingText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  marksHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  marksTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  refreshButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  refreshButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
   },
 });

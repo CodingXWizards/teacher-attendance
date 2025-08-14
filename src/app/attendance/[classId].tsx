@@ -794,9 +794,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  submitButtonDisabled: {
-    // Handled dynamically
-  },
   submitButtonText: {
     fontSize: 16,
     fontWeight: "600",

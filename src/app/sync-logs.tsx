@@ -8,25 +8,24 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Clock,
-  CheckCircle,
   XCircle,
-  AlertCircle,
   Trash2,
-  Filter,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Appbar } from "@/components/appbar";
-import { ConnectivityBanner } from "@/components/ConnectivityBanner";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useAlert } from "@/contexts/AlertContext";
 import {
-  syncLogsService,
   SyncLog,
   SyncStats,
+  syncLogsService,
 } from "@/services/syncLogsService";
+import { Appbar } from "@/components/appbar";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAlert } from "@/contexts/AlertContext";
+import { ConnectivityBanner } from "@/components/ConnectivityBanner";
 
 type FilterType =
   | "all"
@@ -116,7 +115,7 @@ export default function SyncLogs() {
             } catch (error) {
               showAlert({
                 title: "Error",
-                message: "Failed to clear sync logs",
+                message: `Failed to clear sync logs: ${error}`,
                 type: "error",
               });
             }

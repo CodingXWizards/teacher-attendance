@@ -28,7 +28,7 @@ export const LabelInput = ({
   onChangeText,
   onIconPress,
 }: LabelInputProps) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
 
   const handleIconPress = () => {

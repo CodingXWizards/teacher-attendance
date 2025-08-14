@@ -59,18 +59,6 @@ export class SubjectsService {
     }
   }
 
-  // Get subjects by class (if there's a class-subject relationship)
-  static async getSubjectsByClass(classId: string): Promise<SubjectType[]> {
-    try {
-      // For now, return all subjects since we don't have a class-subject relationship table
-      // This can be enhanced later if needed
-      return await this.getAllSubjects();
-    } catch (error) {
-      console.error("Error getting subjects by class:", error);
-      throw error;
-    }
-  }
-
   // Get subjects with class information for a specific teacher
   static async getSubjectsWithClassForTeacher(
     teacherId: string,

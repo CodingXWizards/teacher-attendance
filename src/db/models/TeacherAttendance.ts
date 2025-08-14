@@ -1,11 +1,11 @@
-import { Model } from "@nozbe/watermelondb";
 import {
   field,
   date,
   readonly,
   relation,
 } from "@nozbe/watermelondb/decorators";
-import { Relation } from "@nozbe/watermelondb";
+import { Relation, Model } from "@nozbe/watermelondb";
+
 import User from "./User";
 
 export default class TeacherAttendance extends Model {

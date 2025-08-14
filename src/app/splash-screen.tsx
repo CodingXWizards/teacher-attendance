@@ -147,7 +147,9 @@ const SplashScreen = () => {
           <View
             style={[styles.logoContainer, { backgroundColor: colors.primary }]}
           >
-            <View style={styles.logoInner}>
+            <View
+              style={[styles.logoInner, { backgroundColor: colors.overlay }]}
+            >
               <GraduationCap
                 size={32}
                 color={colors.onPrimary}
@@ -181,7 +183,9 @@ const SplashScreen = () => {
           <Text style={[styles.title, { color: colors.text }]}>
             Teacher Attendance
           </Text>
-          <View style={styles.titleUnderline} />
+          <View
+            style={[styles.titleUnderline, { backgroundColor: colors.border }]}
+          />
         </View>
 
         {/* Subtitle with better styling */}
@@ -267,17 +271,11 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
   },
   logoInner: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -326,7 +324,6 @@ const styles = StyleSheet.create({
   titleUnderline: {
     width: 60,
     height: 3,
-    backgroundColor: "#6366f1",
     borderRadius: 2,
   },
   subtitleSection: {
@@ -339,45 +336,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: 0.2,
   },
-  featuresSection: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 32,
-  },
-  featureItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  featureText: {
-    fontSize: 14,
-    fontWeight: "500",
-    letterSpacing: 0.3,
-  },
   loadingContainer: {
     position: "absolute",
     bottom: 100,
     alignItems: "center",
     width: "100%",
     paddingHorizontal: 40,
-  },
-  loadingDots: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.7,
-  },
-  loadingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
   },
 });
 

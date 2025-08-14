@@ -1,28 +1,26 @@
 import {
   View,
   Text,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
+  PermissionsAndroid,
 } from "react-native";
 import { useState, useEffect } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
 import Geolocation from "@react-native-community/geolocation";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Clock, CheckCircle, MapPin } from "lucide-react-native";
 
 import { Appbar } from "@/components/appbar";
-import { ConnectivityBanner } from "@/components/ConnectivityBanner";
-import { Calendar } from "@/components/Calendar";
 import { AttendanceService } from "@/services";
+import { Calendar } from "@/components/Calendar";
 import { useUserStore } from "@/stores/userStore";
-import { TeacherAttendance, AttendanceStatus } from "@/types";
 import { useAlert } from "@/contexts/AlertContext";
 import { useTheme } from "@/contexts/ThemeContext";
-
-const { width } = Dimensions.get("window");
+import { TeacherAttendance, AttendanceStatus } from "@/types";
+import { ConnectivityBanner } from "@/components/ConnectivityBanner";
 
 export default function Attendance() {
   const { user } = useUserStore();
@@ -223,47 +221,6 @@ export default function Attendance() {
     }
   };
 
-  const markAbsent = async () => {
-    if (!user) return;
-
-    try {
-      setSaving(true);
-
-      if (attendance) {
-        // Update existing attendance
-        await AttendanceService.updateTeacherAttendance(attendance.id, {
-          status: AttendanceStatus.ABSENT,
-        });
-      } else {
-        // Create new attendance
-        await AttendanceService.createTeacherAttendance({
-          teacherId: user.id,
-          latitude: 0,
-          longitude: 0,
-          status: AttendanceStatus.ABSENT,
-          checkIn: Date.now(),
-        });
-      }
-
-      await loadTodayAttendance();
-      await loadAllAttendance();
-      showAlert({
-        title: "Success",
-        message: "Marked as absent!",
-        type: "success",
-      });
-    } catch (error) {
-      console.error("Error marking absent:", error);
-      showAlert({
-        title: "Error",
-        message: "Failed to mark attendance",
-        type: "error",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const getStatusText = (status: AttendanceStatus) => {
     switch (status) {
       case AttendanceStatus.PRESENT:
@@ -447,7 +404,11 @@ export default function Attendance() {
         <View
           style={[
             styles.historyCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
           ]}
         >
           <Text style={[styles.historyTitle, { color: colors.text }]}>
@@ -508,7 +469,11 @@ export default function Attendance() {
           <View
             style={[
               styles.locationCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                shadowColor: colors.shadow,
+              },
             ]}
           >
             <Text style={[styles.locationTitle, { color: colors.text }]}>
@@ -630,122 +595,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  dayHeaders: {
-    width: "100%",
-    flexDirection: "row",
-    marginBottom: 12,
-  },
-  dayHeader: {
-    width: (width - 120) / 7,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayHeaderText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  calendarDays: {
-    width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  weekRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  emptyDay: {
-    width: (width - 120) / 7,
-    height: 45,
-  },
-  calendarDay: {
-    width: (width - 120) / 7,
-    height: 45,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayWithAttendance: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  dayWithoutAttendance: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  dayNumber: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  dayNumberEmpty: {
-    fontSize: 12,
-  },
-  today: {
-    // Handled dynamically
-  },
-  todayText: {
-    // Handled dynamically
-  },
-  dayText: {
-    fontSize: 14,
-  },
-  hasAttendance: {
-    // Handled dynamically
-  },
-  attendanceIndicator: {
-    // Removed - no longer needed
-  },
-  legend: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  legendDotPresent: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendDotAbsent: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendDotToday: {
-    width: 16,
-    height: 16,
-    borderWidth: 2,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  legendText: {
-    fontSize: 12,
-  },
+
   historyCard: {
     borderRadius: 12,
     marginTop: 20,
-    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -797,7 +650,6 @@ const styles = StyleSheet.create({
   locationCard: {
     padding: 20,
     borderRadius: 12,
-    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,

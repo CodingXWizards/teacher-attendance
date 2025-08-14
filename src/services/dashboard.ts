@@ -1,5 +1,4 @@
 import type {
-  Student,
   DashboardStats,
   TeacherDashboardData,
   ClassWithDetails,
@@ -40,7 +39,7 @@ class DashboardService {
     try {
       const [stats, classes] = await Promise.all([
         this.getTeacherStats(teacherId),
-        DatabaseService.getTeacherClasses(teacherId),
+        DatabaseService.getTeacherClasses(),
       ]);
 
       const classesWithStudents: ClassWithDetails[] = classes.map(cls => ({
@@ -76,11 +75,9 @@ class DashboardService {
   /**
    * Get teacher's classes with details from local database
    */
-  static async getTeacherClasses(
-    teacherId: string,
-  ): Promise<ClassWithDetails[]> {
+  static async getTeacherClasses(): Promise<ClassWithDetails[]> {
     try {
-      const classes = await DatabaseService.getTeacherClasses(teacherId);
+      const classes = await DatabaseService.getTeacherClasses();
 
       // Get students for each class
       const classesWithDetails = await Promise.all(
@@ -152,11 +149,9 @@ class DashboardService {
   /**
    * Get all class summaries for teacher from local database
    */
-  static async getAllClassSummaries(
-    teacherId: string,
-  ): Promise<ClassSummary[]> {
+  static async getAllClassSummaries(): Promise<ClassSummary[]> {
     try {
-      const classes = await DatabaseService.getTeacherClasses(teacherId);
+      const classes = await DatabaseService.getTeacherClasses();
       const summaries = await Promise.all(
         classes.map(async cls => {
           const stats = await DatabaseService.getClassStats(cls.id);

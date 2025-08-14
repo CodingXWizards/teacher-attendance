@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+import { ChevronDown } from "lucide-react-native";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { BookOpen, ChevronDown } from "lucide-react-native";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Modal } from "@/components/Modal";
+
 import { Subject } from "@/types";
+import { Modal } from "@/components/Modal";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SubjectSelectorProps {
   subjects: Subject[];
@@ -84,11 +85,6 @@ export const SubjectSelector: React.FC<SubjectSelectorProps> = ({
 };
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
   selectorButton: {
     flexDirection: "row",
     justifyContent: "space-between",

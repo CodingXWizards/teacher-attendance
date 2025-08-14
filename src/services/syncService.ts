@@ -56,7 +56,7 @@ class SyncService {
   /**
    * Load teacher data from backend and store in local database
    */
-  async loadTeacherData(teacherId: string): Promise<void> {
+  async loadTeacherData(): Promise<void> {
     try {
       // Update sync status to in_progress
       await DatabaseService.updateSyncStatus("teacherData", Date.now());
@@ -86,7 +86,9 @@ class SyncService {
         error instanceof Error ? error.message : "Unknown error";
       await DatabaseService.updateSyncStatus("teacherData", Date.now());
 
-      throw new Error("Failed to load teacher data from backend");
+      throw new Error(
+        `Failed to load teacher data from backend: ${errorMessage}`,
+      );
     }
   }
 
@@ -167,14 +169,7 @@ class SyncService {
         }
       }
 
-      const success = errors.length === 0;
-
-      if (success) {
-      } else {
-        console.error(`Sync completed with ${errors.length} errors`);
-      }
-
-      return { success, syncedRecords, errors };
+      return { success: errors.length === 0, syncedRecords, errors };
     } catch (error) {
       console.error("Error syncing dirty records:", error);
       const errorMessage =
@@ -283,19 +278,6 @@ class SyncService {
   }
 
   /**
-   * Check if data needs to be refreshed (older than 1 hour)
-   */
-  async shouldRefreshData(): Promise<boolean> {
-    try {
-      // For now, always return true to refresh data
-      return true;
-    } catch (error) {
-      console.error("Error checking if data should be refreshed:", error);
-      return true; // Default to refresh on error
-    }
-  }
-
-  /**
    * Clear all local data
    */
   async clearLocalData(): Promise<void> {
@@ -303,19 +285,6 @@ class SyncService {
       await DatabaseService.clearAllData();
     } catch (error) {
       console.error("Error clearing local data:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get sync status for all tables
-   */
-  async getSyncStatus(): Promise<Record<string, any>> {
-    try {
-      // For now, return empty object since sync tracking is not fully implemented
-      return {};
-    } catch (error) {
-      console.error("Error getting sync status:", error);
       throw error;
     }
   }

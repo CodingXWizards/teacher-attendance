@@ -5,33 +5,25 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
 } from "react-native";
+import { Save } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Save } from "lucide-react-native";
 
-import { Appbar } from "@/components/appbar";
-import { Dropdown } from "@/components/Dropdown";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { StudentMarksInput } from "@/components/StudentMarksInput";
-import { useNavigation, useRouteParams } from "@/navigation";
-import { useAlert } from "@/contexts/AlertContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useUserStore } from "@/stores/userStore";
 import {
   MarksService,
   SubjectsService,
   StudentsService,
   DatabaseService,
 } from "@/services";
-import { Subject, Marks, Student } from "@/types";
-
-interface AddEditMarksParams {
-  mode: "add" | "edit";
-  subjectId: string;
-  classId?: string;
-  month?: string;
-}
+import { Subject, Student } from "@/types";
+import { Appbar } from "@/components/appbar";
+import { Dropdown } from "@/components/Dropdown";
+import { useUserStore } from "@/stores/userStore";
+import { useAlert } from "@/contexts/AlertContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { StudentMarksInput } from "@/components/StudentMarksInput";
+import { useNavigation, useRouteParams } from "@/navigation";
 
 const months = [
   "January",
@@ -183,7 +175,9 @@ export default function AddEditMarksScreen() {
 
         // Update formMarks with existing data
         marks.forEach(mark => {
-          if (initialMarks.hasOwnProperty(mark.studentId)) {
+          if (
+            Object.prototype.hasOwnProperty.call(initialMarks, mark.studentId)
+          ) {
             initialMarks[mark.studentId] = mark.marks;
           }
         });
@@ -337,10 +331,10 @@ export default function AddEditMarksScreen() {
     }
   };
 
-  const monthOptions = months.map((month, index) => ({
+  const monthOptions = months.map((m, index) => ({
     id: index.toString(),
-    label: month,
-    value: month,
+    label: m,
+    value: m,
   }));
 
   // Filter month options based on mode
@@ -480,13 +474,12 @@ export default function AddEditMarksScreen() {
                     Enter Marks for Students
                   </Text>
 
-                  {students.map((student, index) => (
+                  {students.map(student => (
                     <StudentMarksInput
                       key={student.studentId}
                       student={student}
                       marks={formMarks[student.studentId] || 0}
                       onMarksChange={handleMarksChange}
-                      index={index}
                     />
                   ))}
 
@@ -587,11 +580,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: "center",
-  },
   classInfoCard: {
     padding: 16,
     borderRadius: 12,
@@ -605,10 +593,6 @@ const styles = StyleSheet.create({
   },
   classDetails: {
     fontSize: 14,
-  },
-  formRow: {
-    flexDirection: "row",
-    gap: 16,
   },
   monthDropdownContainer: {
     flex: 1,
@@ -633,7 +617,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     elevation: 2,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

@@ -114,7 +114,7 @@ class StudentsService {
    */
   static async searchStudents(
     query: string,
-    classId?: string,
+    _classId?: string,
   ): Promise<Student[]> {
     try {
       // For now, get all students and filter by query
@@ -150,21 +150,12 @@ class StudentsService {
   /**
    * Get student attendance from local database
    */
-  static async getStudentAttendance(
-    studentId: string,
-    params?: {
-      startDate?: Date;
-      endDate?: Date;
-      classId?: string;
-    },
-  ): Promise<any[]> {
+  static async getStudentAttendance(studentId: string): Promise<any[]> {
     try {
       const studentAttendance = await DatabaseService.getStudentAttendance(
         studentId,
-        params,
       );
       return studentAttendance;
-      return [];
     } catch (error) {
       console.error("Error getting student attendance:", error);
       throw new Error("Failed to get student attendance");

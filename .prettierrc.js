@@ -27,11 +27,5 @@ module.exports = {
         singleQuote: false,
       },
     },
-    {
-      files: "*.{css,scss}",
-      options: {
-        plugins: ["prettier-plugin-tailwindcss"],
-      },
-    },
   ],
-}
+};

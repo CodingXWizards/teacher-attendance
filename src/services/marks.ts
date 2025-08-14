@@ -105,7 +105,7 @@ export class MarksService {
   static async getSubjectMarksInClass(
     classId: string,
     subjectId: string,
-    month?: string,
+    _month?: string,
   ): Promise<MarksType[]> {
     try {
       const students = await database
@@ -119,7 +119,7 @@ export class MarksService {
 
       const studentIds = students.map(student => student.studentId);
 
-      let query = database
+      const query = database
         .get<Marks>("marks")
         .query(
           Q.and(

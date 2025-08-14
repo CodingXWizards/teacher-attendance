@@ -43,28 +43,6 @@ export default function Home() {
   const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const generateColorFromString = (str: string): string => {
-    const colors = [
-      "#3b82f6", // blue
-      "#10b981", // emerald
-      "#f59e0b", // amber
-      "#ef4444", // red
-      "#8b5cf6", // violet
-      "#06b6d4", // cyan
-      "#84cc16", // lime
-      "#f97316", // orange
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   const loadDashboardData = async () => {
     if (!user) return;
 
@@ -78,14 +56,12 @@ export default function Home() {
           user.id,
         );
         setClasses(teacherDashboard.classes);
-        const allClassSummaries = await DashboardService.getAllClassSummaries(
-          user.id,
-        );
+        const allClassSummaries = await DashboardService.getAllClassSummaries();
         setClassSummaries(allClassSummaries);
       }
-    } catch (error) {
+    } catch (err) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to load dashboard";
+        err instanceof Error ? err.message : "Failed to load dashboard";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -654,9 +630,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
     alignItems: "center",
   },
   statNumber: {

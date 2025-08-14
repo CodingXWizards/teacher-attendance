@@ -3,101 +3,14 @@ import {
   Text,
   Modal,
   Animated,
-  StatusBar,
   Dimensions,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
 import React, { useEffect, useRef } from "react";
-import { useTheme, Colors } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
-
-const createStyles = (colors: Colors) =>
-  StyleSheet.create({
-    backdrop: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: colors.backdrop,
-    },
-    container: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    alertContainer: {
-      paddingTop: 20,
-      backgroundColor: colors.surface,
-      borderRadius: 14,
-      width: width - 40,
-      maxWidth: width - 80,
-      shadowColor: colors.shadow,
-      shadowOffset: {
-        width: 0,
-        height: 20,
-      },
-      shadowOpacity: 0.3,
-      shadowRadius: 25,
-      elevation: 15,
-      overflow: "hidden",
-    },
-    title: {
-      fontSize: 17,
-      fontWeight: "600",
-      color: colors.text,
-      textAlign: "center",
-      marginBottom: 8,
-      paddingHorizontal: 20,
-    },
-    message: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      textAlign: "center",
-      lineHeight: 18,
-      marginBottom: 20,
-      paddingHorizontal: 20,
-    },
-    buttonContainer: {
-      borderTopWidth: 0.5,
-      borderColor: colors.divider,
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    button: {
-      flex: 1,
-      borderLeftWidth: 0.5,
-      borderColor: colors.divider,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      borderBottomColor: colors.divider,
-    },
-    singleButton: {
-      borderBottomWidth: 0,
-    },
-    destructiveButton: {
-      // iOS destructive button styling
-    },
-    cancelButton: {
-      // iOS cancel button styling
-    },
-    buttonText: {
-      fontSize: 17,
-      fontWeight: "400",
-      color: colors.primary,
-    },
-    destructiveButtonText: {
-      color: colors.error,
-    },
-    cancelButtonText: {
-      color: colors.error,
-    },
-  });
 
 export interface AlertButton {
   text: string;
@@ -119,7 +32,6 @@ const Alert: React.FC<AlertProps> = ({
   title,
   message,
   buttons = [],
-  type = "info",
   onDismiss,
 }) => {
   const { colors } = useTheme();
@@ -172,8 +84,6 @@ const Alert: React.FC<AlertProps> = ({
     }
   };
 
-  const styles = createStyles(colors);
-
   return (
     <Modal
       visible={visible}
@@ -181,14 +91,9 @@ const Alert: React.FC<AlertProps> = ({
       animationType="slide"
       statusBarTranslucent
     >
-      {/* <StatusBar
-        backgroundColor={colors.backdrop}
-        barStyle={isDark ? "light-content" : "dark-content"}
-      /> */}
-
       {/* Backdrop */}
       <TouchableOpacity
-        style={styles.backdrop}
+        style={[styles.backdrop, { backgroundColor: colors.backdrop }]}
         activeOpacity={1}
         onPress={handleBackdropPress}
       >
@@ -196,6 +101,7 @@ const Alert: React.FC<AlertProps> = ({
           style={[
             styles.backdrop,
             {
+              backgroundColor: colors.backdrop,
               opacity: opacityAnim,
             },
           ]}
@@ -203,21 +109,34 @@ const Alert: React.FC<AlertProps> = ({
       </TouchableOpacity>
       {/* Alert Container */}
       <View style={styles.container}>
-        <View style={[styles.alertContainer]}>
+        <View
+          style={[
+            styles.alertContainer,
+            { backgroundColor: colors.surface, shadowColor: colors.shadow },
+          ]}
+        >
           {/* Title */}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
 
           {/* Message */}
-          <Text style={styles.message}>{message}</Text>
+          <Text style={[styles.message, { color: colors.text }]}>
+            {message}
+          </Text>
 
           {/* Buttons */}
           {buttons.length > 0 && (
-            <View style={styles.buttonContainer}>
+            <View
+              style={[
+                styles.buttonContainer,
+                { borderTopColor: colors.border },
+              ]}
+            >
               {buttons.map((button, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.button,
+                    { borderColor: colors.border },
                     index === 0 && { borderLeftWidth: 0 },
                     button.style === "destructive" && styles.destructiveButton,
                     button.text === "Cancel" && styles.cancelButton,
@@ -228,9 +147,9 @@ const Alert: React.FC<AlertProps> = ({
                   <Text
                     style={[
                       styles.buttonText,
-                      button.style === "destructive" &&
-                        styles.destructiveButtonText,
-                      button.text === "Cancel" && styles.cancelButtonText,
+                      { color: colors.text },
+                      button.style === "destructive" && { color: colors.error },
+                      button.text === "Cancel" && { color: colors.error },
                     ]}
                   >
                     {button.text}
@@ -262,3 +181,73 @@ const Alert: React.FC<AlertProps> = ({
 };
 
 export default Alert;
+
+const styles = StyleSheet.create({
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  alertContainer: {
+    paddingTop: 20,
+    borderRadius: 14,
+    width: width - 40,
+    maxWidth: width - 80,
+    shadowOffset: {
+      width: 0,
+      height: 20,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 25,
+    elevation: 15,
+    overflow: "hidden",
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  message: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  buttonContainer: {
+    borderTopWidth: 0.5,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  button: {
+    flex: 1,
+    borderLeftWidth: 0.5,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  singleButton: {
+    borderBottomWidth: 0,
+  },
+  destructiveButton: {
+    // iOS destructive button styling
+  },
+  cancelButton: {
+    // iOS cancel button styling
+  },
+  buttonText: {
+    fontSize: 17,
+    fontWeight: "400",
+  },
+});

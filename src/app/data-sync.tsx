@@ -31,7 +31,7 @@ const DataSyncScreen = () => {
   const { setUser } = useUserStore();
   const route = useRoute<DataSyncScreenRouteProp>();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncMessage, setSyncMessage] = useState("");
   const [showConflictDialog, setShowConflictDialog] = useState(false);

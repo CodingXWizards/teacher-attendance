@@ -18,7 +18,6 @@ interface CalendarProps {
 export const Calendar: React.FC<CalendarProps> = ({
   currentMonth,
   attendanceData,
-  onDayPress,
   onMonthChange,
 }) => {
   const { colors } = useTheme();
@@ -120,7 +119,7 @@ export const Calendar: React.FC<CalendarProps> = ({
             },
             (_, weekIndex) => (
               <View key={weekIndex} style={styles.weekRow}>
-                {Array.from({ length: 7 }, (_, dayIndex) => {
+                {Array.from({ length: 7 }, (__, dayIndex) => {
                   const dateIndex = weekIndex * 7 + dayIndex;
                   const date = days[dateIndex];
 

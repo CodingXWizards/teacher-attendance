@@ -243,10 +243,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  editButtonContainer: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
