@@ -13,6 +13,7 @@ import {
   Database,
   RefreshCw,
   CheckCircle,
+  BookOpen,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 
@@ -32,23 +33,26 @@ export const SyncStatus = () => {
   const [syncStats, setSyncStats] = useState<{
     teacherAttendanceCount: number;
     studentAttendanceCount: number;
+    marksCount: number;
     lastSyncDate?: string;
   }>({
     teacherAttendanceCount: 0,
     studentAttendanceCount: 0,
+    marksCount: 0,
   });
   const [pendingSync, setPendingSync] = useState<{
     teacherAttendancePending: number;
     studentAttendancePending: number;
+    marksPending: number;
     totalPending: number;
   }>({
     teacherAttendancePending: 0,
     studentAttendancePending: 0,
+    marksPending: 0,
     totalPending: 0,
   });
-  const [selectedSyncFrequency, setSelectedSyncFrequency] = useState<
-    string | null
-  >(null);
+  const [selectedSyncFrequency, setSelectedSyncFrequency] =
+    useState<string>("daily");
   const [showSyncFrequencyModal, setShowSyncFrequencyModal] = useState(false);
 
   const handleSyncData = async () => {
@@ -98,7 +102,9 @@ export const SyncStatus = () => {
 
   const handleSyncFrequencyChange = async (frequency: string) => {
     try {
-      await resyncService.saveSyncFrequency(frequency as any);
+      await resyncService.saveSyncFrequency(
+        frequency as "daily" | "weekly" | "monthly",
+      );
       setSelectedSyncFrequency(frequency);
       setShowSyncFrequencyModal(false);
       showAlert({
@@ -134,7 +140,8 @@ export const SyncStatus = () => {
       ]);
       setSyncStats(stats);
       setPendingSync(pending);
-      setSelectedSyncFrequency(frequency);
+      // Set frequency to saved value or default to "daily"
+      setSelectedSyncFrequency(frequency || "daily");
     } catch (error) {
       console.error("Error loading sync data:", error);
     }
@@ -178,7 +185,7 @@ export const SyncStatus = () => {
               </View>
             </View>
             <View style={styles.syncStatItem}>
-              <User size={20} color={colors.secondary} />
+              <User size={20} color={colors.primary} />
               <View style={styles.syncStatText}>
                 <Text style={[styles.syncStatNumber, { color: colors.text }]}>
                   {syncStats.studentAttendanceCount}
@@ -196,6 +203,29 @@ export const SyncStatus = () => {
                     style={[styles.pendingSyncText, { color: colors.warning }]}
                   >
                     {pendingSync.studentAttendancePending} pending
+                  </Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.syncStatItem}>
+              <BookOpen size={20} color={colors.primary} />
+              <View style={styles.syncStatText}>
+                <Text style={[styles.syncStatNumber, { color: colors.text }]}>
+                  {syncStats.marksCount}
+                </Text>
+                <Text
+                  style={[
+                    styles.syncStatLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Marks Records
+                </Text>
+                {pendingSync.marksPending > 0 && (
+                  <Text
+                    style={[styles.pendingSyncText, { color: colors.warning }]}
+                  >
+                    {pendingSync.marksPending} pending
                   </Text>
                 )}
               </View>
@@ -260,10 +290,8 @@ export const SyncStatus = () => {
               <Text
                 style={[styles.frequencyButtonText, { color: colors.text }]}
               >
-                {selectedSyncFrequency
-                  ? SYNC_FREQUENCIES.find(f => f.type === selectedSyncFrequency)
-                      ?.label || "Not set"
-                  : "Not set"}
+                {SYNC_FREQUENCIES.find(f => f.type === selectedSyncFrequency)
+                  ?.label || "Daily"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -395,11 +423,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 16,
+    flexWrap: "wrap",
+    gap: 12,
   },
   syncStatItem: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    minWidth: "30%",
     gap: 12,
   },
   syncStatText: {

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export interface SyncLog {
   id: string;
   timestamp: number;
-  type: "teacher" | "student" | "all";
+  type: "teacher" | "student" | "marks" | "all";
   status: "success" | "failed" | "partial";
   syncedRecords: number;
   errors: string[];

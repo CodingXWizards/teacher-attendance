@@ -1,4 +1,4 @@
-import { attendanceApi, studentsApi, usersApi } from "../lib/api";
+import { attendanceApi, studentsApi, subjectsApi, usersApi } from "../lib/api";
 import { Student, StudentAttendance } from "../types";
 import { DatabaseService } from "./databaseService";
 
@@ -80,6 +80,10 @@ class DataSyncService {
         studentsData.push(...students);
       }
 
+      const teacherAssignments = await usersApi.getTeacherAssignments();
+
+      await DatabaseService.syncTeacherAssignments(teacherAssignments);
+
       await DatabaseService.createClasses(classes);
       await DatabaseService.createStudents(studentsData);
       await DatabaseService.updateSyncStatus("classes", Date.now());
@@ -111,6 +115,27 @@ class DataSyncService {
     } catch (error) {
       console.error("Error loading attendance data:", error);
       throw new Error("Failed to load attendance data");
+    }
+  }
+
+  static async loadSubjectMarksData(teacherId: string): Promise<void> {
+    try {
+      const subjects = await usersApi.teacherSubjects(teacherId);
+
+      await DatabaseService.syncSubjects(subjects);
+      for (const subject of subjects) {
+        try {
+          const subjectMarks = await subjectsApi.getMarks(subject.id);
+
+          await DatabaseService.syncSubjectMarks(subjectMarks);
+          await DatabaseService.updateSyncStatus("marks", Date.now());
+        } catch (error) {
+          console.error("Error loading subject marks data:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading subject marks data:", error);
+      throw new Error("Failed to load subject marks data");
     }
   }
 

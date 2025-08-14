@@ -7,16 +7,19 @@ import {
   RegisterRequest,
 } from "@/types/auth";
 import {
+  User,
   Class,
+  Marks,
+  Subject,
   Teacher,
   Student,
   UserStats,
   ClassStats,
   SearchParams,
-  TeacherClass,
   DashboardStats,
   TeacherWithUser,
   StudentWithClass,
+  TeacherAssignment,
   TeacherAttendance,
   StudentAttendance,
   CreateUserRequest,
@@ -37,7 +40,6 @@ import {
   UpdateStudentAttendanceRequest,
   RemoveTeacherFromClassRequest,
 } from "@/types";
-import { User } from "@/types/user";
 import { UserResponse } from "@/types/auth";
 import { API_BASE_URL } from "@/constants/api";
 
@@ -267,9 +269,10 @@ export const endpoints = {
       `/user/teachers/department/${department}`,
     teacherByEmployeeId: (employeeId: string) =>
       `/user/teachers/employee/${employeeId}`,
-    teacherAssignments: (teacherId: string) =>
-      `/user/teachers/${teacherId}/assignments`,
+    getTeacherAssignments: "/user/assignments",
     teacherClasses: `/user/classes`,
+    teacherSubjects: (teacherId: string) =>
+      `/user/teachers/${teacherId}/subjects`,
     assignTeacherToClass: "/user/teachers/assign",
     removeTeacherFromClass: "/user/teachers/remove",
     byRole: (role: string) => `/user/role/${role}`,
@@ -285,6 +288,7 @@ export const endpoints = {
     list: "/subject",
     active: "/subject/active",
     get: (id: string) => `/subject/${id}`,
+    getMarks: (id: string) => `/subject/${id}/marks`,
     byCode: (code: string) => `/subject/code/${code}`,
     byField: (field: string) => `/subject/field/${field}`,
     create: "/subject",
@@ -361,6 +365,7 @@ export const endpoints = {
   resync: {
     teacher: "/attendance/teacher/bulk",
     student: "/attendance/student/bulk",
+    marks: "/subject/marks/bulk",
   },
 } as const;
 
@@ -426,13 +431,15 @@ export const usersApi = {
   teacherByEmployeeId: (employeeId: string) =>
     api.get<Teacher>(endpoints.users.teacherByEmployeeId(employeeId)),
 
-  teacherAssignments: (teacherId: string) =>
-    api.get<TeacherClass[]>(endpoints.users.teacherAssignments(teacherId)),
+  getTeacherAssignments: () =>
+    api.get<TeacherAssignment[]>(endpoints.users.getTeacherAssignments),
 
   teacherClasses: () => api.get<Class[]>(endpoints.users.teacherClasses),
+  teacherSubjects: (teacherId: string) =>
+    api.get<Subject[]>(endpoints.users.teacherSubjects(teacherId)),
 
   assignTeacherToClass: (assignmentData: AssignTeacherToClassRequest) =>
-    api.post<TeacherClass>(
+    api.post<TeacherAssignment>(
       endpoints.users.assignTeacherToClass,
       assignmentData,
     ),
@@ -475,42 +482,42 @@ export const resyncApi = {
   student: (
     bulkData: Omit<StudentAttendance, "id" | "createdAt" | "updatedAt">[],
   ) => api.post<void>(endpoints.resync.student, bulkData),
+
+  marks: (bulkData: {
+    marksData: Omit<Marks, "id" | "createdAt" | "updatedAt">[];
+  }) => api.post<void>(endpoints.resync.marks, bulkData),
 };
 
-// export const subjectsApi = {
-//   list: (params?: {
-//     page?: number;
-//     limit?: number;
-//     search?: string;
-//     isActive?: boolean;
-//   }) =>
-//     api.getPaginated<Subject>(
-//       endpoints.subjects.list,
-//       params?.page,
-//       params?.limit,
-//       { params },
-//     ),
+export const subjectsApi = {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+  }) =>
+    api.getPaginated<Subject>(
+      endpoints.subjects.list,
+      params?.page,
+      params?.limit,
+      { params },
+    ),
 
-//   active: () => api.get<Subject[]>(endpoints.subjects.active),
+  active: () => api.get<Subject[]>(endpoints.subjects.active),
 
-//   get: (id: string) => api.get<Subject>(endpoints.subjects.get(id)),
+  get: (id: string) => api.get<Subject>(endpoints.subjects.get(id)),
 
-//   byCode: (code: string) => api.get<Subject>(endpoints.subjects.byCode(code)),
+  getMarks: (id: string) => api.get<Marks[]>(endpoints.subjects.getMarks(id)),
 
-//   byField: (field: string) =>
-//     api.get<Subject[]>(endpoints.subjects.byField(field)),
+  byCode: (code: string) => api.get<Subject>(endpoints.subjects.byCode(code)),
 
-//   create: (subjectData: CreateSubjectRequest) =>
-//     api.post<Subject>(endpoints.subjects.create, subjectData),
+  byField: (field: string) =>
+    api.get<Subject[]>(endpoints.subjects.byField(field)),
 
-//   update: (id: string, subjectData: UpdateSubjectRequest) =>
-//     api.put<Subject>(endpoints.subjects.update(id), subjectData),
+  delete: (id: string) => api.delete<void>(endpoints.subjects.delete(id)),
 
-//   delete: (id: string) => api.delete<void>(endpoints.subjects.delete(id)),
-
-//   hardDelete: (id: string) =>
-//     api.delete<void>(endpoints.subjects.hardDelete(id)),
-// };
+  hardDelete: (id: string) =>
+    api.delete<void>(endpoints.subjects.hardDelete(id)),
+};
 
 export const teachersApi = {
   list: (params?: {
@@ -536,7 +543,7 @@ export const teachersApi = {
     api.get<TeacherWithUser[]>(endpoints.teachers.byDepartment(department)),
 
   assignments: (teacherId: string) =>
-    api.get<TeacherClass[]>(endpoints.teachers.assignments(teacherId)),
+    api.get<TeacherAssignment[]>(endpoints.teachers.assignments(teacherId)),
 
   profile: () => api.get<TeacherWithUser>(endpoints.teachers.profile),
 
@@ -549,7 +556,10 @@ export const teachersApi = {
   delete: (id: string) => api.delete<void>(endpoints.teachers.delete(id)),
 
   assignToClass: (assignmentData: AssignTeacherToClassRequest) =>
-    api.post<TeacherClass>(endpoints.teachers.assignToClass, assignmentData),
+    api.post<TeacherAssignment>(
+      endpoints.teachers.assignToClass,
+      assignmentData,
+    ),
 
   removeFromClass: (assignmentData: RemoveTeacherFromClassRequest) =>
     api.post<void>(endpoints.teachers.removeFromClass, assignmentData),
@@ -588,7 +598,7 @@ export const classesApi = {
     api.get<Student[]>(endpoints.classes.students(classId)),
 
   teachers: (classId: string) =>
-    api.get<TeacherClass[]>(endpoints.classes.teachers(classId)),
+    api.get<TeacherAssignment[]>(endpoints.classes.teachers(classId)),
 
   stats: (classId: string) =>
     api.get<ClassStats>(endpoints.classes.stats(classId)),

@@ -1,4 +1,4 @@
-import { TeacherClass } from "./teacher";
+import { TeacherAssignment } from "./teacher";
 import { ClassWithDetails } from "./class";
 
 export interface DashboardStats {
@@ -12,6 +12,6 @@ export interface DashboardStats {
 
 export interface TeacherDashboardData {
   classes: ClassWithDetails[];
-  assignments: TeacherClass[];
+  assignments: TeacherAssignment[];
   stats: DashboardStats;
 }

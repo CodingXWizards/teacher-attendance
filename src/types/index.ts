@@ -7,3 +7,5 @@ export * from "./attendance";
 export * from "./dashboard";
 export * from "./common";
 export * from "./teacher";
+export * from "./subject";
+export * from "./marks";

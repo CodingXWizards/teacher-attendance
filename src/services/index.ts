@@ -10,6 +10,8 @@ export { default as DataSyncService } from "./dataSyncService";
 // Export offline-first services
 export { syncService } from "./syncService";
 export { DatabaseService } from "./databaseService";
+export { MarksService } from "./marks";
+export { SubjectsService } from "./subjects";
 
 // Export types from the main types file
 export type {

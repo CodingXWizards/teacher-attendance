@@ -9,12 +9,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import React, { useEffect, useRef } from "react";
-import { CheckCircle, AlertCircle, Info } from "lucide-react-native";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme, Colors } from "@/contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: Colors) =>
   StyleSheet.create({
     backdrop: {
       position: "absolute",
@@ -31,10 +30,10 @@ const createStyles = (colors: any) =>
     },
     alertContainer: {
       paddingTop: 20,
-      backgroundColor: colors.surfaceElevated,
+      backgroundColor: colors.surface,
       borderRadius: 14,
-      width: width - 80,
-      maxWidth: width - 120,
+      width: width - 40,
+      maxWidth: width - 80,
       shadowColor: colors.shadow,
       shadowOffset: {
         width: 0,
@@ -76,7 +75,6 @@ const createStyles = (colors: any) =>
       paddingHorizontal: 20,
       alignItems: "center",
       justifyContent: "center",
-      borderBottomWidth: 0.5,
       borderBottomColor: colors.divider,
     },
     singleButton: {
@@ -97,7 +95,7 @@ const createStyles = (colors: any) =>
       color: colors.error,
     },
     cancelButtonText: {
-      color: colors.primary,
+      color: colors.error,
     },
   });
 
@@ -124,7 +122,7 @@ const Alert: React.FC<AlertProps> = ({
   type = "info",
   onDismiss,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -180,13 +178,13 @@ const Alert: React.FC<AlertProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="none"
+      animationType="slide"
       statusBarTranslucent
     >
-      <StatusBar
+      {/* <StatusBar
         backgroundColor={colors.backdrop}
         barStyle={isDark ? "light-content" : "dark-content"}
-      />
+      /> */}
 
       {/* Backdrop */}
       <TouchableOpacity
@@ -205,16 +203,7 @@ const Alert: React.FC<AlertProps> = ({
       </TouchableOpacity>
       {/* Alert Container */}
       <View style={styles.container}>
-        <Animated.View
-          style={[
-            styles.alertContainer,
-            {
-              transform: [{ scale: scaleAnim }],
-              borderColor: colors.border,
-              opacity: opacityAnim,
-            },
-          ]}
-        >
+        <View style={[styles.alertContainer]}>
           {/* Title */}
           <Text style={styles.title}>{title}</Text>
 
@@ -231,7 +220,7 @@ const Alert: React.FC<AlertProps> = ({
                     styles.button,
                     index === 0 && { borderLeftWidth: 0 },
                     button.style === "destructive" && styles.destructiveButton,
-                    button.style === "cancel" && styles.cancelButton,
+                    button.text === "Cancel" && styles.cancelButton,
                     buttons.length === 1 && styles.singleButton,
                   ]}
                   onPress={() => handleButtonPress(button)}
@@ -241,7 +230,7 @@ const Alert: React.FC<AlertProps> = ({
                       styles.buttonText,
                       button.style === "destructive" &&
                         styles.destructiveButtonText,
-                      button.style === "cancel" && styles.cancelButtonText,
+                      button.text === "Cancel" && styles.cancelButtonText,
                     ]}
                   >
                     {button.text}
@@ -266,7 +255,7 @@ const Alert: React.FC<AlertProps> = ({
               </TouchableOpacity>
             </View>
           )}
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );

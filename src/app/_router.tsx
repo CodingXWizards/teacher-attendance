@@ -1,3 +1,8 @@
+import {
+  createStackNavigator,
+  CardStyleInterpolators,
+} from "@react-navigation/stack";
+import StudentDetailsScreen from "@/app/class/student/[studentId]";
 import React, { useEffect } from "react";
 
 import LoginScreen from "@/app/login";
@@ -5,17 +10,17 @@ import { AuthService } from "@/services";
 import DashboardScreen from "@/app/index";
 import ProfileScreen from "@/app/profile";
 import ReportsScreen from "@/app/reports";
+import MarksScreen from "@/app/marks";
+import AddEditMarksScreen from "@/app/marks/add-edit";
+import { useNavigation } from "@/navigation";
 import DataSyncScreen from "@/app/data-sync";
 import SyncLogsScreen from "@/app/sync-logs";
 import SplashScreen from "@/app/splash-screen";
 import AttendanceScreen from "@/app/attendance";
 import { useUserStore } from "@/stores/userStore";
 import ClassDetailsScreen from "@/app/class/[classId]";
-import { useNavigation } from "@react-navigation/native";
 import { useDatabase } from "@/components/DatabaseProvider";
 import TakeAttendanceScreen from "@/app/attendance/[classId]";
-import { createStackNavigator } from "@react-navigation/stack";
-import StudentDetailsScreen from "@/app/class/student/[studentId]";
 
 const Stack = createStackNavigator();
 
@@ -33,13 +38,19 @@ const AppRouter = () => {
       if (isAuthenticated) {
         try {
           const user = await AuthService.getCurrentUserFromStore();
-          navigation.navigate("Dashboard" as never);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          });
           setUser(user);
         } catch (error) {
           console.error("Error getting current user:", error);
         }
       } else {
-        navigation.navigate("Login" as never);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
       }
     });
   }, [isDatabaseLoading]);
@@ -48,6 +59,8 @@ const AppRouter = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
+        gestureEnabled: true,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
       }}
       initialRouteName="Splash"
     >
@@ -84,6 +97,16 @@ const AppRouter = () => {
       <Stack.Screen
         name="SyncLogs"
         component={SyncLogsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Marks"
+        component={MarksScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AddEditMarks"
+        component={AddEditMarksScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

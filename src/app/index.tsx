@@ -94,7 +94,7 @@ export default function Home() {
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [user]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -370,7 +370,6 @@ export default function Home() {
               ) : (
                 <View style={styles.classesList}>
                   {classes.map(cls => {
-                    const color = generateColorFromString(cls.name);
                     const studentCount = cls.students?.length || 0;
 
                     return (
@@ -385,17 +384,21 @@ export default function Home() {
                         ]}
                         onPress={() =>
                           navigation.navigate("ClassDetails", {
-                            classId: cls.id,
+                            classId: cls.classId,
                           })
                         }
                       >
                         <View
                           style={[
                             styles.classIcon,
-                            { backgroundColor: color + "20" },
+                            {
+                              backgroundColor: colors.primary + "20",
+                              borderWidth: 1,
+                              borderColor: colors.primary + "50",
+                            },
                           ]}
                         >
-                          <Book size={24} color={color} />
+                          <Book size={24} color={colors.primary} />
                         </View>
                         <View style={styles.classInfo}>
                           <Text
@@ -434,7 +437,7 @@ export default function Home() {
                             <TouchableOpacity
                               style={[
                                 styles.viewButton,
-                                { backgroundColor: color },
+                                { backgroundColor: colors.primary },
                               ]}
                               onPress={() =>
                                 navigation.navigate("TakeAttendance", {
@@ -471,7 +474,6 @@ export default function Home() {
             ) : (
               <View style={styles.classesList}>
                 {classSummaries.map(classItem => {
-                  const color = classItem.color;
                   const classDetails = classes.find(
                     cls => cls.id === classItem.id,
                   );
@@ -489,10 +491,10 @@ export default function Home() {
                       <View
                         style={[
                           styles.classIcon,
-                          { backgroundColor: color + "20" },
+                          { backgroundColor: colors.primary + "20" },
                         ]}
                       >
-                        <Book size={24} color={color} />
+                        <Book size={24} color={colors.primary} />
                       </View>
                       <View style={styles.classInfo}>
                         <Text style={styles.className}>{classItem.name}</Text>
@@ -512,7 +514,7 @@ export default function Home() {
                           <TouchableOpacity
                             style={[
                               styles.viewButton,
-                              { backgroundColor: color },
+                              { backgroundColor: colors.primary },
                             ]}
                             onPress={() =>
                               navigation.navigate("ClassDetails", {
@@ -520,7 +522,12 @@ export default function Home() {
                               })
                             }
                           >
-                            <Text style={styles.viewButtonText}>
+                            <Text
+                              style={[
+                                styles.viewButtonText,
+                                { color: colors.onPrimary },
+                              ]}
+                            >
                               View Details
                             </Text>
                           </TouchableOpacity>
@@ -562,17 +569,11 @@ export default function Home() {
                     borderColor: colors.border,
                   },
                 ]}
-                onPress={() =>
-                  showAlert({
-                    title: "Generate Reports",
-                    message: "Generate reports not implemented yet",
-                    type: "info",
-                  })
-                }
+                onPress={() => navigation.navigate("Marks")}
               >
                 <BarChart3 size={24} color={colors.primary} />
                 <Text style={[styles.quickActionText, { color: colors.text }]}>
-                  Generate Reports
+                  Student Marks
                 </Text>
               </TouchableOpacity>
             </View>

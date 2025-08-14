@@ -1,12 +1,15 @@
-import { DatabaseService } from "./databaseService";
-import { api, resyncApi } from "@/lib/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { resyncApi } from "@/lib/api";
+
+import { DatabaseService } from "./databaseService";
 import { syncLogsService } from "./syncLogsService";
 import {
   TeacherAttendance,
   StudentAttendance,
   AttendanceStatus,
+  Marks,
 } from "@/types";
 
 interface SyncResult {
@@ -147,6 +150,40 @@ class ResyncService {
       }));
     } catch (error) {
       console.error("Error getting student attendance for sync:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get marks records that need to be synced based on last sync time
+   */
+  private async getMarksForSync(): Promise<Omit<Marks, "id">[]> {
+    try {
+      // Get the last sync time for marks
+      const syncStatus = await DatabaseService.getSyncStatus("marks");
+      const lastSyncTime = syncStatus?.lastSync || 0;
+
+      // Get all marks records
+      const allMarks = await DatabaseService.getAllMarks();
+
+      // Filter records that were created or updated after the last sync
+      const recordsToSync = allMarks.filter(record => {
+        return (
+          record.createdAt > lastSyncTime || record.updatedAt > lastSyncTime
+        );
+      });
+
+      return recordsToSync.map(record => ({
+        markId: record.markId,
+        subjectId: record.subjectId,
+        studentId: record.studentId,
+        marks: record.marks,
+        month: record.month,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      }));
+    } catch (error) {
+      console.error("Error getting marks for sync:", error);
       throw error;
     }
   }
@@ -362,30 +399,143 @@ class ResyncService {
   }
 
   /**
-   * Sync all attendance data (both teacher and student)
+   * Sync marks data to backend
+   */
+  async syncMarks(): Promise<SyncResult> {
+    const startTime = Date.now();
+
+    try {
+      // Check internet connectivity first
+      const isConnected = await this.checkInternetConnectivity();
+      if (!isConnected) {
+        const result = {
+          success: false,
+          syncedRecords: 0,
+          errors: ["No internet connection available"],
+        };
+
+        // Log the failed sync
+        await syncLogsService.addSyncLog({
+          timestamp: Date.now(),
+          type: "marks",
+          status: "failed",
+          syncedRecords: 0,
+          errors: result.errors,
+          duration: Date.now() - startTime,
+        });
+
+        return result;
+      }
+
+      const marks = await this.getMarksForSync();
+
+      if (marks.length === 0) {
+        const result = { success: true, syncedRecords: 0, errors: [] };
+
+        // Log the successful sync with no records
+        await syncLogsService.addSyncLog({
+          timestamp: Date.now(),
+          type: "marks",
+          status: "success",
+          syncedRecords: 0,
+          errors: [],
+          duration: Date.now() - startTime,
+        });
+
+        return result;
+      }
+
+      // Prepare data for bulk upload
+      const bulkData = marks.map(mark => ({
+        markId: mark.markId,
+        subjectId: mark.subjectId,
+        studentId: mark.studentId,
+        marks: mark.marks,
+        month: mark.month,
+      }));
+
+      // Send to backend
+      await resyncApi.marks({ marksData: bulkData });
+
+      // Update sync status after successful sync
+      await DatabaseService.updateSyncStatus("marks", Date.now());
+
+      const result = {
+        success: true,
+        syncedRecords: marks.length,
+        errors: [],
+      };
+
+      // Log the successful sync
+      await syncLogsService.addSyncLog({
+        timestamp: Date.now(),
+        type: "marks",
+        status: "success",
+        syncedRecords: marks.length,
+        errors: [],
+        duration: Date.now() - startTime,
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Error syncing marks:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      const result = {
+        success: false,
+        syncedRecords: 0,
+        errors: [errorMessage],
+      };
+
+      // Log the failed sync
+      await syncLogsService.addSyncLog({
+        timestamp: Date.now(),
+        type: "marks",
+        status: "failed",
+        syncedRecords: 0,
+        errors: [errorMessage],
+        duration: Date.now() - startTime,
+      });
+
+      return result;
+    }
+  }
+
+  /**
+   * Sync all data (teacher attendance, student attendance, and marks)
    */
   async syncAllAttendance(teacherId: string): Promise<{
     teacherResult: SyncResult;
     studentResult: SyncResult;
+    marksResult: SyncResult;
     totalSynced: number;
     totalErrors: string[];
   }> {
     try {
       const teacherResult = await this.syncTeacherAttendance(teacherId);
       const studentResult = await this.syncStudentAttendance();
+      const marksResult = await this.syncMarks();
 
       const totalSynced =
-        teacherResult.syncedRecords + studentResult.syncedRecords;
-      const totalErrors = [...teacherResult.errors, ...studentResult.errors];
+        teacherResult.syncedRecords +
+        studentResult.syncedRecords +
+        marksResult.syncedRecords;
+      const totalErrors = [
+        ...teacherResult.errors,
+        ...studentResult.errors,
+        ...marksResult.errors,
+      ];
 
       return {
         teacherResult,
         studentResult,
+        marksResult,
         totalSynced,
         totalErrors,
       };
     } catch (error) {
-      console.error("Error in full attendance sync:", error);
+      console.error("Error in full data sync:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       return {
@@ -395,6 +545,11 @@ class ResyncService {
           errors: [errorMessage],
         },
         studentResult: {
+          success: false,
+          syncedRecords: 0,
+          errors: [errorMessage],
+        },
+        marksResult: {
           success: false,
           syncedRecords: 0,
           errors: [errorMessage],
@@ -411,6 +566,7 @@ class ResyncService {
   async getSyncStats(teacherId: string): Promise<{
     teacherAttendanceCount: number;
     studentAttendanceCount: number;
+    marksCount: number;
     lastSyncDate?: string;
   }> {
     try {
@@ -438,6 +594,9 @@ class ResyncService {
         );
       }
 
+      // Get all marks records
+      const allMarksRecords = await DatabaseService.getAllMarks();
+
       // Get last sync date from sync status
       const teacherSyncStatus = await DatabaseService.getSyncStatus(
         "teacherAttendance",
@@ -445,13 +604,17 @@ class ResyncService {
       const studentSyncStatus = await DatabaseService.getSyncStatus(
         "studentAttendance",
       );
+      const marksSyncStatus = await DatabaseService.getSyncStatus("marks");
 
       const lastSyncDate =
-        teacherSyncStatus?.lastSync || studentSyncStatus?.lastSync;
+        teacherSyncStatus?.lastSync ||
+        studentSyncStatus?.lastSync ||
+        marksSyncStatus?.lastSync;
 
       return {
         teacherAttendanceCount: allTeacherRecords.length,
         studentAttendanceCount: allStudentRecords.length,
+        marksCount: allMarksRecords.length,
         lastSyncDate: lastSyncDate
           ? new Date(lastSyncDate).toISOString()
           : undefined,
@@ -461,6 +624,7 @@ class ResyncService {
       return {
         teacherAttendanceCount: 0,
         studentAttendanceCount: 0,
+        marksCount: 0,
       };
     }
   }
@@ -471,6 +635,7 @@ class ResyncService {
   async getPendingSyncCount(teacherId: string): Promise<{
     teacherAttendancePending: number;
     studentAttendancePending: number;
+    marksPending: number;
     totalPending: number;
   }> {
     try {
@@ -480,12 +645,16 @@ class ResyncService {
       );
       // Get student attendance records that need sync
       const studentAttendance = await this.getStudentAttendanceForSync();
+      // Get marks records that need sync
+      const marks = await this.getMarksForSync();
 
-      const totalPending = teacherAttendance.length + studentAttendance.length;
+      const totalPending =
+        teacherAttendance.length + studentAttendance.length + marks.length;
 
       return {
         teacherAttendancePending: teacherAttendance.length,
         studentAttendancePending: studentAttendance.length,
+        marksPending: marks.length,
         totalPending,
       };
     } catch (error) {
@@ -493,6 +662,7 @@ class ResyncService {
       return {
         teacherAttendancePending: 0,
         studentAttendancePending: 0,
+        marksPending: 0,
         totalPending: 0,
       };
     }
@@ -513,14 +683,13 @@ class ResyncService {
   /**
    * Get saved sync frequency preference
    */
-  async getSyncFrequency(): Promise<SyncFrequency["type"] | null> {
+  async getSyncFrequency(): Promise<SyncFrequency["type"]> {
     try {
-      return (await AsyncStorage.getItem("syncFrequency")) as
-        | SyncFrequency["type"]
-        | null;
+      const frequency = await AsyncStorage.getItem("syncFrequency");
+      return frequency as SyncFrequency["type"] | "daily";
     } catch (error) {
       console.error("Error getting sync frequency:", error);
-      return null;
+      return "daily";
     }
   }
 

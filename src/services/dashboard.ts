@@ -44,8 +44,9 @@ class DashboardService {
       ]);
 
       const classesWithStudents: ClassWithDetails[] = classes.map(cls => ({
-        id: cls.classId,
+        id: cls.id,
         name: cls.name,
+        classId: cls.classId,
         grade: cls.grade,
         section: cls.section,
         description: cls.description || "",
@@ -57,7 +58,7 @@ class DashboardService {
       }));
 
       for (const cls of classesWithStudents) {
-        const students = await StudentsService.getStudentsByClass(cls.id);
+        const students = await StudentsService.getStudentsByClass(cls.classId);
         cls.students = students;
       }
 
@@ -84,7 +85,7 @@ class DashboardService {
       // Get students for each class
       const classesWithDetails = await Promise.all(
         classes.map(async cls => {
-          const students = await DatabaseService.getClassStudents(cls.id);
+          const students = await DatabaseService.getClassStudents(cls.classId);
           const mappedStudents = students.map(student => ({
             id: student.id,
             studentId: student.studentId,
@@ -103,6 +104,7 @@ class DashboardService {
           return {
             id: cls.id,
             name: cls.name,
+            classId: cls.classId,
             grade: cls.grade,
             section: cls.section,
             description: cls.description || "",
@@ -169,7 +171,6 @@ class DashboardService {
               stats.totalStudents > 0
                 ? (stats.presentToday / stats.totalStudents) * 100
                 : 0,
-            color: this.generateColorFromString(cls.name),
           };
         }),
       );

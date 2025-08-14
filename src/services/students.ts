@@ -58,6 +58,29 @@ class StudentsService {
       throw new Error("Failed to get student by ID");
     }
   }
+  static async getAllStudents(): Promise<Student[]> {
+    try {
+      const students = await DatabaseService.getAllStudents();
+      return students.map(student => ({
+        id: student.id,
+        studentId: student.studentId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        classId: student.class?.id || "",
+        isActive: student.isActive,
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
+      }));
+    } catch (error) {
+      console.error("Error getting all students:", error);
+      throw new Error("Failed to get all students");
+    }
+  }
   static async getStudentByStudentId(
     studentId: string,
   ): Promise<Student | null> {

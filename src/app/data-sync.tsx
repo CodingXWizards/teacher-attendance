@@ -7,13 +7,15 @@ import {
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Database, AlertTriangle } from "lucide-react-native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useRoute, RouteProp } from "@react-navigation/native";
 
 import type { User } from "@/types";
 import { useUserStore } from "@/stores/userStore";
 import DataSyncService from "@/services/dataSyncService";
 import { useAlert } from "@/contexts/AlertContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { AuthService } from "@/services";
+import { useNavigation } from "@/navigation";
 
 type DataSyncScreenRouteProp = RouteProp<
   {
@@ -45,9 +47,12 @@ const DataSyncScreen = () => {
       setIsLoading(true);
       setSyncMessage("Checking existing data...");
 
-      const user = route.params?.user;
+      let user: User | null = route.params?.user;
       if (!user) {
-        throw new Error("No user data provided");
+        const currUser = await AuthService.getCurrentUserFromStore();
+        if (currUser) {
+          user = currUser;
+        }
       }
 
       setCurrentUser(user);
@@ -68,6 +73,8 @@ const DataSyncScreen = () => {
       // No conflict, proceed with data loading
       await loadTeacherData();
       await loadAttendanceData(user.id);
+      await loadSubjectMarksData(user.id);
+      navigateToDashboard();
     } catch (error) {
       console.error("Error in data sync initialization:", error);
       showAlert({
@@ -100,7 +107,7 @@ const DataSyncScreen = () => {
       }
 
       setSyncMessage("Loading teacher data...");
-      setSyncProgress(30);
+      setSyncProgress(20);
       try {
         // Load new teacher data
         await DataSyncService.loadTeacherData();
@@ -108,7 +115,7 @@ const DataSyncScreen = () => {
         console.error("Error loading teacher data:", error);
       }
       setSyncMessage("Loaded Teacher Data successfully...");
-      setSyncProgress(60);
+      setSyncProgress(40);
     } catch (error) {
       console.error("Error loading teacher data:", error);
       showAlert({
@@ -133,7 +140,7 @@ const DataSyncScreen = () => {
   const loadAttendanceData = async (teacherId: string) => {
     try {
       setSyncMessage("Loading attendance data...");
-      setSyncProgress(70);
+      setSyncProgress(50);
       try {
         await DataSyncService.loadAttendanceData(teacherId);
       } catch (error) {
@@ -142,10 +149,27 @@ const DataSyncScreen = () => {
       setSyncMessage("Loaded Attendance Data successfully...");
       await new Promise(resolve => setTimeout(resolve, 1000));
       setSyncMessage("Finalizing...");
-      setSyncProgress(100);
-      navigateToDashboard();
+      setSyncProgress(70);
     } catch (error) {
       console.error("Error loading attendance data:", error);
+    }
+  };
+
+  const loadSubjectMarksData = async (teacherId: string) => {
+    try {
+      setSyncMessage("Loading subject and marks data...");
+      setSyncProgress(80);
+      try {
+        await DataSyncService.loadSubjectMarksData(teacherId);
+      } catch (error) {
+        console.error("Error loading subject marks data:", error);
+      }
+      setSyncMessage("Loaded Subject Marks Data successfully...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSyncMessage("Finalizing...");
+      setSyncProgress(90);
+    } catch (error) {
+      console.error("Error loading subject marks data:", error);
     }
   };
 
@@ -186,7 +210,10 @@ const DataSyncScreen = () => {
     if (currentUser) {
       setUser(currentUser);
     }
-    navigation.navigate("Dashboard" as never);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Dashboard" }],
+    });
   };
 
   const renderConflictDialog = () => (

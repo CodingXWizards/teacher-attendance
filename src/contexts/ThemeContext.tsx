@@ -3,7 +3,7 @@ import { useColorScheme } from "react-native";
 
 export type ThemeMode = "light" | "dark" | "system";
 
-interface Colors {
+export interface Colors {
   // Background colors
   background: string;
   surface: string;
@@ -57,31 +57,26 @@ interface Colors {
 }
 
 const lightColors: Colors = {
-  // Background colors
   background: "#ffffff",
-  surface: "#f8fafc",
-  surfaceVariant: "#f1f5f9",
+  surface: "#ffffff",
+  surfaceVariant: "#f4f4f5",
   surfaceElevated: "#ffffff",
 
-  // Text colors
-  text: "#1f2937",
-  textSecondary: "#6b7280",
-  textTertiary: "#9ca3af",
+  text: "#09090b",
+  textSecondary: "#74747a",
+  textTertiary: "#a1a1aa",
   textInverse: "#ffffff",
 
-  // Primary colors
-  primary: "#6366f1",
-  primaryContainer: "#e0e7ff",
+  primary: "#2533eb",
+  primaryContainer: "#fff1f2",
   onPrimary: "#ffffff",
-  onPrimaryContainer: "#1e1b4b",
+  onPrimaryContainer: "#09090b",
 
-  // Secondary colors
-  secondary: "#8b5cf6",
-  secondaryContainer: "#f3f4f6",
-  onSecondary: "#ffffff",
-  onSecondaryContainer: "#1f2937",
+  secondary: "#f4f4f5",
+  secondaryContainer: "#ffffff",
+  onSecondary: "#18181b",
+  onSecondaryContainer: "#09090b",
 
-  // Status colors
   success: "#10b981",
   successContainer: "#dcfce7",
   error: "#ef4444",
@@ -91,74 +86,59 @@ const lightColors: Colors = {
   info: "#3b82f6",
   infoContainer: "#dbeafe",
 
-  // Border and divider colors
-  border: "#e5e7eb",
-  divider: "#f3f4f6",
-  outline: "#d1d5db",
+  border: "#e4e4e7",
+  divider: "#e4e4e7",
+  outline: "#e4e4e7",
 
-  // Overlay colors
   overlay: "rgba(0, 0, 0, 0.15)",
   backdrop: "rgba(0, 0, 0, 0.4)",
-
-  // Shadow colors
   shadow: "rgba(0, 0, 0, 0.1)",
 
-  // Special colors
-  disabled: "#9ca3af",
-  disabledContainer: "#f3f4f6",
+  disabled: "#a1a1aa",
+  disabledContainer: "#f4f4f5",
   ripple: "rgba(0, 0, 0, 0.1)",
 };
 
 const darkColors: Colors = {
-  // Background colors
-  background: "#0f172a",
-  surface: "#1e293b",
-  surfaceVariant: "#334155",
-  surfaceElevated: "#1e293b",
+  background: "#0c0a09",
+  surface: "#1c1917",
+  surfaceVariant: "#262626",
+  surfaceElevated: "#27272a",
 
-  // Text colors
-  text: "#f8fafc",
-  textSecondary: "#cbd5e1",
-  textTertiary: "#94a3b8",
-  textInverse: "#0f172a",
+  text: "#f2f2f2",
+  textSecondary: "#a1a1aa",
+  textTertiary: "#71717a",
+  textInverse: "#0c0a09",
 
-  // Primary colors
-  primary: "#818cf8",
-  primaryContainer: "#3730a3",
-  onPrimary: "#1e1b4b",
-  onPrimaryContainer: "#e0e7ff",
+  primary: "#2533eb",
+  primaryContainer: "#881337",
+  onPrimary: "#fff1f2",
+  onPrimaryContainer: "#0c0a09",
 
-  // Secondary colors
-  secondary: "#a78bfa",
-  secondaryContainer: "#4c1d95",
-  onSecondary: "#1f2937",
-  onSecondaryContainer: "#f3f4f6",
+  secondary: "#27272a",
+  secondaryContainer: "#2e2928",
+  onSecondary: "#fafafa",
+  onSecondaryContainer: "#0c0a09",
 
-  // Status colors
   success: "#34d399",
   successContainer: "#065f46",
-  error: "#f87171",
+  error: "#ef4444",
   errorContainer: "#7f1d1d",
   warning: "#fbbf24",
   warningContainer: "#92400e",
   info: "#60a5fa",
   infoContainer: "#1e3a8a",
 
-  // Border and divider colors
-  border: "#334155",
-  divider: "#475569",
-  outline: "#64748b",
+  border: "#27272a",
+  divider: "#3f3f46",
+  outline: "#52525b",
 
-  // Overlay colors
   overlay: "rgba(255, 255, 255, 0.1)",
-  backdrop: "rgba(0, 0, 0, 0.6)",
-
-  // Shadow colors
+  backdrop: "rgba(0, 0, 0, 0.5)",
   shadow: "rgba(0, 0, 0, 0.3)",
 
-  // Special colors
-  disabled: "#64748b",
-  disabledContainer: "#334155",
+  disabled: "#52525b",
+  disabledContainer: "#27272a",
   ripple: "rgba(255, 255, 255, 0.1)",
 };
 
@@ -207,8 +187,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Update theme when system color scheme changes
   useEffect(() => {
     if (themeMode === "system") {
-      // Force re-render when system theme changes
-      // This is handled automatically by the isDark calculation
+      setThemeMode(systemColorScheme === "dark" ? "dark" : "light");
     }
   }, [systemColorScheme, themeMode]);
 

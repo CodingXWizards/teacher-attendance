@@ -19,6 +19,13 @@ export type RootStackParamList = {
   };
   Reports: undefined;
   SyncLogs: undefined;
+  Marks: undefined;
+  AddEditMarks: {
+    mode: "add" | "edit";
+    subjectId?: string;
+    classId?: string;
+    month?: string;
+  };
 };
 
 // Navigation method types

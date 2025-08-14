@@ -4,7 +4,7 @@ import type {
   Teacher,
   UpdateUserRequest,
   UpdateTeacherRequest,
-  TeacherClass,
+  TeacherAssignment,
 } from "@/types";
 
 class UsersService {
@@ -104,12 +104,13 @@ class UsersService {
    */
   static async getTeacherAssignments(
     teacherId: string,
-  ): Promise<TeacherClass[]> {
+  ): Promise<TeacherAssignment[]> {
     try {
       const assignments = await DatabaseService.getTeacherAssignment(teacherId);
       return assignments.map(assignment => ({
         id: assignment.id,
         classId: assignment.classId,
+        subjectId: assignment.subjectId,
         teacherId: assignment.teacherId,
         isPrimaryTeacher: assignment.isPrimaryTeacher,
         isActive: assignment.isActive,

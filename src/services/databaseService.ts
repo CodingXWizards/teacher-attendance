@@ -5,17 +5,22 @@ import {
   Class,
   Student,
   SyncStatus,
-  TeacherClass,
+  TeacherAssignment,
   TeacherAttendance,
   StudentAttendance,
 } from "@/db/models";
 import database from "@/db";
 import {
   Class as ClassType,
+  Marks as MarksType,
   Student as StudentType,
+  Subject as SubjectType,
   TeacherAttendance as TeacherAttendanceType,
   StudentAttendance as StudentAttendanceType,
+  TeacherAssignment as TeacherAssignmentType,
 } from "@/types";
+import Subject from "../db/models/Subject";
+import Marks from "../db/models/Marks";
 
 // Utility function to convert snake_case to camelCase
 function snakeToCamel(str: string): string {
@@ -140,11 +145,51 @@ export class DatabaseService {
 
   static async getTeacherAssignment(
     teacherId: string,
-  ): Promise<TeacherClass[]> {
+  ): Promise<TeacherAssignment[]> {
     return await database
-      .get<TeacherClass>("teacher_class")
+      .get<TeacherAssignment>("teacher_assignments")
       .query(Q.where("teacher_id", teacherId), Q.where("is_active", true))
       .fetch();
+  }
+
+  static async getTeacherAssignmentBySubject(
+    subjectId: string,
+    teacherId?: string,
+  ): Promise<TeacherAssignment | null> {
+    try {
+      const queryConditions = [
+        Q.where("subject_id", subjectId),
+        Q.where("is_active", true),
+      ];
+
+      if (teacherId) {
+        queryConditions.push(Q.where("teacher_id", teacherId));
+      }
+
+      const [assignment] = await database
+        .get<TeacherAssignment>("teacher_assignments")
+        .query(...queryConditions)
+        .fetch();
+
+      return extractRawData(assignment) || null;
+    } catch (error) {
+      console.error("Error getting teacher assignment by subject:", error);
+      return null;
+    }
+  }
+
+  static async syncTeacherAssignments(
+    teacherAssignmentData: TeacherAssignmentType[],
+  ): Promise<void> {
+    for (const assignment of teacherAssignmentData) {
+      await this.createTeacherAssignment(
+        assignment.teacherId,
+        assignment.classId,
+        assignment.subjectId,
+        assignment.isPrimaryTeacher,
+        assignment.isActive,
+      );
+    }
   }
 
   static async syncTeacherAttendance(
@@ -224,6 +269,20 @@ export class DatabaseService {
       return extractRawData(classData) || null;
     } catch (error) {
       console.error("Error getting class by ID:", error);
+      return null;
+    }
+  }
+
+  static async getClassByClassId(classId: string): Promise<Class | null> {
+    try {
+      const [classData] = await database
+        .get<Class>("classes")
+        .query(Q.where("class_id", classId), Q.where("is_active", true))
+        .fetch();
+
+      return extractRawData(classData) || null;
+    } catch (error) {
+      console.error("Error getting class by class ID:", error);
       return null;
     }
   }
@@ -339,19 +398,22 @@ export class DatabaseService {
   }
 
   // TeacherClass operations
-  static async addTeacherToClass(
+  static async createTeacherAssignment(
     teacherId: string,
     classId: string,
+    subjectId: string,
     isPrimaryTeacher: boolean = false,
-  ): Promise<TeacherClass> {
+    isActive: boolean = true,
+  ): Promise<TeacherAssignment> {
     return await database.write(async () => {
       return await database
-        .get<TeacherClass>("teacher_class")
+        .get<TeacherAssignment>("teacher_assignments")
         .create(teacherClass => {
           teacherClass.teacherId = teacherId;
           teacherClass.classId = classId;
+          teacherClass.subjectId = subjectId;
           teacherClass.isPrimaryTeacher = isPrimaryTeacher;
-          teacherClass.isActive = true;
+          teacherClass.isActive = isActive;
         });
     });
   }
@@ -495,14 +557,6 @@ export class DatabaseService {
       .get<StudentAttendance>("student_attendance")
       .query(Q.where("class_id", classId), Q.where("date", date))
       .fetch();
-  }
-
-  static async syncStudentAttendance(
-    studentAttendanceData: StudentAttendanceType[],
-  ): Promise<void> {
-    for (const attendance of studentAttendanceData) {
-      await this.markStudentAttendance(attendance);
-    }
   }
 
   static async getClassAttendance(
@@ -660,6 +714,57 @@ export class DatabaseService {
     });
   }
 
+  // Subject operations
+  static async createSubject(subject: {
+    id: string;
+    name: string;
+    code: string;
+    description: string;
+    isActive: boolean;
+  }): Promise<void> {
+    await database.write(async () => {
+      await database.get<Subject>("subjects").create(sb => {
+        sb.subjectId = subject.id;
+        sb.name = subject.name;
+        sb.code = subject.code;
+        sb.description = subject.description;
+        sb.isActive = subject.isActive;
+      });
+    });
+  }
+
+  static async getAllSubjects(teacherId?: string): Promise<Subject[]> {
+    // For now, return all subjects since we don't have teacher-subject relationship
+    // This can be enhanced later if needed
+    return await database
+      .get<Subject>("subjects")
+      .query(Q.where("is_active", true))
+      .fetch();
+  }
+
+  // Subject marks operations
+  static async createSubjectMarks(subjectMark: {
+    id: string;
+    subjectId: string;
+    studentId: string;
+    marks: number;
+    month: string;
+  }): Promise<void> {
+    await database.write(async () => {
+      await database.get<Marks>("marks").create(sbMark => {
+        sbMark.markId = subjectMark.id;
+        sbMark.subjectId = subjectMark.subjectId;
+        sbMark.studentId = subjectMark.studentId;
+        sbMark.marks = subjectMark.marks;
+        sbMark.month = subjectMark.month;
+      });
+    });
+  }
+
+  static async getAllMarks(): Promise<Marks[]> {
+    return await database.get<Marks>("marks").query().fetch();
+  }
+
   // Sync operations
   static async updateSyncStatus(
     tableName: string,
@@ -733,13 +838,45 @@ export class DatabaseService {
     };
   }
 
+  static async syncStudentAttendance(
+    studentAttendanceData: StudentAttendanceType[],
+  ): Promise<void> {
+    for (const attendance of studentAttendanceData) {
+      await this.markStudentAttendance(attendance);
+    }
+  }
+
+  static async syncSubjects(subjects: SubjectType[]): Promise<void> {
+    for (const subject of subjects) {
+      await this.createSubject({
+        id: subject.id,
+        name: subject.name,
+        code: subject.code,
+        description: subject.description,
+        isActive: subject.isActive,
+      });
+    }
+  }
+
+  static async syncSubjectMarks(subjectMarks: MarksType[]): Promise<void> {
+    for (const subjectMark of subjectMarks) {
+      await this.createSubjectMarks({
+        id: subjectMark.id,
+        subjectId: subjectMark.subjectId,
+        studentId: subjectMark.studentId,
+        marks: Number(subjectMark.marks),
+        month: subjectMark.month,
+      });
+    }
+  }
+
   // Clear all data (for data sync)
   static async clearAllData(): Promise<void> {
     return await database.write(async () => {
       await database.get<User>("users").query().destroyAllPermanently();
       await database.get<Class>("classes").query().destroyAllPermanently();
       await database
-        .get<TeacherClass>("teacher_class")
+        .get<TeacherAssignment>("teacher_assignments")
         .query()
         .destroyAllPermanently();
       await database.get<Student>("students").query().destroyAllPermanently();
@@ -751,6 +888,8 @@ export class DatabaseService {
         .get<StudentAttendance>("student_attendance")
         .query()
         .destroyAllPermanently();
+      await database.get<Subject>("subjects").query().destroyAllPermanently();
+      await database.get<Marks>("marks").query().destroyAllPermanently();
       await database
         .get<SyncStatus>("sync_status")
         .query()

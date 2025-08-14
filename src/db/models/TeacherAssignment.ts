@@ -1,19 +1,22 @@
-import { Model } from "@nozbe/watermelondb";
 import {
   field,
   date,
   readonly,
   relation,
 } from "@nozbe/watermelondb/decorators";
+import { Model } from "@nozbe/watermelondb";
 import { Relation } from "@nozbe/watermelondb";
-import Class from "./Class";
-import User from "./User";
 
-export default class TeacherClass extends Model {
-  static table = "teacher_class";
+import User from "./User";
+import Class from "./Class";
+import Subject from "./Subject";
+
+export default class TeacherAssignment extends Model {
+  static table = "teacher_assignments";
 
   @field("teacher_id") teacherId!: string;
   @field("class_id") classId!: string;
+  @field("subject_id") subjectId!: string;
   @field("is_primary_teacher") isPrimaryTeacher!: boolean;
   @field("is_active") isActive!: boolean;
   @readonly @date("created_at") createdAt!: number;
@@ -21,4 +24,5 @@ export default class TeacherClass extends Model {
 
   @relation("users", "teacher_id") teacher!: Relation<User>;
   @relation("classes", "class_id") class!: Relation<Class>;
+  @relation("subjects", "subject_id") subject!: Relation<Subject>;
 }

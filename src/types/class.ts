@@ -2,6 +2,7 @@ import { Student } from "./student";
 
 export interface Class {
   id: string;
+  classId: string;
   name: string;
   grade: string;
   section: string;
@@ -19,7 +20,6 @@ export interface ClassSummary {
   presentToday: number;
   absentToday: number;
   attendanceRate: number;
-  color: string;
 }
 
 export interface ClassWithDetails extends Class {

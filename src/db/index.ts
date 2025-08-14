@@ -7,10 +7,12 @@ import migrations from "./migrations";
 import {
   User,
   Class,
-  TeacherClass,
+  TeacherAssignment,
   Student,
   TeacherAttendance,
   StudentAttendance,
+  Subject,
+  Marks,
   SyncStatus,
 } from "./models";
 
@@ -29,11 +31,13 @@ const database = new Database({
   modelClasses: [
     User,
     Class,
-    TeacherClass,
+    TeacherAssignment,
     Student,
     TeacherAttendance,
     StudentAttendance,
     SyncStatus,
+    Subject,
+    Marks,
   ],
 });
 

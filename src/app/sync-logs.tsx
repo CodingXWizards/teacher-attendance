@@ -28,7 +28,13 @@ import {
   SyncStats,
 } from "@/services/syncLogsService";
 
-type FilterType = "all" | "success" | "failed" | "teacher" | "student";
+type FilterType =
+  | "all"
+  | "success"
+  | "failed"
+  | "teacher"
+  | "student"
+  | "marks";
 
 export default function SyncLogs() {
   const { colors } = useTheme();
@@ -62,6 +68,8 @@ export default function SyncLogs() {
         filteredLogs = allLogs.filter(log => log.type === "teacher");
       } else if (filter === "student") {
         filteredLogs = allLogs.filter(log => log.type === "student");
+      } else if (filter === "marks") {
+        filteredLogs = allLogs.filter(log => log.type === "marks");
       }
 
       setLogs(filteredLogs);
@@ -150,6 +158,8 @@ export default function SyncLogs() {
         return "Teacher";
       case "student":
         return "Student";
+      case "marks":
+        return "Marks";
       case "all":
         return "All";
       default:
@@ -276,6 +286,7 @@ export default function SyncLogs() {
               { key: "failed", label: "Failed" },
               { key: "teacher", label: "Teacher" },
               { key: "student", label: "Student" },
+              { key: "marks", label: "Marks" },
             ].map(({ key, label }) => (
               <TouchableOpacity
                 key={key}
@@ -316,9 +327,9 @@ export default function SyncLogs() {
               </Text>
             </View>
           ) : (
-            logs.map(log => (
+            logs.map((log, index) => (
               <View
-                key={log.id}
+                key={index}
                 style={[
                   styles.logItem,
                   {

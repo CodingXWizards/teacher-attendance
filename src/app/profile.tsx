@@ -238,7 +238,10 @@ export default function ProfilePage() {
               console.error("Logout error:", error);
               // Force logout even if API call fails
               setUser(null);
-              navigation.navigate("Login" as never);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
             }
           },
         },
@@ -597,7 +600,7 @@ export default function ProfilePage() {
                 onPress={() => navigation.navigate("SyncLogs")}
               >
                 <Clock size={20} color={colors.primary} />
-                <Text style={[styles.syncLogsText, { color: colors.primary }]}>
+                <Text style={[styles.syncLogsText, { color: colors.text }]}>
                   View Sync Logs
                 </Text>
               </TouchableOpacity>
@@ -779,6 +782,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoutText: {
+    fontSize: 16,
     fontWeight: "500",
   },
   syncLogsCard: {
@@ -794,6 +798,6 @@ const styles = StyleSheet.create({
   },
   syncLogsText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });

@@ -41,10 +41,11 @@ export default schemaMigrations({
           ],
         }),
         createTable({
-          name: "teacher_class",
+          name: "teacher_assignments",
           columns: [
             { name: "teacher_id", type: "string", isIndexed: true },
             { name: "class_id", type: "string", isIndexed: true },
+            { name: "subject_id", type: "string", isIndexed: true },
             { name: "is_primary_teacher", type: "boolean" },
             { name: "is_active", type: "boolean" },
             { name: "created_at", type: "number" },
@@ -90,6 +91,30 @@ export default schemaMigrations({
             { name: "status", type: "string" },
             { name: "notes", type: "string", isOptional: true },
             { name: "marked_by", type: "string", isIndexed: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        createTable({
+          name: "subjects",
+          columns: [
+            { name: "subject_id", type: "string" },
+            { name: "name", type: "string" },
+            { name: "code", type: "string" },
+            { name: "description", type: "string", isOptional: true },
+            { name: "is_active", type: "boolean" },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        createTable({
+          name: "marks",
+          columns: [
+            { name: "marks_id", type: "string" },
+            { name: "subject_id", type: "string", isIndexed: true },
+            { name: "student_id", type: "string", isIndexed: true },
+            { name: "marks", type: "number" },
+            { name: "month", type: "string" },
             { name: "created_at", type: "number" },
             { name: "updated_at", type: "number" },
           ],

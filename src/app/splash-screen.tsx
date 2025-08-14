@@ -1,68 +1,203 @@
-import React from "react";
 import {
   View,
   Text,
+  Easing,
+  Animated,
   StatusBar,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { GraduationCap } from "lucide-react-native";
+import React, { useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { GraduationCap } from "lucide-react-native";
 
 const { width, height } = Dimensions.get("window");
 
 const SplashScreen = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 700,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Continuous rotation animation for background elements
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 20000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ).start();
+
+    // Pulse animation for loading indicator
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, []);
+
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
 
-      {/* Subtle background pattern */}
-      <View style={styles.backgroundPattern}>
-        <View style={styles.patternCircle1} />
-        <View style={styles.patternCircle2} />
-        <View style={styles.patternCircle3} />
+      {/* Animated background elements */}
+      <View style={styles.backgroundContainer}>
+        <Animated.View
+          style={[
+            styles.backgroundCircle1,
+            {
+              backgroundColor: colors.primaryContainer,
+              opacity: isDark ? 0.1 : 0.15,
+              transform: [{ rotate: rotateInterpolate }],
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.backgroundCircle2,
+            {
+              backgroundColor: colors.secondaryContainer,
+              opacity: isDark ? 0.08 : 0.12,
+              transform: [{ rotate: rotateInterpolate }],
+            },
+          ]}
+        />
+        <View style={styles.geometricPattern}>
+          <View
+            style={[
+              styles.geometricShape1,
+              {
+                backgroundColor: colors.primaryContainer,
+                opacity: isDark ? 0.05 : 0.08,
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.geometricShape2,
+              {
+                backgroundColor: colors.secondaryContainer,
+                opacity: isDark ? 0.03 : 0.06,
+              },
+            ]}
+          />
+        </View>
       </View>
 
       {/* Main content */}
-      <View style={styles.content}>
-        {/* Logo section */}
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+          },
+        ]}
+      >
+        {/* Logo section with enhanced design */}
         <View style={styles.logoSection}>
           <View
-            style={[
-              styles.logoContainer,
-              { backgroundColor: colors.primaryContainer },
-            ]}
+            style={[styles.logoContainer, { backgroundColor: colors.primary }]}
           >
-            <GraduationCap
-              size={48}
-              color={colors.onPrimary}
-              strokeWidth={1.5}
+            <View style={styles.logoInner}>
+              <GraduationCap
+                size={32}
+                color={colors.onPrimary}
+                strokeWidth={2}
+              />
+            </View>
+          </View>
+
+          {/* Decorative elements around logo */}
+          <View style={styles.logoDecorations}>
+            <View
+              style={[
+                styles.decorationDot1,
+                { backgroundColor: colors.secondary },
+              ]}
+            />
+            <View
+              style={[
+                styles.decorationDot2,
+                { backgroundColor: colors.success },
+              ]}
+            />
+            <View
+              style={[styles.decorationDot3, { backgroundColor: colors.info }]}
             />
           </View>
         </View>
 
-        {/* Title section */}
+        {/* Title section with improved typography */}
         <View style={styles.titleSection}>
-          <Text style={[styles.title, { color: colors.onPrimary }]}>
+          <Text style={[styles.title, { color: colors.text }]}>
             Teacher Attendance
           </Text>
+          <View style={styles.titleUnderline} />
         </View>
 
-        {/* Subtitle section */}
+        {/* Subtitle with better styling */}
         <View style={styles.subtitleSection}>
-          <Text style={[styles.subtitle, { color: colors.onPrimary }]}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Professional attendance management system
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
-      {/* Progress indicator */}
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.onPrimary} />
-      </View>
+      {/* Enhanced loading indicator */}
+      <Animated.View
+        style={[styles.loadingContainer, { transform: [{ scale: pulseAnim }] }]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </Animated.View>
     </View>
   );
 };
@@ -74,39 +209,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  backgroundPattern: {
+  backgroundContainer: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
-  patternCircle1: {
+  backgroundCircle1: {
     position: "absolute",
-    top: height * 0.1,
-    right: -width * 0.2,
-    width: width * 0.4,
-    height: width * 0.4,
-    borderRadius: width * 0.2,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-  },
-  patternCircle2: {
-    position: "absolute",
-    bottom: height * 0.2,
-    left: -width * 0.15,
+    top: height * 0.05,
+    right: -width * 0.15,
     width: width * 0.3,
     height: width * 0.3,
     borderRadius: width * 0.15,
-    backgroundColor: "rgba(255, 255, 255, 0.02)",
   },
-  patternCircle3: {
+  backgroundCircle2: {
     position: "absolute",
-    top: height * 0.6,
-    right: width * 0.1,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    bottom: height * 0.15,
+    left: -width * 0.1,
+    width: width * 0.2,
+    height: width * 0.2,
+    borderRadius: width * 0.1,
+  },
+  geometricPattern: {
+    position: "absolute",
+    top: height * 0.4,
+    right: width * 0.05,
+  },
+  geometricShape1: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    transform: [{ rotate: "45deg" }],
+  },
+  geometricShape2: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    position: "absolute",
+    top: 20,
+    right: -10,
   },
   content: {
     alignItems: "center",
@@ -115,60 +258,126 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoSection: {
-    marginBottom: 40,
+    marginBottom: 48,
+    position: "relative",
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logoInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoDecorations: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  decorationDot1: {
+    position: "absolute",
+    top: -10,
+    right: -10,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  decorationDot2: {
+    position: "absolute",
+    bottom: -5,
+    left: -5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  decorationDot3: {
+    position: "absolute",
+    top: 50,
+    right: -15,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   titleSection: {
-    marginBottom: 16,
+    marginBottom: 20,
+    alignItems: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     textAlign: "center",
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 60,
+    height: 3,
+    backgroundColor: "#6366f1",
+    borderRadius: 2,
   },
   subtitleSection: {
-    marginBottom: 60,
+    marginBottom: 48,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: "center",
-    fontWeight: "400",
-    lineHeight: 22,
+    fontWeight: "500",
+    lineHeight: 24,
+    letterSpacing: 0.2,
+  },
+  featuresSection: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 32,
+  },
+  featureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
   loadingContainer: {
     position: "absolute",
-    bottom: 120,
+    bottom: 100,
     alignItems: "center",
     width: "100%",
     paddingHorizontal: 40,
   },
-  progressBar: {
-    width: "100%",
-    height: 3,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 2,
+  loadingDots: {
+    flexDirection: "row",
+    gap: 8,
     marginBottom: 16,
-    overflow: "hidden",
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#ffffff",
-    borderRadius: 2,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.7,
   },
   loadingText: {
-    color: "rgba(255, 255, 255, 0.7)",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
 });
 

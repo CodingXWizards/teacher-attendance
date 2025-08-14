@@ -11,6 +11,7 @@ class ClassesService {
       const classes = await DatabaseService.getTeacherClasses(teacherId);
       return classes.map(cls => ({
         id: cls.id,
+        classId: cls.classId,
         name: cls.name,
         grade: cls.grade,
         section: cls.section,
@@ -36,6 +37,7 @@ class ClassesService {
 
       return {
         id: cls.id,
+        classId: cls.classId,
         name: cls.name,
         grade: cls.grade,
         section: cls.section,
@@ -69,6 +71,7 @@ class ClassesService {
         .filter(cls => cls.name.toLowerCase().includes(query.toLowerCase()))
         .map(cls => ({
           id: cls.id,
+          classId: cls.classId,
           name: cls.name,
           grade: cls.grade,
           section: cls.section,
