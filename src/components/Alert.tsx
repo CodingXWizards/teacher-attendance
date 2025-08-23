@@ -126,10 +126,7 @@ const Alert: React.FC<AlertProps> = ({
           {/* Buttons */}
           {buttons.length > 0 && (
             <View
-              style={[
-                styles.buttonContainer,
-                { borderTopColor: colors.border },
-              ]}
+              style={[styles.buttonContainer, { borderColor: colors.border }]}
             >
               {buttons.map((button, index) => (
                 <TouchableOpacity
@@ -161,7 +158,9 @@ const Alert: React.FC<AlertProps> = ({
 
           {/* Default OK button if no buttons provided */}
           {buttons.length === 0 && (
-            <View style={styles.buttonContainer}>
+            <View
+              style={[styles.buttonContainer, { borderColor: colors.border }]}
+            >
               <TouchableOpacity
                 style={[
                   styles.button,

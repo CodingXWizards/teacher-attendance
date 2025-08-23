@@ -417,7 +417,7 @@ export default function Home() {
                               ]}
                               onPress={() =>
                                 navigation.navigate("TakeAttendance", {
-                                  classId: cls.id,
+                                  classId: cls.classId,
                                 })
                               }
                             >

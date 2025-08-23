@@ -130,6 +130,25 @@ class AttendanceService {
   }
 
   /**
+   * Update only location coordinates for teacher attendance
+   */
+  static async updateTeacherAttendanceLocation(
+    id: string,
+    latitude: number,
+    longitude: number,
+  ): Promise<void> {
+    try {
+      await DatabaseService.updateTeacherAttendance(id, {
+        latitude,
+        longitude,
+      });
+    } catch (error) {
+      console.error("Error updating teacher attendance location:", error);
+      throw new Error("Failed to update teacher attendance location");
+    }
+  }
+
+  /**
    * Delete teacher attendance record from local database
    */
   static async deleteTeacherAttendance(_id: string): Promise<void> {

@@ -118,6 +118,9 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation project(':nozbe_watermelondb')
+    
+    // Google Play Services for location tracking
+    implementation 'com.google.android.gms:play-services-location:21.2.0'
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   PermissionsAndroid,
+  AppState,
 } from "react-native";
 import { useState, useEffect } from "react";
 import Geolocation from "@react-native-community/geolocation";
@@ -15,6 +16,7 @@ import { Clock, CheckCircle, MapPin } from "lucide-react-native";
 
 import { Appbar } from "@/components/appbar";
 import { AttendanceService } from "@/services";
+import { backgroundLocationService } from "@/services/backgroundLocationService";
 import { Calendar } from "@/components/Calendar";
 import { useUserStore } from "@/stores/userStore";
 import { useAlert } from "@/contexts/AlertContext";
@@ -38,6 +40,7 @@ export default function Attendance() {
     longitude: number;
   } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [isLocationTracking, setIsLocationTracking] = useState(false);
 
   const today = Date.now();
 
@@ -45,7 +48,30 @@ export default function Attendance() {
     loadTodayAttendance();
     loadAllAttendance();
     requestLocationPermission();
-  }, []);
+
+    // Check if location tracking is already active
+    setIsLocationTracking(backgroundLocationService.isLocationTrackingActive());
+
+    // Handle app state changes to ensure location tracking continues
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === "active" && isLocationTracking) {
+        // App came to foreground, check if tracking is still active
+        setIsLocationTracking(
+          backgroundLocationService.isLocationTrackingActive(),
+        );
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+
+    // Cleanup: stop location tracking when component unmounts
+    return () => {
+      subscription?.remove();
+    };
+  }, [isLocationTracking]);
 
   const requestLocationPermission = async () => {
     try {
@@ -182,6 +208,8 @@ export default function Attendance() {
 
       const currentTime = Date.now();
 
+      let attendanceId: string;
+
       if (attendance) {
         // Update existing attendance
         await AttendanceService.updateTeacherAttendance(attendance.id, {
@@ -190,9 +218,10 @@ export default function Attendance() {
           latitude: currentLocation.latitude,
           longitude: currentLocation.longitude,
         });
+        attendanceId = attendance.id;
       } else {
         // Create new attendance
-        await AttendanceService.createTeacherAttendance({
+        attendanceId = await AttendanceService.createTeacherAttendance({
           teacherId: user.id,
           latitude: currentLocation.latitude,
           longitude: currentLocation.longitude,
@@ -201,12 +230,18 @@ export default function Attendance() {
         });
       }
 
+      // Start background location tracking
+      console.log("Starting background location tracking");
+      backgroundLocationService.startTracking(attendanceId, user.id);
+      setIsLocationTracking(true);
+
       setCheckInTime(currentTime);
       await loadTodayAttendance();
       await loadAllAttendance();
       showAlert({
         title: "Success",
-        message: "Marked as present with location!",
+        message:
+          "Marked as present with location! Background tracking started.",
         type: "success",
       });
     } catch (error) {
@@ -354,6 +389,17 @@ export default function Attendance() {
                 </Text>
               </View>
             )}
+            {isLocationTracking && (
+              <View style={styles.timeRow}>
+                <MapPin size={16} color={colors.success} />
+                <Text style={[styles.timeLabel, { color: colors.success }]}>
+                  Location Tracking:
+                </Text>
+                <Text style={[styles.timeValue, { color: colors.success }]}>
+                  Active (every 5 min)
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -421,7 +467,11 @@ export default function Attendance() {
                 key={att.id || index}
                 style={[
                   styles.historyItem,
-                  { borderBottomColor: colors.border },
+                  {
+                    borderBottomWidth:
+                      index === allAttendance.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  },
                 ]}
               >
                 <View style={styles.historyDate}>
@@ -621,7 +671,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderBottomWidth: 1,
   },
   historyDate: {
     flex: 1,
@@ -648,6 +697,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   locationCard: {
+    marginTop: 20,
     padding: 20,
     borderRadius: 12,
     shadowOffset: {

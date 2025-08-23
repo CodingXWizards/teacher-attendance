@@ -33,6 +33,17 @@
 		</dict>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>This app needs access to location to mark attendance with your current location.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>This app needs access to location in the background to track your attendance
+			location every 5 minutes.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>This app needs access to location in the background to track your attendance
+			location every 5 minutes.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+			<string>background-processing</string>
+		</array>
 		<key>RCTNewArchEnabled</key>
 		<true />
 		<key>UILaunchStoryboardName</key>
