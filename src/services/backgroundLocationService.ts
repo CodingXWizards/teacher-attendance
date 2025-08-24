@@ -1,6 +1,7 @@
 import Geolocation from "@react-native-community/geolocation";
 import AttendanceService from "./attendance";
 import { NativeModules, Platform, DeviceEventEmitter } from "react-native";
+import UsersService from "./users";
 
 interface LocationData {
   latitude: number;
@@ -52,9 +53,6 @@ class BackgroundLocationService {
   private startJSTracking(): void {
     // Start tracking immediately
     this.trackLocation();
-
-    // Set up interval for every 5 minutes (300000 ms)
-    // For testing, you can reduce this to 30 seconds (30000 ms)
     this.locationInterval = setInterval(() => {
       this.trackLocation();
     }, 30000);
@@ -85,11 +83,7 @@ class BackgroundLocationService {
   }): Promise<void> {
     if (this.currentAttendanceId) {
       try {
-        // await AttendanceService.updateTeacherAttendanceLocation(
-        //   this.currentAttendanceId,
-        //   data.latitude,
-        //   data.longitude,
-        // );
+        await UsersService.pushLiveLocation(data.latitude, data.longitude);
       } catch (error) {
         console.error("Error updating location from native service:", error);
       }
@@ -137,7 +131,10 @@ class BackgroundLocationService {
     try {
       const location = await this.getCurrentLocation();
       if (location) {
-        // await this.updateAttendanceLocation(location);
+        await UsersService.pushLiveLocation(
+          location.latitude,
+          location.longitude,
+        );
       }
     } catch (error) {
       console.error("Error tracking location:", error);
@@ -172,23 +169,6 @@ class BackgroundLocationService {
         },
       );
     });
-  }
-
-  /**
-   * Update attendance record with new location
-   */
-  private async updateAttendanceLocation(
-    location: LocationData,
-  ): Promise<void> {
-    try {
-      await AttendanceService.updateTeacherAttendanceLocation(
-        this.currentAttendanceId!,
-        location.latitude,
-        location.longitude,
-      );
-    } catch (error) {
-      console.error("Error updating attendance location:", error);
-    }
   }
 
   /**

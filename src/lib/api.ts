@@ -84,7 +84,8 @@ class ApiClient {
   // Get authentication token
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem("access_token");
+      const token = await AsyncStorage.getItem("access_token");
+      return token;
     } catch (error) {
       console.error("Error getting auth token:", error);
       return null;
@@ -282,6 +283,7 @@ export const endpoints = {
     updatePassword: (id: string) => `/user/${id}/password`,
     changePassword: (id: string) => `/user/${id}/change-password`,
     delete: (id: string) => `/user/${id}`,
+    pushLiveLocation: "/user/live-location",
   },
   subjects: {
     list: "/subject",
@@ -471,6 +473,9 @@ export const usersApi = {
     api.put<void>(endpoints.users.changePassword(id), passwordData),
 
   delete: (id: string) => api.delete<void>(endpoints.users.delete(id)),
+
+  pushLiveLocation: (latitude: number, longitude: number) =>
+    api.post<void>(endpoints.users.pushLiveLocation, { latitude, longitude }),
 };
 
 export const resyncApi = {

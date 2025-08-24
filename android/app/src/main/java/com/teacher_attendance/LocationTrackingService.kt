@@ -25,7 +25,7 @@ class LocationTrackingService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "location_tracking_channel"
-        private const val LOCATION_UPDATE_INTERVAL = 5 * 60 * 1000L // 5 minutes
+        private const val LOCATION_UPDATE_INTERVAL = 30 * 1000L // 30 seconds
     }
 
     override fun onCreate() {

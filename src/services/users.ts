@@ -122,6 +122,21 @@ class UsersService {
       throw new Error("Failed to get teacher assignments");
     }
   }
+
+  /**
+   * Get live location from local database
+   */
+  static async pushLiveLocation(
+    latitude: number,
+    longitude: number,
+  ): Promise<void> {
+    try {
+      await DatabaseService.pushLiveLocation(latitude, longitude);
+    } catch (error) {
+      console.error("Error pushing live location:", error);
+      throw new Error("Failed to push live location");
+    }
+  }
 }
 
 export default UsersService;

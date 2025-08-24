@@ -21,6 +21,7 @@ import {
 } from "@/types";
 import Subject from "../db/models/Subject";
 import Marks from "../db/models/Marks";
+import { usersApi } from "../lib/api";
 
 // Utility function to convert snake_case to camelCase
 function snakeToCamel(str: string): string {
@@ -791,13 +792,13 @@ export class DatabaseService {
     return status.length > 0 ? status[0] : null;
   }
 
-  static async getTeacherStats(teacherId: string): Promise<{
+  static async getTeacherStats(): Promise<{
     totalClasses: number;
     totalStudents: number;
     attendanceThisMonth: number;
   }> {
     try {
-      const classes = await this.getTeacherClasses(teacherId);
+      const classes = await this.getTeacherClasses();
       let totalStudents = 0;
 
       for (const cls of classes) {
@@ -861,6 +862,13 @@ export class DatabaseService {
         month: subjectMark.month,
       });
     }
+  }
+
+  static async pushLiveLocation(
+    latitude: number,
+    longitude: number,
+  ): Promise<void> {
+    await usersApi.pushLiveLocation(latitude, longitude);
   }
 
   // Clear all data (for data sync)
